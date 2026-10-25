@@ -211,3 +211,7 @@ bun run typecheck
 - Localization files live in `src/web/shared/i18n/locales`. `zh-Hans.ts` is the single source of truth for message keys; `zh-Hant.ts` and `en-US.ts` enforce 1:1 key and placeholder parity via TypeScript and `locales.test.ts`.
 - Navigation and theme switching use the View Transitions API. Route changes reset window scroll. Desktop sidebar navigation performs smooth in-place content transitions without sidebar jitter.
 - Database schema changes are versioned sequentially in `migrations/`. `bun run deploy` automatically applies pending remote migrations before deployment.
+
+## License
+
+[GNU AGPL v3](../LICENSE) or later. If you modify this project and let others use it over a network, you must offer those users the complete corresponding source code.

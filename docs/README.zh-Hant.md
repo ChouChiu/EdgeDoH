@@ -211,3 +211,7 @@ bun run typecheck
 - 語言套件位於 `src/web/shared/i18n/locales`，以 `zh-Hans.ts` 為基準鍵目錄，`zh-Hant.ts` 與 `en-US.ts` 透過 TypeScript 型別及 `locales.test.ts` 保持鍵名與參數預留位置的 100% 嚴格一致。
 - 換頁與主題切換均深度整合 View Transitions API；頁面路由切換時自動重設捲動位置；桌面端導覽僅淡入更新內文，側邊欄保持平穩無閃爍。
 - 所有資料表結構變更統一遞增存放在 `migrations` 目錄下，`bun run deploy` 部署時自動執行未套用的遠端遷移。
+
+## 授權
+
+[GNU AGPL v3](../LICENSE) 或任意更新版本。若你修改本專案並以網路服務形式提供給他人使用，須向其使用者提供對應的完整原始碼。
