@@ -14,6 +14,9 @@ import {
 import { useI18n } from "@/shared/i18n";
 import { isActive, NAV } from "./nav";
 
+// A modified copy served to others has to offer them its own source, so a fork points this at its own repository
+const SOURCE_URL = "https://github.com/ChouChiu/cf-dns";
+
 export function AppSidebar() {
   const { t } = useI18n();
   const { pathname, search } = useLocation();
@@ -60,10 +63,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <p className="truncate px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden" title={location.host}>
+      <SidebarFooter className="gap-1 group-data-[collapsible=icon]:hidden">
+        <p className="truncate px-2 text-xs text-muted-foreground" title={location.host}>
           {location.host}
         </p>
+        {/* AGPL-3.0 section 13: whoever uses this dashboard over the network can reach its source from here */}
+        <a
+          href={SOURCE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="px-2 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          AGPL-3.0 · {t("footer.source")}
+        </a>
       </SidebarFooter>
     </Sidebar>
   );

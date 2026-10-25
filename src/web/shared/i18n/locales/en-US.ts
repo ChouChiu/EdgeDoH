@@ -9,6 +9,7 @@ export const enUS: Messages = {
   "nav.settings": "Settings",
   "nav.install": "Install Filter List",
   "nav.toggleSidebar": "Toggle Sidebar",
+  "footer.source": "Source code",
 
   "theme.toggle": "Switch Theme",
   "theme.light": "Light",

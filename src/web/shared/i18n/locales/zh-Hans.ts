@@ -8,6 +8,7 @@ export const zhHans = {
   "nav.settings": "设置",
   "nav.install": "安装过滤列表",
   "nav.toggleSidebar": "切换侧边栏",
+  "footer.source": "源代码",
 
   "theme.toggle": "切换主题",
   "theme.light": "浅色",

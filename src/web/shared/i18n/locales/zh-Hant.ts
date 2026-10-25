@@ -9,6 +9,7 @@ export const zhHant: Messages = {
   "nav.settings": "設定",
   "nav.install": "安裝過濾清單",
   "nav.toggleSidebar": "切換側邊欄",
+  "footer.source": "原始碼",
 
   "theme.toggle": "切換主題",
   "theme.light": "淺色",
