@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" sizes="48x48" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- resizes-content: Chromium shrinks the layout when the keyboard opens; iOS is handled in src/web/shared/lib/viewport.ts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <!-- Kept in sync with the active theme by ThemeProvider -->
+    <meta name="theme-color" content="#ffffff" />
+    <title>cf-dns</title>
+    <!-- Applies the saved theme before first paint so dark mode never starts white; ThemeProvider takes over once loaded -->
+    <script>
+      try {
+        const saved = localStorage.getItem("theme");
+        const dark = saved === "dark" || (saved !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.add(dark ? "dark" : "light");
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0a0a0a" : "#ffffff");
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/web/main.tsx"></script>
+  </body>
+</html>

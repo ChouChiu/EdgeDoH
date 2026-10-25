@@ -1,0 +1,282 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Keyboard-aware positioning, fed by src/web/shared/lib/viewport.ts; the fallbacks apply before it runs or without visualViewport */
+@utility bottom-keyboard {
+  bottom: calc(var(--keyboard-inset, 0px) + env(safe-area-inset-bottom));
+}
+/* Floating bars keep a gap above the bottom edge instead of sitting flush against it */
+@utility bottom-keyboard-float {
+  bottom: calc(var(--keyboard-inset, 0px) + env(safe-area-inset-bottom) + 0.75rem);
+}
+@utility top-visual-center {
+  top: calc(var(--vv-top, 0px) + var(--vv-height, 100dvh) / 2);
+}
+@utility max-h-visual {
+  max-height: calc(var(--vv-height, 100dvh) - 2rem);
+}
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-info-foreground: var(--info-foreground);
+    --color-info: var(--info);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-warning: var(--warning);
+    --color-success-foreground: var(--success-foreground);
+    --color-success: var(--success);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Yellow, white and black. White and black carry the structure, yellow is the only accent: primary actions,
+ * the active nav item, focus rings and the first chart series. Destructive stays red, it is a signal not a brand
+ * colour. Hue 82 is the icon's Cloudflare amber pulled towards yellow; every tinted neutral below shares it
+ */
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.82 0.17 82);
+    --primary-foreground: oklch(0.145 0 0);
+    --secondary: oklch(0.97 0.012 90);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0.012 90);
+    --muted-foreground: oklch(0.52 0.015 85);
+    --accent: oklch(0.95 0.055 88);
+    --accent-foreground: oklch(0.205 0 0);
+    /* Outcomes, not decoration: red is blocked or destroyed, green is allowed or healthy, blue is rewritten or cached */
+    --destructive: oklch(0.577 0.245 27.325);
+    --success: oklch(0.6 0.145 150);
+    --success-foreground: oklch(0.985 0 0);
+    --warning: oklch(0.7 0.17 50);
+    --warning-foreground: oklch(0.145 0 0);
+    --info: oklch(0.58 0.15 250);
+    --info-foreground: oklch(0.985 0 0);
+    --border: oklch(0.915 0.008 90);
+    --input: oklch(0.915 0.008 90);
+    --ring: oklch(0.82 0.17 82);
+    /* One hue apiece so neighbouring series never blur together; chart-1 is the brand yellow */
+    --chart-1: oklch(0.82 0.17 82);
+    --chart-2: oklch(0.58 0.15 250);
+    --chart-3: oklch(0.6 0.145 150);
+    --chart-4: oklch(0.64 0.2 30);
+    --chart-5: oklch(0.58 0.16 300);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0.006 90);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.82 0.17 82);
+    --sidebar-primary-foreground: oklch(0.145 0 0);
+    --sidebar-accent: oklch(0.95 0.055 88);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.915 0.008 90);
+    --sidebar-ring: oklch(0.82 0.17 82);
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    /* Lifted off the light value: the same yellow reads duller against black */
+    --primary: oklch(0.85 0.165 85);
+    --primary-foreground: oklch(0.17 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.72 0.012 85);
+    /* Tinting a dark surface yellow only turns it brown, so the accent stays neutral; the icon beside the
+       label carries the yellow instead, which marks the selection without making the label itself hard to read */
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --success: oklch(0.72 0.17 152);
+    --success-foreground: oklch(0.17 0 0);
+    --warning: oklch(0.78 0.16 62);
+    --warning-foreground: oklch(0.17 0 0);
+    --info: oklch(0.7 0.14 250);
+    --info-foreground: oklch(0.17 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.72 0.145 82);
+    --chart-1: oklch(0.85 0.165 85);
+    --chart-2: oklch(0.7 0.14 250);
+    --chart-3: oklch(0.72 0.17 152);
+    --chart-4: oklch(0.7 0.19 32);
+    --chart-5: oklch(0.7 0.15 300);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.85 0.165 85);
+    --sidebar-primary-foreground: oklch(0.17 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.72 0.145 82);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  /*
+   * The canvas is what shows through wherever a view transition snapshot is transparent, so <html> paints the
+   * theme background itself and color-scheme keeps the UA canvas, scrollbars and form controls dark in dark mode
+   */
+  html {
+    @apply bg-background font-sans;
+    color-scheme: light;
+    }
+  html.dark {
+    color-scheme: dark;
+    }
+}
+
+/*
+ * Touch screens get tap targets of at least 36px. Unlayered on purpose so it wins over the
+ * size utilities inside the shadcn components without editing each of them
+ */
+@media (pointer: coarse) {
+  /* Matched by attributes, not data-slot: Radix triggers rendered asChild replace the button's data-slot */
+  :is(button, a)[data-variant]:is([data-size="icon"], [data-size="icon-sm"]) {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  :is(button, a)[data-variant]:is([data-size="default"], [data-size="sm"]),
+  [data-slot="input"],
+  [data-slot="select-trigger"] {
+    height: 2.25rem;
+  }
+  [data-slot="select-item"],
+  [data-slot="dropdown-menu-item"] {
+    min-height: 2.25rem;
+  }
+}
+
+/*
+ * Theme changes run as a view transition (src/web/shared/lib/view-transition.ts): going dark grows the new
+ * theme as a circle out of the control that was clicked, going light shrinks the dark theme back into it
+ */
+html[data-transition]::view-transition-old(root),
+html[data-transition]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-transition="expand"]::view-transition-new(root) {
+  animation: theme-expand 450ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* The old snapshot has to sit on top to be seen shrinking */
+html[data-transition="collapse"]::view-transition-old(root) {
+  z-index: 1;
+  animation: theme-collapse 450ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes theme-expand {
+  from {
+    clip-path: circle(0 at var(--transition-x) var(--transition-y));
+  }
+  to {
+    clip-path: circle(var(--transition-r) at var(--transition-x) var(--transition-y));
+  }
+}
+@keyframes theme-collapse {
+  from {
+    clip-path: circle(var(--transition-r) at var(--transition-x) var(--transition-y));
+  }
+  to {
+    clip-path: circle(0 at var(--transition-x) var(--transition-y));
+  }
+}
+
+/*
+ * Page changes from the sidebar run as a view transition too (NavLink `viewTransition`): only the page body
+ * fades in, the root switches at once so the sidebar and header never fade, and the header is a group of its own
+ * so the incoming page cannot paint over it. Theme transitions set data-transition and skip all of this
+ */
+html:not([data-transition]) [data-vt="page"] {
+  view-transition-name: page;
+}
+html:not([data-transition]) [data-vt="header"] {
+  view-transition-name: header;
+}
+html:not([data-transition])::view-transition-new(root),
+::view-transition-group(header),
+::view-transition-new(header) {
+  animation: none;
+}
+::view-transition-old(header) {
+  display: none;
+}
+/*
+ * The body jumps to its new box (scroll reset, other height) and only the new page fades in. The old page is never
+ * shown: Chrome on the GPU sometimes paints a captured snapshot of it as a white block in dark mode, while the new
+ * page and the root are live renderings, so nothing captured is left on screen
+ */
+::view-transition-group(page) {
+  animation: none;
+}
+::view-transition-old(page),
+html:not([data-transition])::view-transition-old(root) {
+  display: none;
+}
+::view-transition-new(page) {
+  animation: page-in 180ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(page) {
+    animation: none;
+  }
+}
