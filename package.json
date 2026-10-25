@@ -1,0 +1,81 @@
+{
+  "name": "cf-dns",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#dns": "./src/lib/dns/index.ts",
+    "#filter": "./src/lib/filter/index.ts"
+  },
+  "bin": {
+    "cf-dns": "./src/cli/main.ts"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "setup": "bun src/cli/setup.ts",
+    "deploy": "bun run build && bun run db:migrate:remote && wrangler deploy",
+    "secrets:push": "wrangler secret bulk .env.production",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "cli": "bun src/cli/main.ts",
+    "test": "vitest run",
+    "types": "wrangler types src/worker/worker-configuration.d.ts --strict-vars=false",
+    "typecheck": "wrangler types src/worker/worker-configuration.d.ts --strict-vars=false --check && tsc -b"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.5",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.5.0",
+    "hono": "^4.13.13",
+    "jose": "^6.2.13",
+    "lucide-react": "^1.61.0",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.0",
+    "recharts": "3.8.0",
+    "shadcn": "^4.22.1",
+    "sonner": "^2.0.8",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.65.0",
+    "@cloudflare/vitest-plugin": "^1.4.7",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^24",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ACCESS_TEAM_DOMAIN": {
+        "description": "Zero Trust team domain protecting the dashboard, e.g. `myteam.cloudflareaccess.com`. Found under **Zero Trust > Settings > Team name and domain**"
+      },
+      "ACCESS_AUD": {
+        "description": "Application Audience (AUD) tag of the Access application covering the dashboard hostname, under **Zero Trust > Access > Applications > Configure > Basic information**. See [the deployment guide](https://github.com/ChouChiu/cf-dns/blob/main/docs/deploy.md)"
+      },
+      "CF_ACCOUNT_ID": {
+        "description": "Your Cloudflare account ID, shown on the account home page and in the dashboard URL"
+      },
+      "STATS_API_TOKEN": {
+        "description": "API token with **Account > Account Analytics > Read**, used to read query statistics from Analytics Engine"
+      },
+      "DB": {
+        "description": "Devices, filter lists and settings"
+      },
+      "RULES": {
+        "description": "Compiled filter rule snapshots and list text"
+      }
+    }
+  }
+}

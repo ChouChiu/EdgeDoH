@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig/lib.json" },
+    { "path": "./tsconfig/worker.json" },
+    { "path": "./tsconfig/web.json" },
+    { "path": "./tsconfig/cli.json" },
+    { "path": "./tsconfig/node.json" }
+  ],
+  // Read by the shadcn CLI; the dashboard's own alias lives in tsconfig/web.json and vite.config.ts
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/web/*"]
+    }
+  }
+}

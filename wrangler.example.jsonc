@@ -1,0 +1,59 @@
+{
+  // Template for wrangler.jsonc, which holds this account’s resource IDs and stays out of version control:
+  // `cp wrangler.example.jsonc wrangler.jsonc`, then `bun run setup` fills the IDs in
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cf-dns",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-20",
+  "observability": { "enabled": true },
+  // Defaults for a fresh deployment without a domain. Setting CUSTOM_DOMAIN (.env.deploy or a build variable) makes
+  // vite.config.ts serve the Worker only on that domain: Cache API does not work on workers.dev, which is also
+  // unreachable from mainland China
+  "workers_dev": true,
+  "preview_urls": false,
+  // Dashboard SPA from src/web; the Worker only runs first for API and DoH paths. `vite build` (Cloudflare plugin)
+  // writes the client to dist/client and a deploy config pointing at it, which `wrangler deploy` picks up
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/dns-query", "/dns-query/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cf-dns",
+      "database_id": "<d1-database-id>",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    // Compiled rule snapshots, see src/worker/features/rules/store.ts
+    { "binding": "RULES", "id": "<kv-namespace-id>" }
+  ],
+  "durable_objects": {
+    // Source networks seen per device, for the client limit; see src/worker/features/devices/client-guard.ts
+    "bindings": [{ "name": "DEVICE_CLIENTS", "class_name": "DeviceClients" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceClients"] }],
+  "analytics_engine_datasets": [
+    // One data point per DNS query, see src/worker/features/stats/schema.ts
+    { "binding": "QUERY_LOG", "dataset": "cf_dns_queries" }
+  ],
+  "vars": {
+    "STATS_DATASET": "cf_dns_queries",
+    // How blocked names are answered: null_ip (0.0.0.0 / ::), nxdomain, refused or nodata
+    "BLOCKING_MODE": "null_ip",
+    // TTL in seconds of blocked and rewritten answers
+    "BLOCKED_TTL": "10",
+    // Tried in order; the next one is used on network errors, timeouts and SERVFAIL
+    "UPSTREAMS": "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query",
+    "UPSTREAM_TIMEOUT_MS": "3000",
+    // Only honoured for requests addressed to localhost; .env sets it to "true" for local development
+    "ACCESS_DEV_BYPASS": "false"
+  },
+  // Account-specific values live outside the repository: .env for `wrangler dev`, .env.production
+  // uploaded with `bun run secrets:push` for the deployed Worker; see .env.example
+  "secrets": {
+    "required": ["ACCESS_TEAM_DOMAIN", "ACCESS_AUD", "CF_ACCOUNT_ID", "STATS_API_TOKEN"]
+  }
+}
