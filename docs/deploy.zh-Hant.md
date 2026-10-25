@@ -1,0 +1,153 @@
+# 部署指南
+
+<p align="center">
+  <a href="deploy.md">简体中文</a> · <b>繁體中文</b> · <a href="deploy.en.md">English</a>
+</p>
+
+cf-dns 提供兩種部署方式：本機互動式一鍵部署指令碼（推薦），或透過 GitHub 上的 Deploy to Cloudflare 按鈕自動化部署。兩種方式依賴的前置資源相同，部署前請先完成前置準備。
+
+---
+
+## 前置準備
+
+### 1. 帳號與網域規劃
+
+1. 準備一個 Cloudflare 帳號（Workers 免費方案即可滿足日常個人及家庭使用需求）。
+2. 準備一個已託管在目前 Cloudflare 帳號下的根網域（如 `example.com`），解析服務將綁定在子網域上（如 `dns.example.com`）。
+3. 無需提前建立子網域 DNS 記錄：部署時系統會自動分配並綁定。若此前已有同名 DNS 記錄，請提前刪除以避免衝突。
+4. 關於 workers.dev 網域的限制：Cloudflare 預設的 `*.workers.dev` 網域下 Cache API 無法生效（無法利用邊緣快取，每次查詢都會轉送至上游），且該網域在中國大陸地區被阻斷，因此強烈建議綁定獨立網域。
+5. 取得帳戶 ID：登入 Cloudflare 控制台，在首頁右下角複製「帳戶 ID」，或從瀏覽器網址列擷取（`dash.cloudflare.com/<帳戶ID>`）。
+
+### 2. 初始化 Zero Trust 團隊
+
+管理面板與管理 API 全部受 Cloudflare Access (Zero Trust) 保護。若未設定相關金鑰，基於安全考量，Worker 驗證中介軟體將回傳 HTTP 503 並拒絕所有管理請求。
+
+1. 進入 [Zero Trust 控制台](https://one.dash.cloudflare.com/)。首次使用依頁面指引建立團隊名稱，方案選擇 Free 即可。
+2. 進入「設定 → 自訂」，記錄團隊網域（格式通常為 `your-team.cloudflareaccess.com`），該值對應設定項 `ACCESS_TEAM_DOMAIN`。
+3. 進入「設定 → 身分驗證」，確認已啟用至少一種登入認證方式（預設開啟的電子郵件一次性 PIN 驗證碼即可開箱即用）。
+
+### 3. 設定兩條 Access 應用程式規則
+
+進入「Access → 應用程式 → 新增應用程式 → 自託管」，以 `dns.example.com` 為例依序建立兩個應用：
+
+| 應用名稱 | 路徑 (Path) | 策略設定 | 說明 |
+| --- | --- | --- | --- |
+| `cf-dns 控制台` | 留空（保護全站） | 操作：`Allow`<br>規則包含：`Emails` 填入自己的電子郵件 | 僅允許指定的電子郵件登入面板並呼叫 `/api/*` |
+| `cf-dns DoH` | `dns-query` | 操作：`Bypass`<br>規則包含：`Everyone` | 允許所有用戶端直連 DoH 介面，略過登入認證 |
+
+Cloudflare Access 遵循最長前綴優先比對原則。建立路徑為 `dns-query` 的 Bypass 規則後，所有發往 `/dns-query` 及 `/dns-query/*` 的 DoH 查詢請求都會直接放行，避免因重新導向至登入頁導致用戶端解析失敗。
+
+建立完第一個面板應用後，進入該應用的「基本資訊 (Overview)」，複製「應用程式受眾 (AUD) 標籤」，該值對應設定項 `ACCESS_AUD`。
+
+### 4. 建立 Analytics Engine 統計憑證（選填）
+
+若需要啟用儀表板中的查詢分析、圖表統計與日誌功能，需要建立一個用於呼叫 Analytics Engine SQL API 的權杖：
+
+1. 進入 Cloudflare 控制台「我的設定檔 → API 權杖 → 建立權杖 → 建立自訂權杖」。
+2. 權限新增：`帳戶 → 帳戶分析 → 讀取` (Account > Account Analytics > Read)。
+3. 帳戶資源選擇「包含 → 指定帳戶（或所有帳戶）」。
+4. 建立後複製產生的 Token 字串，該值對應設定項 `STATS_API_TOKEN`。
+
+若無需統計圖表，此項可留空。此時僅面板內的統計頁面無法使用，核心 DNS 解析與廣告攔截功能均不受任何影響。
+
+### 5. 憑證清單彙整
+
+在進行部署前，確認已收集齊以下 4 項憑證：
+
+| 變數名稱 | 取得管道 |
+| --- | --- |
+| `ACCESS_TEAM_DOMAIN` | Zero Trust 團隊網域（第 2 步） |
+| `ACCESS_AUD` | 面板 Access 應用的 AUD 標籤（第 3 步） |
+| `CF_ACCOUNT_ID` | Cloudflare 帳戶 ID（第 1 步，互動指令碼可自動取得） |
+| `STATS_API_TOKEN` | 具備帳戶分析讀取權限的 API 權杖（第 4 步，選填） |
+
+---
+
+## 方式一：本機互動式一鍵部署（推薦）
+
+依賴本機環境安裝 [Bun](https://bun.sh) 與 `git`。
+
+```bash
+git clone https://github.com/ChouChiu/cf-dns.git
+cd cf-dns
+bun install
+bun run setup
+```
+
+互動指令碼將自動執行以下流程：
+
+1. 檢查 wrangler 登入狀態，未登入時自動喚起瀏覽器授權；帳號不只一個時提供序號選擇。
+2. 提示輸入自訂網域（如 `dns.example.com`），設定將儲存至本機 `.env.deploy`。
+3. 檢查並自動建立 D1 資料庫 (`cf-dns`) 與 KV 命名空間 (`cf-dns-rules`)，自動將產生的唯一資源 ID 回寫至 `wrangler.jsonc`（該檔案不納入版本控制，首次執行會從 `wrangler.example.jsonc` 建立）。
+4. 提示輸入缺失的必需金鑰，寫入本機 `.env.production`。
+5. 編譯前端面板與 Worker，執行 D1 遠端資料庫遷移，並將憑證批次加密上傳至 Worker 完成部署。
+
+- 指令碼支援多次執行，已建立的資源與已儲存的憑證均會自動重複使用。
+- 若需指定 D1 資料庫實體位置，可在執行指令碼前手動執行 `bunx wrangler d1 create cf-dns --location apac`，指令碼將自動關聯已有資料庫。
+- 後續更新程式碼並部署僅需執行：
+  ```bash
+  git pull && bun install && bun run deploy
+  ```
+
+---
+
+## 方式二：Deploy to Cloudflare 按鈕
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
+
+> `wrangler.jsonc` 含帳號資源 ID，不納入版本控制。使用按鈕前請先手動 Fork 本儲存庫，在 Fork 中提交一份由 `wrangler.example.jsonc` 複製的 `wrangler.jsonc`（D1 與 KV 的 ID 留空，由 Cloudflare 建立後回填），並把按鈕連結中的 `url` 換成自己的儲存庫位址。
+
+1. 點擊按鈕進入 Cloudflare Workers 快速部署流程，授權存取 GitHub，系統將自動把存放庫 Fork 至個人 GitHub 帳號下。
+2. 頁面將自動辨識並列出需要建立的 D1、KV 與 Durable Object 資源綁定，保持預設設定即可。
+3. 根據前置準備收集的資訊填寫 4 個環境變數金鑰（`CF_ACCOUNT_ID` 需手動填寫）。
+4. 建置指令與部署指令均已預設（已包含 D1 遠端遷移邏輯），保持預設並點擊部署。
+5. 部署完成後綁定自訂網域：
+   - 進入 Worker 的「設定 → 建置 → 變數和機密」；
+   - 新增建置變數：名稱為 `CUSTOM_DOMAIN`，值為你的解析網域（例如 `dns.example.com`）；
+   - 進入「部署」索引標籤，點擊重新建置（Retry deployment），完成網域綁定。
+6. 後續只需向個人存放庫的 `main` 分支推送提交，Cloudflare 將自動觸發持續整合與重新部署。
+
+請透過建置變數 `CUSTOM_DOMAIN` 綁定網域，避免在控制台「網域和路由」中手動新增。手動綁定的自訂網域不在 Worker 建置設定內，後續重新建置時可能會被覆蓋。
+
+---
+
+## 部署後設定與驗證
+
+1. 登入控制台：在瀏覽器中開啟 `https://dns.example.com`，透過 Cloudflare Access 完成電子郵件驗證登入。
+2. 新增裝置：進入「裝置」頁面點擊「新增裝置」，取得專屬的 DoH 接入點位址（格式為 `https://dns.example.com/dns-query/<裝置ID>`）。Apple 平台使用者可直接點擊下載 `.mobileconfig` 描述檔。
+3. 訂閱規則清單：進入「過濾清單」頁面，點擊「規則庫目錄」，挑選並安裝常用規則清單（如 AdGuard DNS filter）。瀏覽器將在本機 Web Worker 中自動完成編譯並將規則快照分片上傳至邊緣節點。
+4. 解析流程驗證：使用命令列發送標準 RFC 8484 二進位 DNS 請求，確認收到二進位 DNS 應答封包：
+
+```bash
+curl -s -H 'accept: application/dns-message' \
+  'https://dns.example.com/dns-query/<裝置ID>?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE' | xxd | head
+```
+
+---
+
+## 常見問題排查
+
+### 1. 部署報錯 required secrets have not been set
+首次部署缺少必需的環境變數。請確認 `.env.production` 中已填入 `ACCESS_TEAM_DOMAIN` 與 `ACCESS_AUD`，然後重新執行 `bun run setup` 或 `bun run secrets:push`。
+
+### 2. 部署報錯 10053 或 secret with the same name already exists
+`ACCESS_DEV_BYPASS` 在 `wrangler.jsonc` 的 `vars` 欄位中已宣告為一般執行時期變數。Cloudflare 規定一般變數與 Secret 不得同名，切勿將 `ACCESS_DEV_BYPASS` 寫入 `.env.production` 或 Cloudflare 正式金鑰中。
+
+### 3. 面板或 API 請求回傳 HTTP 503
+說明 Worker 未讀取到 `ACCESS_TEAM_DOMAIN` 或 `ACCESS_AUD` 憑證。請在 `.env.production` 中補齊並執行 `bun run secrets:push`。若僅統計分析頁面回傳 503，說明 `STATS_API_TOKEN` 未設定或權限不正確。
+
+### 4. API 請求回傳 HTTP 401
+請求未攜帶有效的 Cloudflare Access JWT 權杖。通常是因為存取的主機名稱未包含在 Access 應用程式保護範圍內，導致請求未經過 Access 閘道插入認證 Header。
+
+### 5. API 請求回傳 HTTP 403
+Access JWT 權杖驗證失敗。請核對 Worker 的 `ACCESS_AUD` 金鑰是否與保護該網域的 Access 應用程式中的 AUD 完全一致，並確認 `ACCESS_TEAM_DOMAIN` 團隊網域無拼寫錯誤。
+
+### 6. 用戶端無法解析 DNS 或收到 HTML 回應
+說明缺少路徑為 `dns-query` 的 Access Bypass 應用程式，導致用戶端發起的 DNS 查詢被攔截並重新導向到了 Access 網頁登入頁面。請檢查前置準備第 3 步中的兩條 Access 策略設定。
+
+### 7. 自訂網域無法綁定
+確認該網域已新增至目前 Cloudflare 帳號且處於有效狀態；同時檢查該子網域是否已存在同名的 A/AAAA/CNAME 解析記錄，如有請先刪除。
+
+### 8. 統計頁面顯示無資料或查詢報錯
+- 新部署的執行個體需要等待產生實際 DNS 解析請求後，Analytics Engine 才會收集到指標資料；
+- 確認 `STATS_API_TOKEN` 具備「帳戶分析 > 讀取」權限，且設定的 `CF_ACCOUNT_ID` 與該 Token 所屬帳號嚴格對應。
