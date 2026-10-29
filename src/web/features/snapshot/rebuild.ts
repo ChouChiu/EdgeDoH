@@ -41,7 +41,7 @@ export function rebuildSnapshot(options: RebuildOptions): Promise<RebuildResult>
 async function doRebuild({ customListName, onStage }: RebuildOptions): Promise<RebuildResult> {
   onStage?.("download");
   // The catalog lives on GitHub Pages, which is not always reachable; filter lists must still compile without it
-  const [lists, custom, services] = await Promise.all([listsApi.list(), rulesApi.get(), servicesApi.list().catch(() => null)]);
+  const [lists, custom, services] = await Promise.all([listsApi.list(), rulesApi.get(), servicesApi.list({ fresh: true }).catch(() => null)]);
   const enabled = lists.filter((l) => l.enabled);
   const texts = await Promise.all(enabled.map((l) => listsApi.text(l.id)));
   const sources: FilterSource[] = enabled.map((l, i) => ({ id: l.id, name: l.name, text: texts[i]!, kind: l.kind }));

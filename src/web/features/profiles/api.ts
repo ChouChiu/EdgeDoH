@@ -61,9 +61,13 @@ const SERVICE_SOURCES = ["adguard", "community"] as const;
 const SERVICE_ID = /^[a-z0-9_]{1,64}$/;
 
 export const servicesApi = {
-  /** Both catalogs merged; one that cannot be fetched is left out, only both failing is an error */
-  list: async (): Promise<Service[]> => {
-    const results = await Promise.allSettled(SERVICE_SOURCES.map((s) => request<unknown>(`/services/${s}`)));
+  /**
+   * Both catalogs merged; one that cannot be fetched is left out, only both failing is an error.
+   * `fresh` skips the browser's and the Worker's caches and refreshes both with the result
+   */
+  list: async ({ fresh = false } = {}): Promise<Service[]> => {
+    const init: RequestInit = fresh ? { cache: "reload" } : {};
+    const results = await Promise.allSettled(SERVICE_SOURCES.map((s) => request<unknown>(`/services/${s}`, init)));
     const loaded = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
     if (loaded.length === 0) throw (results[0] as PromiseRejectedResult).reason;
     return mergeCatalogs(loaded);
@@ -92,7 +96,7 @@ export function useProfiles() {
 }
 
 export function useServices() {
-  return useQuery({ queryKey: SERVICES_KEY, queryFn: servicesApi.list, staleTime: 60 * 60_000 });
+  return useQuery({ queryKey: SERVICES_KEY, queryFn: () => servicesApi.list(), staleTime: 60 * 60_000 });
 }
 
 /** Display name of a profile; the built-in default one is translated */

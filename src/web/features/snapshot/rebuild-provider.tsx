@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LISTS_KEY } from "@/features/filters/api";
+import { SERVICES_KEY } from "@/features/profiles/api";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { RebuildContext, SNAPSHOT_KEY } from "./api";
@@ -41,6 +42,8 @@ export function RebuildProvider({ children }: { children: ReactNode }) {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: LISTS_KEY }),
           queryClient.invalidateQueries({ queryKey: SNAPSHOT_KEY }),
+          // The rebuild fetched the catalog past every cache; pickers and logs pick that copy up
+          queryClient.invalidateQueries({ queryKey: SERVICES_KEY }),
         ]);
       }
     },

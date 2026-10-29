@@ -22,6 +22,12 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   if (url.hostname === "api.cloudflare.com") return fakeSqlApi(request);
   if (url.hostname === "adguardteam.github.io") return fakeRegistry(url);
   if (url.hostname === "raw.githubusercontent.com") {
+    // Counts fetches, so tests can tell a cached catalog from a fresh one
+    if (url.pathname.endsWith("/service-catalog/main/output/community.json")) {
+      const count = (counters.get("community.json") ?? 0) + 1;
+      counters.set("community.json", count);
+      return Response.json({ license: "GPL-2.0", services: [], fetch: count });
+    }
     if (url.pathname.endsWith("/service-catalog/main/output/adguard.json")) {
       return new Response('{"license":"GPL-3.0","services":[{"id":"tiktok","name":"TikTok","group":"social_network","icon":"<svg/>","rules":["||tiktok.test^"]}]}');
     }
