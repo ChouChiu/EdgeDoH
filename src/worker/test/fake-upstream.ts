@@ -1,4 +1,4 @@
-import { buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
+import { type AnswerRecord, buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeIPv6, encodeName, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
 
 /**
  * Stand-in for real DoH resolvers, wired in as Miniflare's outbound service.
@@ -62,10 +62,20 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   // ECH and HTTPS records: a Cloudflare-proxied name without and with its own HTTPS record
   const https = (params: [number, Uint8Array][]) => [{ type: RRType.HTTPS, ttl: 120, data: encodeSvcb({ priority: 1, target: "", params: new Map(params) }) }];
   if (name === "cloudflare-ech.com" && type === RRType.HTTPS) {
+    // An upstream that cannot resolve the ECH source, for the stored-config fallback
+    if (url.hostname === "noech.test") return reply(buildResponse(query, raw, { rcode: Rcode.SERVFAIL }));
     return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: https([[SvcParam.ECH, Uint8Array.of(0xec, 0x40)]]) }));
+  }
+  // A name that reaches Cloudflare through a CNAME, like zones on partial (CNAME) setup
+  if (name === "cname-proxied.test") {
+    const target = "cname-proxied.test.cdn.cloudflare.net";
+    const answers: AnswerRecord[] = [{ type: RRType.CNAME, ttl: 600, data: encodeName(target) }];
+    if (type === RRType.A) answers.push({ name: encodeName(target), type: RRType.A, ttl: 600, data: encodeIPv4("104.16.1.4") });
+    return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers }));
   }
   if (name === "proxied.test" || name === "proxied-https.test") {
     if (type === RRType.A) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.A, ttl: 600, data: encodeIPv4("104.16.1.2") }] }));
+    if (type === RRType.AAAA) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.AAAA, ttl: 600, data: encodeIPv6("2606:4700::6810:102") }] }));
     if (type === RRType.HTTPS && name === "proxied-https.test") {
       return reply(
         buildResponse(query, raw, {

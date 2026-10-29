@@ -87,7 +87,7 @@ export async function rewriteResponse(
  * Re-encodes upstream answers with explicit owner names. Only types whose RDATA never holds
  * compressed names are copied verbatim; CNAME targets are decompressed
  */
-function copyAnswers(buf: Uint8Array, msg: Message): AnswerRecord[] {
+export function copyAnswers(buf: Uint8Array, msg: Message): AnswerRecord[] {
   const out: AnswerRecord[] = [];
   for (const rr of msg.answers) {
     try {

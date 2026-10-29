@@ -17,6 +17,9 @@ import { Textarea } from "@/shared/ui/textarea";
 import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
+import { isIPv4, isIPv6 } from "#dns";
+import { isDomain } from "#filter";
+import { MAX_ECH_FORCED_DOMAINS, MAX_ECH_PREFERRED_IPS } from "#contract";
 import {
   BLOCKING_MODES,
   type BlockingMode,
@@ -31,8 +34,10 @@ import {
 type NumberField = "blockedTtl" | "upstreamTimeoutMs" | "cacheMinTtl" | "cacheMaxTtl" | "maxDeviceClients" | "deviceClientWindowMinutes";
 const NUMBER_FIELDS: NumberField[] = ["blockedTtl", "upstreamTimeoutMs", "cacheMinTtl", "cacheMaxTtl", "maxDeviceClients", "deviceClientWindowMinutes"];
 
-/** Form state: numbers stay strings while typing, upstreams are one per line */
-type Draft = Omit<Settings, NumberField | "upstreams"> & Record<NumberField, string> & { upstreams: string };
+type ListField = "upstreams" | "echPreferredIps" | "echForcedDomains";
+
+/** Form state: numbers stay strings while typing, lists are one entry per line */
+type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
 
 export function SettingsPage() {
   const { t } = useI18n();
@@ -95,8 +100,18 @@ function ServerSettings() {
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...draft, [key]: value });
   const upstreams = splitUpstreams(draft.upstreams);
+  const preferredIps = splitList(draft.echPreferredIps);
+  const forcedDomains = splitList(draft.echForcedDomains, (d) => d.toLowerCase().replace(/\.$/, ""));
   const errors = {
     upstreams: validateUpstreams(upstreams, t),
+    echPreferredIps:
+      preferredIps.length > MAX_ECH_PREFERRED_IPS
+        ? t("settings.echTooMany", { max: MAX_ECH_PREFERRED_IPS })
+        : invalidEntry(preferredIps, (ip) => isIPv4(ip) || isIPv6(ip), (value) => t("settings.echInvalidIp", { value })),
+    echForcedDomains:
+      forcedDomains.length > MAX_ECH_FORCED_DOMAINS
+        ? t("settings.echTooMany", { max: MAX_ECH_FORCED_DOMAINS })
+        : invalidEntry(forcedDomains, isDomain, (value) => t("settings.echInvalidDomain", { value })),
     customIp: draft.blockingMode === "custom_ip" && !draft.blockingIpv4.trim() && !draft.blockingIpv6.trim() ? t("settings.customIpRequired") : undefined,
     cacheRange: Number(draft.cacheMinTtl) > Number(draft.cacheMaxTtl) ? t("settings.cacheRange") : undefined,
   };
@@ -105,7 +120,7 @@ function ServerSettings() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!invalid) save.mutate(fromDraft(draft, upstreams));
+    if (!invalid) save.mutate(fromDraft(draft, { upstreams, echPreferredIps: preferredIps, echForcedDomains: forcedDomains }));
   };
 
   const number = (key: NumberField, min: number, max: number, className = "w-32") => (
@@ -223,6 +238,27 @@ function ServerSettings() {
         </fieldset>
       </Section>
 
+      <Section title={t("settings.ech")} description={t("settings.echDescription")}>
+        <ListInput
+          id="echPreferredIps"
+          label={t("settings.echPreferredIps")}
+          hint={t("settings.echPreferredIpsHint", { max: MAX_ECH_PREFERRED_IPS })}
+          error={errors.echPreferredIps}
+          placeholder={"104.16.0.1\n2606:4700::1"}
+          value={draft.echPreferredIps}
+          onChange={(v) => set("echPreferredIps", v)}
+        />
+        <ListInput
+          id="echForcedDomains"
+          label={t("settings.echForcedDomains")}
+          hint={t("settings.echForcedDomainsHint", { max: MAX_ECH_FORCED_DOMAINS })}
+          error={errors.echForcedDomains}
+          placeholder="example.com"
+          value={draft.echForcedDomains}
+          onChange={(v) => set("echForcedDomains", v)}
+        />
+      </Section>
+
       <Section title={t("settings.queryLog")}>
         <Row label={t("settings.queryLogEnabled")} hint={t("settings.queryLogHint")} htmlFor="queryLogEnabled" inline>
           <Switch id="queryLogEnabled" checked={draft.queryLogEnabled} onCheckedChange={(v) => set("queryLogEnabled", v)} />
@@ -263,20 +299,55 @@ function AddressField(props: { id: string; label: string; placeholder: string; v
   );
 }
 
+function ListInput(props: { id: string; label: string; hint: string; error: string | undefined; placeholder: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="grid gap-2 py-3">
+      <Label htmlFor={props.id}>{props.label}</Label>
+      <Textarea
+        id={props.id}
+        spellCheck={false}
+        autoCapitalize="none"
+        autoCorrect="off"
+        aria-invalid={props.error !== undefined}
+        aria-describedby={`${props.id}-hint`}
+        className="font-mono text-sm"
+        placeholder={props.placeholder}
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+      <p id={`${props.id}-hint`} className={props.error ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+        {props.error ?? props.hint}
+      </p>
+    </div>
+  );
+}
+
+/** Entries separated by any whitespace, normalised and without duplicates */
+function splitList(text: string, normalise: (entry: string) => string = (entry) => entry): string[] {
+  return [...new Set(text.split(/\s+/).filter(Boolean).map(normalise))];
+}
+
+function invalidEntry(entries: string[], valid: (entry: string) => boolean, message: (value: string) => string): string | undefined {
+  const invalid = entries.find((entry) => !valid(entry));
+  return invalid === undefined ? undefined : message(invalid);
+}
+
 function toDraft(s: Settings): Draft {
   return {
     ...s,
     upstreams: s.upstreams.join("\n"),
+    echPreferredIps: s.echPreferredIps.join("\n"),
+    echForcedDomains: s.echForcedDomains.join("\n"),
     ...(Object.fromEntries(NUMBER_FIELDS.map((key) => [key, String(s[key])])) as Record<NumberField, string>),
   };
 }
 
-function fromDraft(draft: Draft, upstreams: string[]): Settings {
+function fromDraft(draft: Draft, lists: Pick<Settings, ListField>): Settings {
   return {
     ...draft,
     blockingIpv4: draft.blockingIpv4.trim(),
     blockingIpv6: draft.blockingIpv6.trim(),
-    upstreams,
+    ...lists,
     ...(Object.fromEntries(NUMBER_FIELDS.map((key) => [key, Number(draft[key])])) as Record<NumberField, number>),
   };
 }

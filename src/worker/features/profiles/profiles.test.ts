@@ -1,8 +1,9 @@
-import { buildQuery, decodeAlpn, parseMessage, parseSvcb, readName, RRType, SvcParam, splitHints, withClientSubnet } from "#dns";
+import { buildQuery, decodeAlpn, encodeBase64Url, parseMessage, parseSvcb, readName, RRType, SvcParam, splitHints, withClientSubnet } from "#dns";
 import { compile } from "#filter";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, createDevice, json, postQuery, publish } from "../../test/helpers.ts";
+import { resetEchMemo } from "../doh/https-inject.ts";
 import { scheduleActive } from "./store.ts";
 
 async function query(deviceId: string, name: string, type: number = RRType.A, init?: { ip?: string }) {
@@ -44,7 +45,7 @@ async function publishAll() {
 afterEach(async () => {
   vi.useRealTimers();
   await env.DB.exec("DELETE FROM filter_lists; UPDATE profiles SET config = '{}' WHERE id = 'default'");
-  await api("/settings", json({ filteringEnabled: true }, "PATCH"));
+  await api("/settings", json({ filteringEnabled: true, echPreferredIps: [], echForcedDomains: [] }, "PATCH"));
 });
 
 describe("profiles API", () => {
@@ -192,6 +193,54 @@ describe("ECS and HTTPS injection", () => {
 
     // Not on Cloudflare: left alone
     expect((await query(device, "plain.test", RRType.HTTPS)).msg.answers).toHaveLength(0);
+  });
+
+  it("follows CNAME chains to Cloudflare", async () => {
+    const device = await deviceWith(null);
+    await api("/profiles/default", json({ ech: true }, "PATCH"));
+    const { body, msg } = await query(device, "cname-proxied.test", RRType.HTTPS);
+    const [cname, https] = msg.answers;
+    expect(cname!.type).toBe(RRType.CNAME);
+    expect(readName(body, cname!.data.byteOffset - body.byteOffset).name).toBe("cname-proxied.test.cdn.cloudflare.net");
+    expect(https!.name).toBe("cname-proxied.test.cdn.cloudflare.net");
+    expect([...parseSvcb(https!.data).params.get(SvcParam.ECH)!]).toEqual([0xec, 0x40]);
+  });
+
+  it("swaps in preferred addresses and handles forced names as proxied", async () => {
+    const device = await deviceWith(null);
+    expect((await api("/settings", json({ echPreferredIps: ["104.17.0.1"], echForcedDomains: ["plain.test"] }, "PATCH"))).status).toBe(200);
+    // Only profiles with ECH on use them
+    expect(await firstAddress(device, "proxied.test")).toBe("104.16.1.2");
+
+    await api("/profiles/default", json({ ech: true }, "PATCH"));
+    expect(await firstAddress(device, "proxied.test")).toBe("104.17.0.1");
+    // No preferred IPv6: AAAA comes back empty, so clients use the preferred IPv4
+    expect((await query(device, "proxied.test", RRType.AAAA)).msg.answers).toHaveLength(0);
+    const viaCname = (await query(device, "cname-proxied.test")).msg.answers;
+    expect(viaCname.map((rr) => rr.type)).toEqual([RRType.CNAME, RRType.A]);
+    expect([...viaCname[1]!.data].join(".")).toBe("104.17.0.1");
+
+    const augmented = parseSvcb((await query(device, "proxied-https.test", RRType.HTTPS)).msg.answers[0]!.data);
+    expect(splitHints(augmented.params.get(SvcParam.IPV4HINT)!, 4).map((a) => a.join("."))).toEqual(["104.17.0.1"]);
+    expect(augmented.params.has(SvcParam.ECH)).toBe(true);
+
+    // Forced: not on Cloudflare according to the upstream, handled as if it were, subdomains included
+    expect(await firstAddress(device, "plain.test")).toBe("104.17.0.1");
+    const forced = parseSvcb((await query(device, "www.plain.test", RRType.HTTPS)).msg.answers[0]!.data);
+    expect([...forced.params.get(SvcParam.ECH)!]).toEqual([0xec, 0x40]);
+    expect(splitHints(forced.params.get(SvcParam.IPV4HINT)!, 4).map((a) => a.join("."))).toEqual(["104.17.0.1"]);
+    // Everything else is left alone
+    expect(await firstAddress(device, "other.test")).toMatch(/^192\.0\.2\./);
+  });
+
+  it("falls back to the stored ECH config when the source cannot be resolved", async () => {
+    const device = await deviceWith(null);
+    await env.RULES.put("ech:config", encodeBase64Url(Uint8Array.of(0xec, 0x41)));
+    resetEchMemo();
+    await api("/profiles/default", json({ ech: true, upstreams: ["https://noech.test/dns-query"] }, "PATCH"));
+    const synthesised = parseSvcb((await query(device, "proxied.test", RRType.HTTPS)).msg.answers[0]!.data);
+    expect([...synthesised.params.get(SvcParam.ECH)!]).toEqual([0xec, 0x41]);
+    resetEchMemo();
   });
 });
 

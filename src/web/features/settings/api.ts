@@ -21,6 +21,8 @@ export interface Settings {
   queryLogEnabled: boolean;
   maxDeviceClients: number;
   deviceClientWindowMinutes: number;
+  echPreferredIps: string[];
+  echForcedDomains: string[];
 }
 
 export const SETTINGS_KEY = ["settings"];

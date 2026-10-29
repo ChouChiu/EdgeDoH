@@ -25,7 +25,7 @@ import { recordQuery } from "../stats/record.ts";
 import type { AnswerSource } from "../stats/schema.ts";
 import { type AnswerConfig, blockedResponse, rewriteResponse } from "./answers.ts";
 import { decide } from "./decide.ts";
-import { injectHttps } from "./https-inject.ts";
+import { edgeConfig, hasPreferred, injectHttps, preferAddresses } from "./https-inject.ts";
 import { DNS_MESSAGE, resolve } from "./upstream.ts";
 
 type WaitUntil = Pick<ExecutionContext, "waitUntil">;
@@ -108,13 +108,24 @@ async function answer(q: QueryContext): Promise<Answered> {
   const routed = profile.splitDns && inspection?.route ? runtime.routes[inspection.route] : undefined;
   const config = answerConfig(settings, profile, routed, ip);
   let result = await answerQuery(query, raw, verdict, config, ctx);
-  if (q.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && result.source !== "error") {
-    const injected = await injectHttps(query, raw, result.response, profile, config.upstream, ctx).catch((err: unknown) => {
-      console.warn("HTTPS record injection failed", String(err));
-      return undefined;
-    });
+  if (verdict.action === "pass" && result.source !== "error") {
+    const edge = edgeConfig(settings);
+    let edited: { response: Uint8Array; ttl: number } | undefined;
+    if (q.type === RRType.HTTPS && (profile.ech || profile.h3)) {
+      const opts = { ech: profile.ech, h3: profile.h3, edge };
+      edited = await injectHttps(query, raw, result.response, opts, config.upstream, env.RULES, ctx).catch((err: unknown) => {
+        console.warn("HTTPS record injection failed", String(err));
+        return undefined;
+      });
+    } else if ((q.type === RRType.A || q.type === RRType.AAAA) && profile.ech && hasPreferred(edge)) {
+      try {
+        edited = preferAddresses(query, raw, result.response, edge);
+      } catch (err) {
+        console.warn("preferred address rewrite failed", String(err));
+      }
+    }
     // The edited records may live shorter than the upstream answer, e.g. a long negative TTL
-    if (injected) result = { ...result, response: injected.response, ttl: Math.min(result.ttl ?? injected.ttl, injected.ttl) };
+    if (edited) result = { ...result, response: edited.response, ttl: Math.min(result.ttl ?? edited.ttl, edited.ttl) };
   }
   return { ...result, verdict, inspection };
 }

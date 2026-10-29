@@ -1,8 +1,9 @@
 import { isIPv4, isIPv6 } from "#dns";
+import { isDomain } from "#filter";
 import { getRuntimeConfig, publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 
-import { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode } from "#contract";
+import { BLOCKING_MODES, type BlockingMode, MAX_ECH_FORCED_DOMAINS, MAX_ECH_PREFERRED_IPS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 
 export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode };
 
@@ -28,6 +29,10 @@ export interface Settings {
   /** Distinct source networks (IPv4 address or IPv6 /64) one device may be used from per window; 0 is unlimited */
   maxDeviceClients: number;
   deviceClientWindowMinutes: number;
+  /** Replace the addresses of Cloudflare-proxied names for profiles with ECH on; empty keeps the upstream's */
+  echPreferredIps: string[];
+  /** Lowercase names (and their subdomains) handled as Cloudflare-proxied whatever the upstream answers */
+  echForcedDomains: string[];
 }
 
 const MAX_TTL = 86400;
@@ -68,6 +73,8 @@ function defaultSettings(env: Env): Settings {
     queryLogEnabled: true,
     maxDeviceClients: 0,
     deviceClientWindowMinutes: 60,
+    echPreferredIps: [],
+    echForcedDomains: [],
   };
 }
 
@@ -156,9 +163,26 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
         if (isUpstreamList(value)) valid[key] = value;
         else errors.push(UPSTREAMS_ERROR);
         break;
+      case "echPreferredIps":
+        if (isListOf(value, MAX_ECH_PREFERRED_IPS, (v) => isIPv4(v) || isIPv6(v))) valid[key] = value;
+        else errors.push(`echPreferredIps must be at most ${MAX_ECH_PREFERRED_IPS} distinct IPv4 or IPv6 addresses`);
+        break;
+      case "echForcedDomains":
+        if (isListOf(value, MAX_ECH_FORCED_DOMAINS, (v) => v === v.toLowerCase() && isDomain(v))) valid[key] = value;
+        else errors.push(`echForcedDomains must be at most ${MAX_ECH_FORCED_DOMAINS} distinct lowercase domain names`);
+        break;
       default:
         errors.push(`unknown setting ${key}`);
     }
   }
   return { valid: valid as Partial<Settings>, errors };
+}
+
+function isListOf(value: unknown, max: number, item: (v: string) => boolean): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= max &&
+    new Set(value).size === value.length &&
+    value.every((v) => typeof v === "string" && item(v))
+  );
 }
