@@ -1,5 +1,8 @@
-import { Ban, Check, Copy, MoreHorizontal } from "lucide-react";
+import { Ban } from "lucide-react";
 import { ActionBadge } from "@/shared/components/action-badge";
+import { Check } from "@/shared/components/animate-ui/icons/check";
+import { Copy } from "@/shared/components/animate-ui/icons/copy";
+import { Ellipsis } from "@/shared/components/animate-ui/icons/ellipsis";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
@@ -61,7 +64,7 @@ export function LogRow({ entry, selected, onSelect, onRule }: LogRowProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label={t("common.actions")}>
-              <MoreHorizontal />
+              <Ellipsis />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

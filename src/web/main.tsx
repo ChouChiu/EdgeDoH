@@ -29,7 +29,7 @@ const queryClient = new QueryClient({
 
 trackVisualViewport();
 
-// A data router, because only it runs navigations inside a View Transition (NavLink `viewTransition`)
+// A data router: it runs navigations in React transitions, which is what PageTransition animates
 const router = createBrowserRouter([
   {
     element: (

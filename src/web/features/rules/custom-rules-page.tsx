@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Save } from "lucide-react";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
+import { Save } from "@/shared/components/animate-ui/icons/save";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/ui/card";
@@ -57,7 +59,7 @@ export function CustomRulesPage() {
         description={t("rules.description")}
         actions={
           <Button disabled={!dirty || saving} onClick={() => void save()}>
-            {saving ? <Loader2 className="animate-spin" /> : <Save />}
+            {saving ? <LoaderCircle animate /> : <Save />}
             {t("rules.saveApply")}
           </Button>
         }
@@ -94,7 +96,7 @@ export function CustomRulesPage() {
                   {t("common.reset")}
                 </Button>
                 <Button size="sm" className="md:hidden" disabled={saving} onClick={() => void save()}>
-                  {saving ? <Loader2 className="animate-spin" /> : <Save />}
+                  {saving ? <LoaderCircle animate /> : <Save />}
                   {t("common.save")}
                 </Button>
               </div>

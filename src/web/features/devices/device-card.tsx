@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Download, Network, ScrollText, Trash2 } from "lucide-react";
+import { Network, ScrollText } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
+import { Copy } from "@/shared/components/animate-ui/icons/copy";
+import { Download } from "@/shared/components/animate-ui/icons/download";
+import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { Button } from "@/shared/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";

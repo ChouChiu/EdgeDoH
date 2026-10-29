@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { X } from "@/shared/components/animate-ui/icons/x";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n";
 import type { Selection } from "@/shared/hooks/use-selection";

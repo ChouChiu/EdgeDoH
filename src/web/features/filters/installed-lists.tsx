@@ -1,7 +1,14 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, ListChecks, Loader2, Pencil, Power, PowerOff, RefreshCw, Trash2 } from "lucide-react";
+import { ListChecks, PowerOff } from "lucide-react";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ExternalLink } from "@/shared/components/animate-ui/icons/external-link";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
+import { Power } from "@/shared/components/animate-ui/icons/power";
+import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
+import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { EmptyState, QueryError } from "@/shared/components/page";
 import { SelectionBar } from "@/shared/components/selection-bar";
 import {
@@ -180,7 +187,7 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
         <div className="ml-auto flex items-center gap-0.5">
           {busy && (
             <span className="mr-1 flex items-center gap-1" role="status">
-              <Loader2 className="size-3.5 animate-spin" />
+              <LoaderCircle animate className="size-3.5" />
               {busy}
             </span>
           )}
@@ -278,7 +285,7 @@ function RenameDialog({ list, disabled }: { list: FilterList; disabled: boolean 
           </div>
           <DialogFooter>
             <Button type="submit" disabled={saving || !name.trim()}>
-              {saving && <Loader2 className="animate-spin" />}
+              {saving && <LoaderCircle animate />}
               {t("common.save")}
             </Button>
           </DialogFooter>
@@ -320,10 +327,12 @@ function ListDetails({ list }: { list: FilterList }) {
 
 function ExternalLinkText({ href, title, children }: { href: string; title?: string; children: ReactNode }) {
   return (
-    <a href={href} title={title} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground hover:underline">
-      {children}
-      <ExternalLink className="size-3" />
-    </a>
+    <AnimateIcon asChild animateOnHover>
+      <a href={href} title={title} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground hover:underline">
+        {children}
+        <ExternalLink className="size-3" />
+      </a>
+    </AnimateIcon>
   );
 }
 

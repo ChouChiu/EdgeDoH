@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Save } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
+import { Save } from "@/shared/components/animate-ui/icons/save";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ThemeSwitch } from "@/shared/components/header-controls";
 import { Button } from "@/shared/ui/button";
@@ -234,7 +236,7 @@ function ServerSettings() {
           {t("common.reset")}
         </Button>
         <Button type="submit" disabled={!dirty || save.isPending || invalid}>
-          {save.isPending ? <Loader2 className="animate-spin" /> : <Save />}
+          {save.isPending ? <LoaderCircle animate /> : <Save />}
           {t("common.save")}
         </Button>
       </div>

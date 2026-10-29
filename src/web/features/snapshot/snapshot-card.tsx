@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Hammer, Loader2 } from "lucide-react";
+import { Hammer } from "@/shared/components/animate-ui/icons/hammer";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Button } from "@/shared/ui/button";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { useI18n } from "@/shared/i18n";
@@ -30,7 +31,7 @@ export function SnapshotCard() {
         </CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" disabled={stage !== null} onClick={() => void rebuild()}>
-            {stage ? <Loader2 className="animate-spin" /> : <Hammer />}
+            {stage ? <LoaderCircle animate /> : <Hammer />}
             {t("rebuild.default")}
           </Button>
         </CardAction>

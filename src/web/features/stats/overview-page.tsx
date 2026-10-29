@@ -1,8 +1,11 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Ban, Database, Gauge } from "lucide-react";
+import { Ban, Database } from "lucide-react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Activity } from "@/shared/components/animate-ui/icons/activity";
+import { Gauge } from "@/shared/components/animate-ui/icons/gauge";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { type ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/shared/ui/chart";
@@ -100,17 +103,19 @@ function StatCard({
   tone?: string | undefined;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription className="flex items-center gap-2 [&_svg]:size-4">
-          {/* The tone rides on a wrapper, not an interpolated class: Tailwind only emits classes it can see as literals */}
-          <span className={tone ?? "text-muted-foreground"}>{icon}</span>
-          {label}
-        </CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value ?? <Skeleton className="h-8 w-24" />}</CardTitle>
-        <p className="h-4 text-xs text-muted-foreground">{hint}</p>
-      </CardHeader>
-    </Card>
+    <AnimateIcon asChild animateOnHover>
+      <Card>
+        <CardHeader>
+          <CardDescription className="flex items-center gap-2 [&_svg]:size-4">
+            {/* The tone rides on a wrapper, not an interpolated class: Tailwind only emits classes it can see as literals */}
+            <span className={tone ?? "text-muted-foreground"}>{icon}</span>
+            {label}
+          </CardDescription>
+          <CardTitle className="text-2xl tabular-nums">{value ?? <Skeleton className="h-8 w-24" />}</CardTitle>
+          <p className="h-4 text-xs text-muted-foreground">{hint}</p>
+        </CardHeader>
+      </Card>
+    </AnimateIcon>
   );
 }
 

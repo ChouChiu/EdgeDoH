@@ -1,7 +1,9 @@
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { PageTransition } from "@/shared/components/animate-ui/components/page-transition";
 import { useEffect } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import { LocaleToggle, ThemeSwitch } from "@/shared/components/header-controls";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/shared/ui/sidebar";
 import { useRebuild } from "@/features/snapshot/rebuild-provider";
 import { useI18n } from "@/shared/i18n";
@@ -12,6 +14,8 @@ export default function App() {
   const { t } = useI18n();
   const { pathname } = useLocation();
   const { stage } = useRebuild();
+  // On phones the closing sidebar sheet already reveals the new page
+  const mobile = useIsMobile();
   const label = pageLabel(pathname);
   const title = label ? t(label) : undefined;
 
@@ -30,7 +34,7 @@ export default function App() {
           <div className="ml-auto flex items-center gap-1">
             {stage && (
               <span className="mr-2 flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-                <Loader2 className="size-3.5 animate-spin" />
+                <LoaderCircle animate className="size-3.5" />
                 <span className="hidden sm:inline">{t(`rebuild.stage.${stage}`)}</span>
               </span>
             )}
@@ -39,8 +43,16 @@ export default function App() {
           </div>
         </header>
         {/* SidebarInset is already the <main> landmark */}
-        <div data-vt="page" className="mx-auto w-full max-w-6xl flex-1 space-y-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6 md:py-5 md:pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-          <Outlet />
+        <div className="mx-auto w-full max-w-6xl flex-1 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6 md:py-5 md:pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          {mobile ? (
+            <div className="space-y-4">
+              <Outlet />
+            </div>
+          ) : (
+            <PageTransition className="space-y-4">
+              <Outlet />
+            </PageTransition>
+          )}
         </div>
       </SidebarInset>
       <ScrollRestoration />

@@ -1,4 +1,4 @@
-import { Activity } from "lucide-react";
+import { Activity } from "@/shared/components/animate-ui/icons/activity";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { useI18n } from "@/shared/i18n";
 

@@ -1,4 +1,4 @@
-import { Smartphone } from "lucide-react";
+import { Smartphone } from "@/shared/components/animate-ui/icons/smartphone";
 import { EmptyState, PageHeader, QueryError } from "@/shared/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";

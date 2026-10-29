@@ -1,7 +1,8 @@
-import { FlaskConical, Loader2 } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { ActionBadge } from "@/shared/components/action-badge";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -87,7 +88,7 @@ export function RuleTester() {
             </SelectContent>
           </Select>
           <Button type="submit" variant="outline" disabled={testing}>
-            {testing ? <Loader2 className="animate-spin" /> : <FlaskConical />}
+            {testing ? <LoaderCircle animate /> : <FlaskConical />}
             {t("tester.run")}
           </Button>
         </form>

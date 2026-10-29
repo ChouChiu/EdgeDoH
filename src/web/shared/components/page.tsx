@@ -1,5 +1,5 @@
-import { AlertCircle } from "lucide-react";
 import type { ReactNode } from "react";
+import { CircleAlert } from "@/shared/components/animate-ui/icons/circle-alert";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n";
@@ -21,7 +21,7 @@ export function QueryError({ error, title }: { error: unknown; title?: string })
   const { t } = useI18n();
   return (
     <Alert variant="destructive">
-      <AlertCircle />
+      <CircleAlert />
       <AlertTitle>{title ?? t("common.loadFailed")}</AlertTitle>
       <AlertDescription>
         {errorMessage(error, t)}

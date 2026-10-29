@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
+import { Plus } from "@/shared/components/animate-ui/icons/plus";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
@@ -73,7 +75,7 @@ export function DeviceNameDialog({ device }: { device?: Device }) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={save.isPending || !name.trim()}>
-              {save.isPending && <Loader2 className="animate-spin" />}
+              {save.isPending && <LoaderCircle animate />}
               {t("common.save")}
             </Button>
           </DialogFooter>

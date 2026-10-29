@@ -1,5 +1,6 @@
-import { Loader2, Plus } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { Plus } from "@/shared/components/animate-ui/icons/plus";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
@@ -68,7 +69,7 @@ export function AddUrlDialog({ actions }: { actions: ListActions }) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={busy !== undefined}>
-              {busy && <Loader2 className="animate-spin" />}
+              {busy && <LoaderCircle animate />}
               {busy ?? t("common.install")}
             </Button>
           </DialogFooter>

@@ -1,6 +1,10 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { cn } from "cn";
-import { Check, Languages, Monitor, Moon, Sun } from "lucide-react";
+import { Languages, Monitor } from "lucide-react";
 import type { KeyboardEvent } from "react";
+import { Check } from "@/shared/components/animate-ui/icons/check";
+import { Moon } from "@/shared/components/animate-ui/icons/moon";
+import { Sun } from "@/shared/components/animate-ui/icons/sun";
 import { type Theme, useTheme } from "@/shared/components/theme-provider";
 import { Button } from "@/shared/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
@@ -36,23 +40,24 @@ export function ThemeSwitch({ className }: { className?: string }) {
         const Icon = THEME_ICONS[option];
         const checked = option === theme;
         return (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={checked}
-            aria-label={t(`theme.${option}`)}
-            title={t(`theme.${option}`)}
-            tabIndex={checked ? 0 : -1}
-            data-theme-option={option}
-            onClick={(event) => setTheme(option, originOf(event.currentTarget))}
-            className={cn(
-              "flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 pointer-coarse:size-8 [&_svg]:size-3.5",
-              checked && "bg-background text-foreground shadow-sm dark:bg-input/60",
-            )}
-          >
-            <Icon />
-          </button>
+          <AnimateIcon key={option} asChild animateOnHover>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={checked}
+              aria-label={t(`theme.${option}`)}
+              title={t(`theme.${option}`)}
+              tabIndex={checked ? 0 : -1}
+              data-theme-option={option}
+              onClick={(event) => setTheme(option, originOf(event.currentTarget))}
+              className={cn(
+                "flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 pointer-coarse:size-8 [&_svg]:size-3.5",
+                checked && "bg-background text-foreground shadow-sm dark:bg-input/60",
+              )}
+            >
+              <Icon />
+            </button>
+          </AnimateIcon>
         );
       })}
     </div>

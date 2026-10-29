@@ -1,6 +1,7 @@
-import { Loader2, PackagePlus } from "lucide-react";
+import { PackagePlus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { PageHeader } from "@/shared/components/page";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -56,7 +57,7 @@ export function InstallPage() {
             {t("common.cancel")}
           </Button>
           <Button disabled={!valid || busy !== undefined} onClick={() => void install()}>
-            {busy && <Loader2 className="animate-spin" />}
+            {busy && <LoaderCircle animate />}
             {busy ?? t("common.install")}
           </Button>
         </CardFooter>

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { AnimateIcon } from "@animate-ui/react/icons"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Slot } from "radix-ui"
@@ -52,14 +53,17 @@ function Button({
   }) {
   const Comp = asChild ? Slot.Root : "button"
 
+  // Hovering the button plays any animate-ui icon inside it
   return (
-    <Comp
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+    <AnimateIcon asChild animateOnHover>
+      <Comp
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    </AnimateIcon>
   )
 }
 

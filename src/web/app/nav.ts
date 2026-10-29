@@ -1,10 +1,14 @@
-import { ChartNoAxesColumn, Cog, ListChecks, type LucideIcon, ScrollText, ShieldBan, Smartphone } from "lucide-react";
+import { ListChecks, ScrollText, ShieldBan } from "lucide-react";
+import type { ComponentType } from "react";
+import { ChartNoAxesColumn } from "@/shared/components/animate-ui/icons/chart-no-axes-column";
+import { Cog } from "@/shared/components/animate-ui/icons/cog";
+import { Smartphone } from "@/shared/components/animate-ui/icons/smartphone";
 import type { MessageKey } from "@/shared/i18n";
 
 export interface NavItem {
   to: string;
   label: MessageKey;
-  icon: LucideIcon;
+  icon: ComponentType;
 }
 
 export const NAV: NavItem[] = [

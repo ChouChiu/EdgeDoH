@@ -1,6 +1,11 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ExternalLink, Loader2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Check } from "@/shared/components/animate-ui/icons/check";
+import { ExternalLink } from "@/shared/components/animate-ui/icons/external-link";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { Plus } from "@/shared/components/animate-ui/icons/plus";
+import { Search } from "@/shared/components/animate-ui/icons/search";
 import { EmptyState, QueryError } from "@/shared/components/page";
 import { SelectionBar } from "@/shared/components/selection-bar";
 import { Badge } from "@/shared/ui/badge";
@@ -173,10 +178,12 @@ function CatalogCard({
       <CardFooter className="flex items-center gap-3 py-2 text-xs text-muted-foreground">
         {filter.timeUpdated && <span>{t("filters.updated", { time: fmt.relative(filter.timeUpdated) })}</span>}
         {filter.homepage && (
-          <a href={filter.homepage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
-            {t("filters.homepage")}
-            <ExternalLink className="size-3" />
-          </a>
+          <AnimateIcon asChild animateOnHover>
+            <a href={filter.homepage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
+              {t("filters.homepage")}
+              <ExternalLink className="size-3" />
+            </a>
+          </AnimateIcon>
         )}
         <div className="ml-auto">
           {installed && !busy ? (
@@ -186,7 +193,7 @@ function CatalogCard({
             </Button>
           ) : (
             <Button size="sm" disabled={busy !== undefined} onClick={onInstall}>
-              {busy ? <Loader2 className="animate-spin" /> : <Plus />}
+              {busy ? <LoaderCircle animate /> : <Plus />}
               {busy ?? t("common.install")}
             </Button>
           )}
