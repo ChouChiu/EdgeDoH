@@ -16,6 +16,11 @@ export interface MatchQuery {
   name: string;
   type: number;
   client?: MatchClient;
+  /**
+   * Lists whose rules apply, indexed like the snapshot's lists (non-zero = on). Omitted means
+   * every filter list and no service list
+   */
+  active?: Uint8Array;
 }
 
 export interface MatchedRule {
@@ -36,7 +41,18 @@ export type Verdict =
   /** `records` may be empty: an empty NOERROR (NODATA) or a keyword rcode such as NXDOMAIN */
   | { action: "rewrite"; rule: MatchedRule; rcode: number; records: RewriteRecord[] };
 
+/** A verdict plus what the name was recognised as, whether or not those lists were applied */
+export interface Inspection {
+  verdict: Verdict;
+  /** ID of the first service list the name belongs to */
+  service?: string;
+  /** ID of the most specific route list covering the name */
+  route?: string;
+}
+
 interface Candidate {
+  /** Index into the snapshot's lists */
+  list: number;
   allow: boolean;
   important: boolean;
   mods: Modifiers | undefined;
@@ -48,7 +64,28 @@ interface Candidate {
  * $dnsrewrite > @@…$important > …$important > @@… > blocking rules
  */
 export function match(snapshot: Snapshot, query: MatchQuery): Verdict {
-  const candidates = collect(snapshot, query);
+  return inspect(snapshot, query).verdict;
+}
+
+/**
+ * One lookup that both filters and classifies: service and route lists are recognised even when
+ * the query's `active` mask leaves them off. Candidates come most specific domain first
+ */
+export function inspect(snapshot: Snapshot, query: MatchQuery): Inspection {
+  const lists = snapshot.meta.lists;
+  const applied: Candidate[] = [];
+  const out: Inspection = { verdict: { action: "pass" } };
+  for (const c of collect(snapshot, query)) {
+    const kind = lists[c.list]?.kind ?? "filter";
+    if (kind === "service") out.service ??= lists[c.list]!.id;
+    else if (kind === "route" && !c.allow) out.route ??= lists[c.list]!.id;
+    if (query.active ? query.active[c.list] : kind === "filter") applied.push(c);
+  }
+  out.verdict = decide(applied, query);
+  return out;
+}
+
+function decide(candidates: Candidate[], query: MatchQuery): Verdict {
   if (candidates.length === 0) return { action: "pass" };
 
   const rewrites: Candidate[] = [];
@@ -125,6 +162,7 @@ function collect(snapshot: Snapshot, query: MatchQuery): Candidate[] {
       const ref = entries[o + 3]!;
       const domain = name.slice(pos);
       out.push({
+        list: ref >>> 22,
         allow: (flags & EntryFlag.ALLOW) !== 0,
         important: (flags & EntryFlag.IMPORTANT) !== 0,
         mods,
@@ -153,6 +191,7 @@ function collect(snapshot: Snapshot, query: MatchQuery): Candidate[] {
     if (rule.mods && !modifiersApply(rule.mods, query)) continue;
     const ref = complex.refs[i]!;
     out.push({
+      list: ref >>> 22,
       allow: rule.action === "allow",
       important: rule.important,
       mods: rule.mods,

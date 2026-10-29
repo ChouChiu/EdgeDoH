@@ -33,7 +33,7 @@ export interface Settings {
 }
 
 const MAX_TTL = 86400;
-const MAX_UPSTREAMS = 5;
+export const MAX_UPSTREAMS = 5;
 const MIN_TIMEOUT_MS = 500;
 const MAX_TIMEOUT_MS = 10_000;
 const MAX_MIN_TTL = 3600;
@@ -156,16 +156,8 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
         integer(key, value, 5, MAX_CLIENT_WINDOW_MINUTES);
         break;
       case "upstreams":
-        if (
-          Array.isArray(value) &&
-          value.length >= 1 &&
-          value.length <= MAX_UPSTREAMS &&
-          value.every((u) => typeof u === "string" && isHttpUrl(u, ["https:"]))
-        ) {
-          valid[key] = value;
-        } else {
-          errors.push(`upstreams must be 1-${MAX_UPSTREAMS} https:// DoH URLs`);
-        }
+        if (isUpstreamList(value)) valid[key] = value;
+        else errors.push(UPSTREAMS_ERROR);
         break;
       default:
         errors.push(`unknown setting ${key}`);
@@ -174,6 +166,18 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
   return { valid: valid as Partial<Settings>, errors };
 }
 
-function isOneOf<T extends string>(options: readonly T[], value: unknown): value is T {
+export const UPSTREAMS_ERROR = `upstreams must be 1-${MAX_UPSTREAMS} https:// DoH URLs`;
+
+/** 1 to MAX_UPSTREAMS https:// URLs; shared by settings, profiles and route lists */
+export function isUpstreamList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 1 &&
+    value.length <= MAX_UPSTREAMS &&
+    value.every((u) => typeof u === "string" && isHttpUrl(u, ["https:"]))
+  );
+}
+
+export function isOneOf<T extends string>(options: readonly T[], value: unknown): value is T {
   return options.includes(value as T);
 }

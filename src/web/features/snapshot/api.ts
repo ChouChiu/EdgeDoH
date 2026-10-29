@@ -10,7 +10,7 @@ export type SnapshotInfo =
       bytes: number;
       entries: number;
       complex: number;
-      lists: { id: string; name: string; rules: number }[];
+      lists: { id: string; name: string; rules: number; kind?: "filter" | "service" | "route" }[];
     };
 
 export const SNAPSHOT_KEY = ["rules"];

@@ -5,6 +5,10 @@ export interface Device {
   id: string;
   name: string;
   createdAt: number;
+  /** null: the default profile */
+  profileId: string | null;
+  /** Filtering is paused until this time; null when not paused */
+  pausedUntil: number | null;
   dohUrl: string;
 }
 
@@ -21,6 +25,8 @@ export const devicesApi = {
   list: () => request<Device[]>("/devices"),
   create: (name: string) => request<Device>("/devices", jsonBody("POST", { name })),
   rename: (id: string, name: string) => request<Device>(`/devices/${id}`, jsonBody("PATCH", { name })),
+  setProfile: (id: string, profileId: string | null) => request<Device>(`/devices/${id}`, jsonBody("PATCH", { profileId })),
+  pause: (id: string, minutes: number) => request<Device>(`/devices/${id}/pause`, jsonBody("POST", { minutes })),
   remove: (id: string) => request<void>(`/devices/${id}`, { method: "DELETE" }),
   clients: (id: string) => request<DeviceClients>(`/devices/${id}/clients`),
   resetClients: (id: string) => request<void>(`/devices/${id}/clients`, { method: "DELETE" }),

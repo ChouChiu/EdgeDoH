@@ -31,6 +31,15 @@ export function createFormatters(locale: string, t: Translate) {
       return new Date(ms).toLocaleDateString(locale);
     },
 
+    /** Clock time, with the date only when it is not today */
+    time: (ms: number) => {
+      const d = new Date(ms);
+      const today = d.toDateString() === new Date().toDateString();
+      return today
+        ? d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+        : d.toLocaleString(locale, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    },
+
     dateTime: (iso: string) =>
       new Date(iso).toLocaleString(locale, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }),
 

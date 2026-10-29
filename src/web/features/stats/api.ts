@@ -6,7 +6,7 @@ export const ACTIONS = ["pass", "allow", "block", "rewrite"] as const;
 export type FilterAction = (typeof ACTIONS)[number];
 export const SOURCES = ["upstream", "cache", "local", "error", "limited"] as const;
 export type AnswerSource = (typeof SOURCES)[number];
-export type TopKind = "domains" | "blocked" | "devices" | "rules" | "lists" | "upstreams";
+export type TopKind = "domains" | "blocked" | "devices" | "rules" | "lists" | "upstreams" | "services" | "clients" | "networks";
 
 export interface StatsQuery {
   range: Range;
@@ -50,6 +50,12 @@ export interface LogEntry {
   rcode: string;
   rule?: { text: string; listId: string; line: number };
   upstream?: string;
+  /** DoH client from the User-Agent, e.g. Chrome or Apple */
+  client?: string;
+  /** AdGuard service ID the name belongs to */
+  service?: string;
+  /** AS organisation of the client address */
+  network?: string;
   latencyMs: number;
   sampleInterval: number;
 }

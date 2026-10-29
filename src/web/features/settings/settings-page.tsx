@@ -1,25 +1,25 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
 import { Save } from "@/shared/components/animate-ui/icons/save";
+import { Row, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ThemeSwitch } from "@/shared/components/header-controls";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Textarea } from "@/shared/ui/textarea";
-import { type Locale, LOCALE_NAMES, LOCALES, type Translate, useI18n } from "@/shared/i18n";
-import { errorMessage, isHttpUrl } from "@/shared/lib/http";
+import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
+import { errorMessage } from "@/shared/lib/http";
+import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 import {
   BLOCKING_MODES,
   type BlockingMode,
-  MAX_UPSTREAMS,
   type Settings,
   SETTINGS_KEY,
   settingsApi,
@@ -244,41 +244,6 @@ function ServerSettings() {
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <Card size="sm" className="gap-0 pb-0">
-      <CardHeader className="border-b pb-3">
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription className="text-xs">{description}</CardDescription>}
-      </CardHeader>
-      <CardContent className="divide-y">{children}</CardContent>
-    </Card>
-  );
-}
-
-interface RowProps {
-  label: string;
-  hint?: string | undefined;
-  hintError?: boolean;
-  htmlFor: string;
-  /** Small controls such as switches stay beside the label even on phones */
-  inline?: boolean;
-  children: ReactNode;
-}
-
-/** Label and hint on the left, the control on the right; wider controls stack under the label on narrow screens */
-function Row({ label, hint, hintError, htmlFor, inline, children }: RowProps) {
-  return (
-    <div className={inline ? "flex items-center justify-between gap-4 py-2.5" : "flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4"}>
-      <div className="min-w-0 space-y-0.5">
-        <Label htmlFor={htmlFor}>{label}</Label>
-        {hint && <p className={hintError ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>{hint}</p>}
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
-
 function AddressField(props: { id: string; label: string; placeholder: string; value: string; invalid: boolean; onChange: (value: string) => void }) {
   return (
     <div className="grid gap-2">
@@ -314,14 +279,4 @@ function fromDraft(draft: Draft, upstreams: string[]): Settings {
     upstreams,
     ...(Object.fromEntries(NUMBER_FIELDS.map((key) => [key, Number(draft[key])])) as Record<NumberField, number>),
   };
-}
-
-function splitUpstreams(text: string): string[] {
-  return text.split(/\s+/).filter(Boolean);
-}
-
-function validateUpstreams(upstreams: string[], t: Translate): string | undefined {
-  if (upstreams.length === 0 || upstreams.length > MAX_UPSTREAMS) return t("settings.upstreamCount");
-  const invalid = upstreams.find((u) => !isHttpUrl(u, ["https:"]));
-  return invalid === undefined ? undefined : t("settings.invalidUpstream", { url: invalid });
 }

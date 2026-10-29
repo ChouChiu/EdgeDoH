@@ -4,13 +4,21 @@ export interface Device {
   id: string;
   name: string;
   createdAt: number;
+  /** null means the default profile */
+  profileId: string | null;
+  /** Filtering is paused until this time (ms since epoch); null or past means not paused */
+  pausedUntil: number | null;
 }
 
 interface DeviceRow {
   id: string;
   name: string;
   created_at: number;
+  profile_id: string | null;
+  paused_until: number | null;
 }
+
+const COLUMNS = "id, name, created_at, profile_id, paused_until";
 
 const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const ID_LENGTH = 10;
@@ -40,14 +48,16 @@ export function newDeviceId(): string {
 /** Looks the device up in the KV runtime config first and falls back to D1 */
 export async function findDevice(env: Env, id: string): Promise<Device | null> {
   if (!isDeviceId(id)) return null;
-  const name = (await getRuntimeConfig(env)).devices[id];
-  if (name !== undefined) return { id, name, createdAt: 0 };
+  const known = (await getRuntimeConfig(env)).devices[id];
+  if (known !== undefined) {
+    return { id, name: known.name, createdAt: 0, profileId: known.profile ?? null, pausedUntil: known.pausedUntil ?? null };
+  }
 
   const now = Date.now();
   const cached = lookupCache.get(id);
   if (cached && cached.expires > now) return cached.device;
 
-  const row = await env.DB.prepare("SELECT id, name, created_at FROM devices WHERE id = ?").bind(id).first<DeviceRow>();
+  const row = await env.DB.prepare(`SELECT ${COLUMNS} FROM devices WHERE id = ?`).bind(id).first<DeviceRow>();
   const device = row ? fromRow(row) : null;
   if (lookupCache.size >= MAX_CACHE_ENTRIES) lookupCache.clear();
   lookupCache.set(id, { device, expires: now + (device ? HIT_TTL_MS : MISS_TTL_MS) });
@@ -55,25 +65,45 @@ export async function findDevice(env: Env, id: string): Promise<Device | null> {
 }
 
 export async function listDevices(db: D1Database): Promise<Device[]> {
-  const { results } = await db.prepare("SELECT id, name, created_at FROM devices ORDER BY created_at").all<DeviceRow>();
+  const { results } = await db.prepare(`SELECT ${COLUMNS} FROM devices ORDER BY created_at`).all<DeviceRow>();
   return results.map(fromRow);
 }
 
-export async function createDevice(db: D1Database, name: string): Promise<Device> {
-  const device: Device = { id: newDeviceId(), name, createdAt: Date.now() };
+export async function createDevice(db: D1Database, name: string, profileId: string | null = null): Promise<Device> {
+  const device: Device = { id: newDeviceId(), name, createdAt: Date.now(), profileId, pausedUntil: null };
   await db
-    .prepare("INSERT INTO devices (id, name, created_at) VALUES (?, ?, ?)")
-    .bind(device.id, device.name, device.createdAt)
+    .prepare("INSERT INTO devices (id, name, created_at, profile_id) VALUES (?, ?, ?, ?)")
+    .bind(device.id, device.name, device.createdAt, profileId)
     .run();
   lookupCache.delete(device.id);
   return device;
 }
 
-export async function renameDevice(db: D1Database, id: string, name: string): Promise<Device | null> {
-  const row = await db
-    .prepare("UPDATE devices SET name = ? WHERE id = ? RETURNING id, name, created_at")
-    .bind(name, id)
-    .first<DeviceRow>();
+export interface DevicePatch {
+  name?: string;
+  profileId?: string | null;
+  pausedUntil?: number | null;
+}
+
+export async function updateDevice(db: D1Database, id: string, patch: DevicePatch): Promise<Device | null> {
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  if (patch.name !== undefined) {
+    sets.push("name = ?");
+    values.push(patch.name);
+  }
+  if (patch.profileId !== undefined) {
+    sets.push("profile_id = ?");
+    values.push(patch.profileId);
+  }
+  if (patch.pausedUntil !== undefined) {
+    sets.push("paused_until = ?");
+    values.push(patch.pausedUntil);
+  }
+  const row =
+    sets.length > 0
+      ? await db.prepare(`UPDATE devices SET ${sets.join(", ")} WHERE id = ? RETURNING ${COLUMNS}`).bind(...values, id).first<DeviceRow>()
+      : await db.prepare(`SELECT ${COLUMNS} FROM devices WHERE id = ?`).bind(id).first<DeviceRow>();
   lookupCache.delete(id);
   return row ? fromRow(row) : null;
 }
@@ -85,5 +115,5 @@ export async function deleteDevice(db: D1Database, id: string): Promise<boolean>
 }
 
 function fromRow(row: DeviceRow): Device {
-  return { id: row.id, name: row.name, createdAt: row.created_at };
+  return { id: row.id, name: row.name, createdAt: row.created_at, profileId: row.profile_id, pausedUntil: row.paused_until };
 }

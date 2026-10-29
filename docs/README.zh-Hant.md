@@ -17,6 +17,10 @@
 - **DoH 解析**：遵循 RFC 8484 規範（支援 GET 與 POST），依裝置分配獨立接入點，提供 Apple 裝置描述檔（`.mobileconfig`）一鍵匯入。
 - **規則過濾**：相容 AdGuard 過濾語法、標準 hosts 與純網域清單；內建 AdGuard 官方規則庫（HostlistsRegistry），支援自訂 URL 匯入與即時規則測試。快照在瀏覽器端非同步編譯為 64 位元雜湊分片，Worker 執行階段僅需記憶體二分搜尋；批次操作自動防抖合併編譯。
 - **解析排程與快取**：支援依序容錯移轉與並行競速；整合 Cloudflare 邊緣 Cache API 與 TTL 區間收緊（Min/Max TTL）；提供多樣化攔截回應（0.0.0.0/::、NXDOMAIN、REFUSED、NODATA、自訂 IP）與 IPv6 快速降級（AAAA 回傳 NODATA）。
+- **依裝置策略組**：每台裝置綁定一個策略組，分別選擇生效的過濾清單、攔截回應與上游；內建 AdGuard 封鎖服務目錄（TikTok、抖音、B 站、遊戲等）一鍵封鎖，支援依時區與星期的定時封鎖、強制安全搜尋（Google / Bing / DuckDuckGo）與 YouTube 嚴格篩選模式，並可暫時暫停單台裝置的過濾。
+- **分流解析與 ECS**：依網域清單（相容 dnsmasq `server=/…/` 格式，如 dnsmasq-china-list）將指定網域交給專屬上游解析；可選擇向上游轉送用戶端 /24（IPv6 /56）子網（EDNS Client Subnet），讓 CDN 回傳就近節點，快取依子網隔離。
+- **ECH 與 HTTP/3 注入**：對解析到 Cloudflare IP 段的網站，在 HTTPS 記錄中補上 `alpn=h3` 與 Cloudflare 公用 ECH 設定（取自 `cloudflare-ech.com`），網站本身未發布時自動合成；帶 DO 位元的查詢不做改寫。
+- **本機記錄與請求來源**：在面板中直接維護 A / AAAA / CNAME 本機記錄（支援 `*.` 萬用字元）；日誌依 User-Agent 區分 DoH 用戶端（瀏覽器或系統解析器），依網域歸屬推斷所屬服務，並記錄來源網路（AS 組織）。DNS 請求本身不攜帶發起的 App，服務歸屬為推斷結果。
 - **指標與日誌**：基於 Cloudflare Analytics Engine 記錄查詢量、攔截率、平均延遲與上游解析分佈；提供即時查詢日誌與多條件組合篩選，支援直接從日誌一鍵新增放行或攔截規則。
 - **用戶端防濫用**：基於 Durable Objects 記錄滑動區間內的活躍網路（IPv4 依單 IP、IPv6 依 /64 網段），超額網路自動回應 REFUSED，防止專屬 DoH 位址外洩後被未授權網路利用。
 - **零信任安全**：管理面板與 `/api/*` 受 Cloudflare Access (Zero Trust) JWT 驗證保護（Fail-closed）；DoH 解析流量走獨立路徑，零驗證冗餘開銷。
@@ -133,7 +137,7 @@ Cloudflare Workers 免費層單請求 CPU 時間限制為 10ms，因此 Worker �
 | --- | --- | --- |
 | `/api/health` | `GET` | 服務健康檢查 |
 | `/api/devices` | `GET`, `POST` | 取得裝置清單、建立新裝置 |
-| `/api/devices/<ID>` | `PATCH`, `DELETE` | 修改裝置名稱、刪除裝置 |
+| `/api/devices/<ID>` | `PATCH`, `DELETE` | 修改裝置名稱或策略組、刪除裝置 |
 | `/api/devices/<ID>/mobileconfig` | `GET` | 下載 Apple 裝置描述檔 |
 | `/api/devices/<ID>/clients` | `GET`, `DELETE` | 查詢目前來源網路記錄、清空記錄 |
 | `/api/rules` | `GET` | 取得目前規則快照中繼資料概況 |
@@ -150,6 +154,12 @@ Cloudflare Workers 免費層單請求 CPU 時間限制為 10ms，因此 Worker �
 | `/api/lists/reports` | `POST` | 用戶端回報編譯統計與語法診斷結果 |
 | `/api/custom-rules` | `GET`, `PUT` | 讀取與儲存自訂規則文字 |
 | `/api/settings` | `GET`, `PATCH` | 讀取與更新全域解析設定 |
+| `/api/profiles` | `GET`, `POST` | 取得策略組清單、新增策略組 |
+| `/api/profiles/<ID>` | `PATCH`, `DELETE` | 修改策略組、刪除策略組（預設策略組不可刪除） |
+| `/api/devices/<ID>/pause` | `POST` | 暫停裝置過濾 `{ minutes }`，0 表示恢復 |
+| `/api/services` | `GET` | 取得 AdGuard 封鎖服務目錄（含規則與圖示） |
+| `/api/local-records` | `GET`, `PUT` | 讀取與整體替換本機 DNS 記錄 |
+| `/api/lists/<ID>/text` | `PUT` | 替換手動輸入清單（如分流清單）的文字 |
 | `/api/stats/summary` | `GET` | 查詢概覽統計指標（總量、攔截率、平均耗時等） |
 | `/api/stats/timeseries` | `GET` | 取得查詢量與攔截量時序趨勢資料 |
 | `/api/stats/top/<kind>` | `GET` | 排行榜統計（支援 `domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`） |

@@ -2,9 +2,11 @@ import type { ComponentType } from "react";
 import { ChartNoAxesColumn } from "@/shared/components/animate-ui/icons/chart-no-axes-column";
 import { Cog } from "@/shared/components/animate-ui/icons/cog";
 import { ListChecks } from "@/shared/components/animate-ui/icons/list-checks";
+import { Network } from "@/shared/components/animate-ui/icons/network";
 import { ScrollText } from "@/shared/components/animate-ui/icons/scroll-text";
 import { ShieldBan } from "@/shared/components/animate-ui/icons/shield-ban";
 import { Smartphone } from "@/shared/components/animate-ui/icons/smartphone";
+import { Users } from "@/shared/components/animate-ui/icons/users";
 import type { MessageKey } from "@/shared/i18n";
 
 export interface NavItem {
@@ -18,6 +20,8 @@ export const NAV: NavItem[] = [
   { to: "/logs", label: "nav.logs", icon: ScrollText },
   { to: "/filters", label: "nav.filters", icon: ListChecks },
   { to: "/rules", label: "nav.rules", icon: ShieldBan },
+  { to: "/profiles", label: "nav.profiles", icon: Users },
+  { to: "/dns", label: "nav.dns", icon: Network },
   { to: "/devices", label: "nav.devices", icon: Smartphone },
   { to: "/settings", label: "nav.settings", icon: Cog },
 ];

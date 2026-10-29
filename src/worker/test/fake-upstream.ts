@@ -1,4 +1,4 @@
-import { buildResponse, encodeIPv4, parseMessage, Rcode, RRType } from "#dns";
+import { buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
 
 /**
  * Stand-in for real DoH resolvers, wired in as Miniflare's outbound service.
@@ -32,18 +32,54 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   const raw = new Uint8Array(await request.arrayBuffer());
   const query = parseMessage(raw);
   const name = query.questions[0]!.name.toLowerCase();
+  const type = query.questions[0]!.type;
   const reply = (body: Uint8Array) => new Response(body, { headers: { "content-type": "application/dns-message" } });
 
   if (name === "servfail.test" && url.hostname === "primary.test") {
     return reply(buildResponse(query, raw, { rcode: Rcode.SERVFAIL }));
   }
   if (name === "nx.test") return reply(buildResponse(query, raw, { rcode: Rcode.NXDOMAIN }));
+
+  // ECS: answers with the subnet the query carried, 0.0.0.0 when it carried none
+  if (name === "ecs.test") {
+    const opt = findOpt(query);
+    let address = [0, 0, 0, 0];
+    if (opt) {
+      const view = viewOf(opt.data);
+      for (let i = 0; i + 4 <= opt.data.length; i += 4 + view.getUint16(i + 2)) {
+        if (view.getUint16(i) === ECS_OPTION) address = [...opt.data.subarray(i + 8, i + 4 + view.getUint16(i + 2)), 0, 0, 0, 0].slice(0, 4);
+      }
+    }
+    return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.A, ttl: 60, data: Uint8Array.from(address) }] }));
+  }
+
+  // ECH and HTTPS records: a Cloudflare-proxied name without and with its own HTTPS record
+  const https = (params: [number, Uint8Array][]) => [{ type: RRType.HTTPS, ttl: 120, data: encodeSvcb({ priority: 1, target: "", params: new Map(params) }) }];
+  if (name === "cloudflare-ech.com" && type === RRType.HTTPS) {
+    return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: https([[SvcParam.ECH, Uint8Array.of(0xec, 0x40)]]) }));
+  }
+  if (name === "proxied.test" || name === "proxied-https.test") {
+    if (type === RRType.A) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.A, ttl: 600, data: encodeIPv4("104.16.1.2") }] }));
+    if (type === RRType.HTTPS && name === "proxied-https.test") {
+      return reply(
+        buildResponse(query, raw, {
+          rcode: Rcode.NOERROR,
+          answers: https([
+            [SvcParam.ALPN, encodeAlpn(["h2"])],
+            [SvcParam.IPV4HINT, encodeIPv4("104.16.1.3")],
+          ]),
+        }),
+      );
+    }
+    return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR }));
+  }
+  if (type === RRType.HTTPS) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR }));
   // The primary answers late, so parallel mode is expected to take the backup's answer
   if (name.startsWith("slow.") && url.hostname === "primary.test") await new Promise((r) => setTimeout(r, 300));
 
   const count = (counters.get(name) ?? 0) + 1;
   counters.set(name, count);
-  const last = url.hostname === "backup.test" ? 200 + count : count;
+  const last = url.hostname === "backup.test" ? 200 + count : url.hostname === "route.test" ? 100 + count : count;
   return reply(
     buildResponse(query, raw, {
       rcode: Rcode.NOERROR,
@@ -117,6 +153,15 @@ function fakeRegistry(url: URL): Response {
           downloadUrl: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_99.txt",
         },
       ],
+    });
+  }
+  if (url.pathname.endsWith("/services.json")) {
+    return Response.json({
+      blocked_services: [
+        { id: "tiktok", name: "TikTok", rules: ["||tiktok.test^", "||tiktokcdn.test^"], icon_svg: "<svg/>", group: "social_network" },
+        { id: "bad id", name: "Broken", rules: [] },
+      ],
+      groups: [{ id: "social_network" }],
     });
   }
   if (url.pathname.endsWith("/filter_99.txt")) return new Response("! Title: test\n||from-registry.test^\n");

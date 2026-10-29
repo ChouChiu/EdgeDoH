@@ -126,12 +126,30 @@ describe("query recording", () => {
         rule: { text: "||ads.example^", listId: "adguard", line: 9 },
         upstream: "https://dns.google/dns-query",
         colo: "HKG",
+        client: "Firefox",
+        service: "tiktok",
+        network: "Example ISP",
+        asn: 64500,
         latencyMs: 3,
       }),
     ).toEqual({
       indexes: ["abcdefghij"],
-      blobs: ["ads.example", "HTTPS", "block", "local", "NXDOMAIN", "||ads.example^", "adguard", "dns.google", "HKG", "Phone"],
-      doubles: [3, 9],
+      blobs: [
+        "ads.example",
+        "HTTPS",
+        "block",
+        "local",
+        "NXDOMAIN",
+        "||ads.example^",
+        "adguard",
+        "dns.google",
+        "HKG",
+        "Phone",
+        "Firefox",
+        "tiktok",
+        "Example ISP",
+      ],
+      doubles: [3, 9, 64500],
     });
   });
 
@@ -146,7 +164,7 @@ describe("query recording", () => {
 
     expect(write).toHaveBeenCalledTimes(2);
     const [blocked, clean] = write.mock.calls.map(([point]) => point!);
-    expect(blocked).toMatchObject({ indexes: [id], blobs: ["stats-blocked.example", "A", "block", "local", "NOERROR", "||stats-blocked.example^", "test", "", "", "Laptop"] });
+    expect(blocked).toMatchObject({ indexes: [id], blobs: ["stats-blocked.example", "A", "block", "local", "NOERROR", "||stats-blocked.example^", "test", "", "", "Laptop", "", "", ""] });
     expect(clean?.blobs?.slice(0, 4)).toEqual(["stats-clean.example", "A", "pass", "upstream"]);
     expect(clean?.blobs?.[7]).toBe("primary.test");
   });

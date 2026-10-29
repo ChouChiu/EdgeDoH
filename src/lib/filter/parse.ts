@@ -56,6 +56,33 @@ export function parseLine(raw: string, line: number): ParseResult {
   }
 }
 
+const DNSMASQ_SERVER_RE = /^server=\/(.+)\/[^/]*$/;
+
+/**
+ * Parses one line of a split-DNS domain list. Besides the filter syntaxes it reads dnsmasq
+ * `server=/a.com/b.com/1.2.3.4` lines (china-list style); every name also covers its subdomains,
+ * as dnsmasq does, and the trailing server address is ignored in favour of the route's upstreams
+ */
+export function parseRouteLine(raw: string, line: number): ParseResult {
+  const text = raw.trim();
+  const dnsmasq = DNSMASQ_SERVER_RE.exec(text);
+  const result: ParseResult = dnsmasq
+    ? {
+        type: "rules",
+        rules: dnsmasq[1]!
+          .split("/")
+          .map(normalizeDomain)
+          .filter(isDomain)
+          .map((domain) => hostRule(domain, undefined, "domain", line, domain)),
+      }
+    : parseLine(raw, line);
+  if (result.type !== "rules") return result;
+  const rules = result.rules
+    .filter((r) => r.action === "block" && !r.mods)
+    .map((r): Rule => (r.pattern.kind === "exact" ? { ...r, pattern: { kind: "suffix", domain: r.pattern.domain } } : r));
+  return rules.length > 0 ? { type: "rules", rules } : { type: "unsupported", reason: "not a plain domain rule" };
+}
+
 function parseHostsOrDomain(text: string, line: number): ParseResult | undefined {
   const comment = text.search(/\s#/);
   const fields = (comment >= 0 ? text.slice(0, comment) : text).split(/\s+/);

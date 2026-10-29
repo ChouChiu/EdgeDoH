@@ -18,7 +18,7 @@ import { isStatsNotConfigured, parseRange, type Range, RANGES, statsApi, type To
 import { StatsNotConfigured } from "./stats-not-configured";
 import { TopCard } from "./top-card";
 
-const TOP_KINDS: TopKind[] = ["domains", "blocked", "devices", "rules", "lists", "upstreams"];
+const TOP_KINDS: TopKind[] = ["domains", "blocked", "devices", "rules", "lists", "upstreams", "services", "clients", "networks"];
 
 export function OverviewPage() {
   const { t, fmt } = useI18n();

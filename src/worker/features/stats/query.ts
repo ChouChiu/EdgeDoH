@@ -132,6 +132,9 @@ export const TOP_KINDS = {
   rules: { key: C.rule, extra: [`${C.rule} != ''`] },
   lists: { key: C.list, extra: [`${C.list} != ''`] },
   upstreams: { key: C.upstream, extra: [`${C.upstream} != ''`] },
+  services: { key: C.service, extra: [`${C.service} != ''`] },
+  clients: { key: C.client, extra: [`${C.client} != ''`] },
+  networks: { key: C.network, extra: [`${C.network} != ''`] },
 } as const;
 export type TopKind = keyof typeof TOP_KINDS;
 
@@ -148,7 +151,8 @@ LIMIT ${limit}`;
 export function logsSql(table: string, f: StatsFilter, limit: number, offset: number): string {
   return `SELECT timestamp, ${C.device} AS device, ${C.deviceName} AS device_name, ${C.name} AS name, ${C.type} AS type,
   ${C.action} AS action, ${C.source} AS source, ${C.rcode} AS rcode, ${C.rule} AS rule, ${C.list} AS list,
-  ${C.ruleLine} AS line, ${C.upstream} AS upstream, ${C.latency} AS latency_ms, ${N} AS sample_interval
+  ${C.ruleLine} AS line, ${C.upstream} AS upstream, ${C.client} AS client, ${C.service} AS service, ${C.network} AS network,
+  ${C.latency} AS latency_ms, ${N} AS sample_interval
 FROM ${table} ${where(f)}
 ORDER BY timestamp DESC
 LIMIT ${limit} OFFSET ${offset}`;

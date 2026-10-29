@@ -25,7 +25,6 @@ export interface Settings {
   deviceClientWindowMinutes: number;
 }
 
-export const MAX_UPSTREAMS = 5;
 export const SETTINGS_KEY = ["settings"];
 
 export const settingsApi = {

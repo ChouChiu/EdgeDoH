@@ -1,9 +1,10 @@
 import { indexLabel } from "./glob.ts";
 import { hash64 } from "./hash.ts";
-import { badfilterKey, parseLine } from "./parse.ts";
+import { badfilterKey, parseLine, parseRouteLine } from "./parse.ts";
 import {
   type ComplexRules,
   encodeSnapshot,
+  type ListKind,
   ENTRY_WORDS,
   EntryFlag,
   MAX_LINE,
@@ -17,6 +18,8 @@ export interface FilterSource {
   id: string;
   name: string;
   text: string;
+  /** Defaults to filter */
+  kind?: ListKind;
 }
 
 export interface CompileOptions {
@@ -82,8 +85,9 @@ export function compile(sources: FilterSource[], options: CompileOptions = {}): 
     const lines = source.text.split(/\r?\n/);
     report.lines = lines.length;
     if (lines.length > MAX_LINE) throw new Error(`list ${source.name} has more than ${MAX_LINE} lines`);
+    const parse = source.kind === "route" ? parseRouteLine : parseLine;
     lines.forEach((text, i) => {
-      const result = parseLine(text, i + 1);
+      const result = parse(text, i + 1);
       if (result.type === "rules") for (const rule of result.rules) parsed.push({ rule, list });
       else if (result.type === "badfilter") badfilters.add(result.target);
       else if (result.type === "unsupported") unsupported(report, result.reason);
@@ -167,7 +171,7 @@ export function compile(sources: FilterSource[], options: CompileOptions = {}): 
   const entries = sortEntries(words);
   const snapshot = encodeSnapshot(entries, {
     createdAt: options.now ?? Date.now(),
-    lists: reports.map((r) => ({ id: r.id, name: r.name, rules: r.rules })),
+    lists: reports.map((r, i) => ({ id: r.id, name: r.name, rules: r.rules, ...(sources[i]!.kind && sources[i]!.kind !== "filter" && { kind: sources[i]!.kind }) })),
     mods,
     complex,
   });

@@ -10,11 +10,18 @@ export const MAX_LIST_BYTES = 20 * 1024 * 1024;
 export const MAX_CUSTOM_RULES_BYTES = 1024 * 1024;
 export const MAX_LIST_NAME = 100;
 
+export const LIST_KINDS = ["filter", "route"] as const;
+export type ListKind = (typeof LIST_KINDS)[number];
+
 export interface FilterList {
   id: string;
   name: string;
+  /** Empty for inline lists, whose text is edited in the dashboard */
   url: string;
-  source: "registry" | "url";
+  source: "registry" | "url" | "inline";
+  kind: ListKind;
+  /** Route lists only: DoH URLs that resolve the names on the list */
+  upstreams: string[] | null;
   registryId: number | null;
   enabled: boolean;
   rules: number | null;
@@ -31,7 +38,9 @@ interface Row {
   id: string;
   name: string;
   url: string;
-  source: "registry" | "url";
+  source: "registry" | "url" | "inline";
+  kind: ListKind;
+  upstreams: string | null;
   registry_id: number | null;
   enabled: number;
   rules: number | null;
@@ -54,6 +63,8 @@ export function textKey(id: string): string {
   return `list:${id}`;
 }
 
+export const MAX_INLINE_BYTES = 1024 * 1024;
+
 export async function getLists(db: D1Database): Promise<FilterList[]> {
   const { results } = await db.prepare("SELECT * FROM filter_lists ORDER BY created_at").all<Row>();
   return results.map(fromRow);
@@ -67,31 +78,66 @@ export async function getList(db: D1Database, id: string): Promise<FilterList | 
 /** Without a `name`, the list's own title is used, then the URL's host name */
 export async function addList(
   env: Env,
-  list: Pick<FilterList, "id" | "url" | "source" | "registryId"> & { name?: string },
+  list: Pick<FilterList, "id" | "url" | "source" | "registryId"> & { name?: string; kind?: ListKind; upstreams?: string[] | null },
 ): Promise<FilterList> {
   if (await getList(env.DB, list.id)) throw new HttpError(409, "list is already installed");
   const meta = await download(env, list.id, list.url);
   const name = list.name ?? meta.title ?? new URL(list.url).hostname;
   const now = Date.now();
   await env.DB.prepare(
-    "INSERT INTO filter_lists (id, name, url, source, registry_id, enabled, meta, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)",
+    "INSERT INTO filter_lists (id, name, url, source, kind, upstreams, registry_id, enabled, meta, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)",
   )
-    .bind(list.id, name, list.url, list.source, list.registryId, JSON.stringify(meta), now, now)
+    .bind(list.id, name, list.url, list.source, list.kind ?? "filter", upstreamsJson(list.upstreams), list.registryId, JSON.stringify(meta), now, now)
     .run();
   return (await getList(env.DB, list.id))!;
+}
+
+/** A list typed into the dashboard rather than downloaded */
+export async function addInlineList(env: Env, list: { name: string; kind: ListKind; upstreams: string[] | null; text: Uint8Array }): Promise<FilterList> {
+  const id = `inline-${crypto.randomUUID().slice(0, 8)}`;
+  await env.RULES.put(textKey(id), list.text);
+  const now = Date.now();
+  await env.DB.prepare(
+    "INSERT INTO filter_lists (id, name, url, source, kind, upstreams, registry_id, enabled, fetched_at, created_at) VALUES (?, ?, '', 'inline', ?, ?, NULL, 1, ?, ?)",
+  )
+    .bind(id, list.name, list.kind, upstreamsJson(list.upstreams), now, now)
+    .run();
+  return (await getList(env.DB, id))!;
+}
+
+export async function setInlineText(env: Env, id: string, text: Uint8Array): Promise<FilterList> {
+  const list = await getList(env.DB, id);
+  if (!list) throw new HttpError(404, "list not found");
+  if (list.source !== "inline") throw new HttpError(400, "only inline lists can be edited");
+  await env.RULES.put(textKey(id), text);
+  await env.DB.prepare("UPDATE filter_lists SET fetched_at = ? WHERE id = ?").bind(Date.now(), id).run();
+  return (await getList(env.DB, id))!;
+}
+
+function upstreamsJson(upstreams: string[] | null | undefined): string | null {
+  return upstreams ? JSON.stringify(upstreams) : null;
 }
 
 export async function refreshList(env: Env, id: string): Promise<FilterList> {
   const list = await getList(env.DB, id);
   if (!list) throw new HttpError(404, "list not found");
+  if (list.source === "inline") return list;
   const meta = await download(env, id, list.url);
   await env.DB.prepare("UPDATE filter_lists SET meta = ?, fetched_at = ? WHERE id = ?").bind(JSON.stringify(meta), Date.now(), id).run();
   return (await getList(env.DB, id))!;
 }
 
-export async function updateList(db: D1Database, id: string, patch: { enabled?: boolean; name?: string }): Promise<FilterList | null> {
+export async function updateList(
+  db: D1Database,
+  id: string,
+  patch: { enabled?: boolean; name?: string; upstreams?: string[] },
+): Promise<FilterList | null> {
   const sets: string[] = [];
   const values: unknown[] = [];
+  if (patch.upstreams !== undefined) {
+    sets.push("upstreams = ?");
+    values.push(upstreamsJson(patch.upstreams));
+  }
   if (patch.enabled !== undefined) {
     sets.push("enabled = ?");
     values.push(patch.enabled ? 1 : 0);
@@ -169,6 +215,8 @@ function fromRow(row: Row): FilterList {
     name: row.name,
     url: row.url,
     source: row.source,
+    kind: row.kind,
+    upstreams: row.upstreams ? JSON.parse(row.upstreams) : null,
     registryId: row.registry_id,
     enabled: row.enabled === 1,
     rules: row.rules,

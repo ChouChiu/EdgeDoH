@@ -1,5 +1,6 @@
 import {
   buildResponse,
+  clientSubnet,
   decodeBase64Url,
   DnsParseError,
   HEADER_SIZE,
@@ -12,15 +13,19 @@ import {
   Rcode,
   RRType,
 } from "#dns";
-import { match, type Verdict } from "#filter";
+import type { Inspection, Verdict } from "#filter";
 import { HttpError, readBody } from "../../shared/http.ts";
+import { getRuntimeConfig } from "../../shared/runtime-config.ts";
 import { admitClient } from "../devices/client-guard.ts";
-import { type Device, findDevice } from "../devices/store.ts";
-import { ensureShards, getSnapshot } from "../rules/store.ts";
+import { findDevice } from "../devices/store.ts";
+import { getProfile, type Profile, SERVICE_LIST_PREFIX } from "../profiles/store.ts";
 import { getSettings, type Settings } from "../settings/store.ts";
+import { clientLabel } from "../stats/client.ts";
 import { recordQuery } from "../stats/record.ts";
 import type { AnswerSource } from "../stats/schema.ts";
 import { type AnswerConfig, blockedResponse, rewriteResponse } from "./answers.ts";
+import { decide } from "./decide.ts";
+import { injectHttps } from "./https-inject.ts";
 import { DNS_MESSAGE, resolve } from "./upstream.ts";
 
 type WaitUntil = Pick<ExecutionContext, "waitUntil">;
@@ -49,38 +54,55 @@ export async function handleDoh(request: Request, env: Env, ctx: WaitUntil, devi
     return dnsResponse(buildResponse(query, raw, { rcode: Rcode.FORMERR }));
   }
 
-  const settings = await getSettings(env);
+  const [settings, profile, runtime] = await Promise.all([getSettings(env), getProfile(env, device.profileId), getRuntimeConfig(env)]);
   const question = query.questions[0]!;
-  const config = answerConfig(settings);
+  const name = question.name.toLowerCase();
   const ip = request.headers.get("cf-connecting-ip");
-  let verdict: Verdict;
+  let verdict: Verdict = { action: "pass" };
   let answer: Answer;
+  let inspection: Inspection | undefined;
   const limit = { maxClients: settings.maxDeviceClients, windowMs: settings.deviceClientWindowMinutes * 60_000 };
   if (!(await admitClient(env, device.id, ip, limit))) {
-    verdict = { action: "pass" };
     answer = { response: buildResponse(query, raw, { rcode: Rcode.REFUSED }), source: "limited" };
-  } else if (settings.disableIpv6 && question.type === RRType.AAAA) {
-    // Clients fall back to IPv4 on an empty answer, without the delay an error would cause
-    verdict = { action: "pass" };
-    answer = { response: buildResponse(query, raw, { rcode: Rcode.NOERROR }), source: "local", ttl: config.ttl };
   } else {
-    verdict = settings.filteringEnabled ? await evaluate(env, query, device, ip) : { action: "pass" };
-    answer = await answerQuery(query, raw, verdict, config, ctx);
+    const decision = await decide(env, { device, profile, settings, records: runtime.records, name, type: question.type, ip, now: started });
+    ({ verdict, inspection } = decision);
+    if (decision.ipv6Off) {
+      // Clients fall back to IPv4 on an empty answer, without the delay an error would cause
+      answer = { response: buildResponse(query, raw, { rcode: Rcode.NOERROR }), source: "local", ttl: settings.blockedTtl };
+    } else {
+      const routed = profile.splitDns && inspection?.route ? runtime.routes[inspection.route] : undefined;
+      const config = answerConfig(settings, profile, routed, ip);
+      answer = await answerQuery(query, raw, verdict, config, ctx);
+      if (question.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && answer.source !== "error") {
+        const injected = await injectHttps(query, raw, answer.response, profile, config.upstream, ctx).catch((err: unknown) => {
+          console.warn("HTTPS record injection failed", String(err));
+          return undefined;
+        });
+        // The edited records may live shorter than the upstream answer, e.g. a long negative TTL
+        if (injected) answer = { ...answer, response: injected.response, ttl: Math.min(answer.ttl ?? injected.ttl, injected.ttl) };
+      }
+    }
   }
 
   if (!settings.queryLogEnabled) return dnsResponse(answer.response, answer.ttl);
-  const colo = (request.cf as { colo?: string } | undefined)?.colo;
+  const cf = request.cf as { colo?: string; asn?: number; asOrganization?: string } | undefined;
+  const service = inspection?.service?.slice(SERVICE_LIST_PREFIX.length);
   recordQuery(env.QUERY_LOG, {
     deviceId: device.id,
     deviceName: device.name,
-    name: question.name.toLowerCase(),
+    name,
     type: question.type,
     action: verdict.action,
     source: answer.source,
     response: answer.response,
     ...("rule" in verdict && { rule: verdict.rule }),
     ...(answer.upstream && { upstream: answer.upstream }),
-    ...(colo && { colo }),
+    ...(cf?.colo && { colo: cf.colo }),
+    client: clientLabel(request.headers.get("user-agent")),
+    ...(service && { service }),
+    ...(cf?.asOrganization && { network: cf.asOrganization }),
+    ...(cf?.asn && { asn: cf.asn }),
     latencyMs: Date.now() - started,
   });
   return dnsResponse(answer.response, answer.ttl);
@@ -104,30 +126,19 @@ async function answerQuery(query: Message, raw: Uint8Array, verdict: Verdict, co
   }
 }
 
-async function evaluate(env: Env, query: Message, device: Device, ip: string | null): Promise<Verdict> {
-  const loaded = await getSnapshot(env.RULES);
-  if (!loaded) return { action: "pass" };
-  const question = query.questions[0]!;
-  const name = question.name.toLowerCase();
-  await ensureShards(env.RULES, loaded, name);
-  return match(loaded.snapshot, {
-    name,
-    type: question.type,
-    client: { id: device.id, name: device.name, ...(ip && { ip }) },
-  });
-}
-
-function answerConfig(settings: Settings): AnswerConfig {
+function answerConfig(settings: Settings, profile: Profile, routed: string[] | undefined, ip: string | null): AnswerConfig {
+  const upstreams = routed && routed.length > 0 ? routed : (profile.upstreams ?? settings.upstreams);
   return {
-    blockingMode: settings.blockingMode,
+    blockingMode: profile.blockingMode ?? settings.blockingMode,
     blockingIpv4: settings.blockingIpv4,
     blockingIpv6: settings.blockingIpv6,
     ttl: settings.blockedTtl,
     upstream: {
-      upstreams: settings.upstreams,
+      upstreams,
       mode: settings.upstreamMode,
       timeoutMs: settings.upstreamTimeoutMs,
       cache: { enabled: settings.cacheEnabled, minTtl: settings.cacheMinTtl, maxTtl: settings.cacheMaxTtl },
+      subnet: profile.ecs && ip ? clientSubnet(ip) : undefined,
     },
   };
 }

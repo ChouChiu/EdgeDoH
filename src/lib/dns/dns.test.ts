@@ -190,3 +190,43 @@ describe("base64url", () => {
     expect(() => decodeBase64Url("abc$")).toThrow(DnsParseError);
   });
 });
+
+describe("SVCB and ECS helpers", () => {
+  it("round-trips HTTPS RDATA with params in key order", async () => {
+    const { encodeSvcb, parseSvcb, encodeAlpn, decodeAlpn, SvcParam } = await import("./index.ts");
+    const params = new Map([
+      [SvcParam.ECH, Uint8Array.of(1, 2)],
+      [SvcParam.ALPN, encodeAlpn(["h3", "h2"])],
+    ]);
+    const data = encodeSvcb({ priority: 1, target: "", params });
+    // priority, root target, then key 1 before key 5
+    expect([...data.subarray(0, 5)]).toEqual([0, 1, 0, 0, SvcParam.ALPN]);
+    const back = parseSvcb(data);
+    expect(back.priority).toBe(1);
+    expect(back.target).toBe("");
+    expect(decodeAlpn(back.params.get(SvcParam.ALPN)!)).toEqual(["h3", "h2"]);
+    expect([...back.params.get(SvcParam.ECH)!]).toEqual([1, 2]);
+  });
+
+  it("truncates client subnets and replaces any ECS option in the query", async () => {
+    const { clientSubnet, subnetText, withClientSubnet, findOpt, ECS_OPTION, subnetOptedOut } = await import("./index.ts");
+    const plain = buildQuery("ecs.example", RRType.A);
+    expect(subnetOptedOut(parseMessage(plain))).toBe(false);
+    const optOut = withClientSubnet(plain, parseMessage(plain), { family: 1, prefix: 0, address: new Uint8Array(0) });
+    expect(subnetOptedOut(parseMessage(optOut))).toBe(true);
+    expect(subnetText(clientSubnet("203.0.113.77")!)).toBe("203.0.113.0/24");
+    expect(subnetText(clientSubnet("2001:db8:aaaa:bbcc::1")!)).toBe("2001:db8:aaaa:bb00:0:0:0:0/56");
+    expect(clientSubnet("not an ip")).toBeUndefined();
+
+    for (const raw of [buildQuery("ecs.example", RRType.A), buildQuery("ecs.example", RRType.A, { edns: { dnssecOk: true } })]) {
+      const once = withClientSubnet(raw, parseMessage(raw), clientSubnet("192.0.2.9")!);
+      const twice = parseMessage(withClientSubnet(once, parseMessage(once), clientSubnet("198.51.100.1")!));
+      const opt = findOpt(twice)!;
+      expect(twice.questions[0]?.name).toBe("ecs.example");
+      expect(opt.data[1]).toBe(ECS_OPTION);
+      expect([...opt.data.subarray(8)]).toEqual([198, 51, 100]);
+      expect(opt.data.length).toBe(11);
+      expect(dnssecOk(twice)).toBe(dnssecOk(parseMessage(raw)));
+    }
+  });
+});

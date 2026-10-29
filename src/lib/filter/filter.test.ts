@@ -10,11 +10,13 @@ import {
   decodeMeta,
   decodeShard,
   hash64,
+  inspect,
   loadSnapshot,
   match,
   missingShards,
   type MatchQuery,
   parseLine,
+  parseRouteLine,
   type Rule,
   SHARD_COUNT,
   shardOf,
@@ -431,5 +433,42 @@ describe("list header", () => {
     const head = new TextEncoder().encode("! Title: Full\n! Description: cut he");
     expect(decodeListHead(head, false)).toBe("! Title: Full\n");
     expect(decodeListHead(head, true)).toContain("cut he");
+  });
+});
+
+describe("list kinds", () => {
+  const snapshot = () =>
+    loadSnapshot(
+      compile([
+        { id: "ads", name: "Ads", text: "||ads.example^" },
+        { id: "service:tiktok", name: "TikTok", text: "||tiktok.example^", kind: "service" },
+        { id: "route", name: "Route", text: "server=/cn.example/sub.example/114.114.114.114\nplain.example\n@@||skip.example^", kind: "route" },
+      ]).snapshot,
+    );
+
+  it("filters with filter lists by default and reports services and routes either way", () => {
+    const s = snapshot();
+    expect(inspect(s, { name: "x.tiktok.example", type: RRType.A })).toEqual({ verdict: { action: "pass" }, service: "service:tiktok" });
+    expect(inspect(s, { name: "a.cn.example", type: RRType.A })).toEqual({ verdict: { action: "pass" }, route: "route" });
+    expect(match(s, { name: "ads.example", type: RRType.A }).action).toBe("block");
+  });
+
+  it("applies exactly the lists in the active mask", () => {
+    const s = snapshot();
+    const active = Uint8Array.of(0, 1, 0);
+    expect(match(s, { name: "ads.example", type: RRType.A, active }).action).toBe("pass");
+    expect(match(s, { name: "x.tiktok.example", type: RRType.A, active }).action).toBe("block");
+  });
+
+  it("reads route lists as suffix domains, dnsmasq lines included", () => {
+    expect(parseRouteLine("server=/a.example/b.example/1.1.1.1", 1)).toMatchObject({
+      type: "rules",
+      rules: [{ pattern: { kind: "suffix", domain: "a.example" } }, { pattern: { kind: "suffix", domain: "b.example" } }],
+    });
+    expect(parseRouteLine("plain.example", 2)).toMatchObject({ rules: [{ pattern: { kind: "suffix", domain: "plain.example" } }] });
+    expect(parseRouteLine("@@||skip.example^", 3).type).toBe("unsupported");
+    const s = snapshot();
+    expect(inspect(s, { name: "deep.plain.example", type: RRType.A }).route).toBe("route");
+    expect(inspect(s, { name: "skip.example", type: RRType.A }).route).toBeUndefined();
   });
 });

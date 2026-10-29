@@ -34,10 +34,20 @@ export const SYNTAX_CODES = ["adblock", "hosts", "domain"] as const;
 export const MAX_LISTS = 1 << 10;
 export const MAX_LINE = (1 << 22) - 1;
 
+/**
+ * filter: blocking and allowlist rules. service: one AdGuard blocked service, applied only when a
+ * profile turns it on and otherwise used to name the service a query belongs to. route: domains
+ * resolved through a dedicated upstream group, never applied as filters
+ */
+export const LIST_KINDS = ["filter", "service", "route"] as const;
+export type ListKind = (typeof LIST_KINDS)[number];
+
 export interface ListInfo {
   id: string;
   name: string;
   rules: number;
+  /** Absent in snapshots built before list kinds existed, which means filter */
+  kind?: ListKind;
 }
 
 /**

@@ -2,6 +2,7 @@ import {
   buildResponse,
   cacheTtl,
   clampTtls,
+  type ClientSubnet,
   decrementTtls,
   dnssecOk,
   Flag,
@@ -10,6 +11,9 @@ import {
   parseMessage,
   Rcode,
   rcodeOf,
+  subnetOptedOut,
+  subnetText,
+  withClientSubnet,
   withId,
 } from "#dns";
 import type { UpstreamMode } from "../settings/store.ts";
@@ -22,6 +26,8 @@ export interface UpstreamConfig {
   mode: UpstreamMode;
   timeoutMs: number;
   cache: CacheConfig;
+  /** Sent upstream as EDNS Client Subnet; answers are then cached per subnet */
+  subnet?: ClientSubnet | undefined;
 }
 
 export interface CacheConfig {
@@ -51,13 +57,15 @@ export async function resolve(
   ctx: Pick<ExecutionContext, "waitUntil">,
 ): Promise<Resolution> {
   const { cache } = config;
-  const key = cacheKey(query);
+  const subnet = config.subnet && !subnetOptedOut(query) ? config.subnet : undefined;
+  const key = cacheKey(query, config.upstreams, subnet);
   if (cache.enabled) {
     const cached = await readCache(key, query, raw);
     if (cached) return cached;
   }
 
-  const result = config.mode === "parallel" ? await fetchParallel(raw, config) : await fetchUpstreams(raw, config);
+  const sent = subnet ? withClientSubnet(raw, query, subnet) : raw;
+  const result = config.mode === "parallel" ? await fetchParallel(sent, config) : await fetchUpstreams(sent, config);
   if (!result) {
     return { response: buildResponse(query, raw, { rcode: Rcode.SERVFAIL }), source: "error" };
   }
@@ -150,12 +158,19 @@ function cacheableTtl(msg: Message, cache: CacheConfig): number | undefined {
   return bounded > 0 ? bounded : undefined;
 }
 
-function cacheKey(query: Message): string {
+/**
+ * Profiles and split-DNS routes send the same name to different upstreams, whose answers differ
+ * (e.g. domestic versus overseas CDN nodes), so the upstream set is part of the key
+ */
+function cacheKey(query: Message, upstreams: string[], subnet: ClientSubnet | undefined): string {
   const q = query.questions[0]!;
   const params = new URLSearchParams({
     do: dnssecOk(query) ? "1" : "0",
     cd: hasFlag(query.header, Flag.CD) ? "1" : "0",
+    up: upstreams.join(" "),
   });
+  // Answers differ per subnet, and must never leak to clients the upstream did not tailor them for
+  if (subnet) params.set("ecs", subnetText(subnet));
   return `https://cf-dns.cache/v1/${q.class}/${q.type}/${encodeURIComponent(q.name.toLowerCase())}?${params}`;
 }
 

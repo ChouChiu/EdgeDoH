@@ -39,6 +39,7 @@ export function RebuildProvider({ children }: { children: ReactNode }) {
             description: t("rebuild.doneDetail", { count: result.uploaded }),
           });
         }
+        if (result.servicesSkipped) toast.warning(t("rebuild.servicesSkipped"));
         return result;
       } catch (err) {
         toast.error(t("rebuild.failed"), { id, description: errorMessage(err, t) });

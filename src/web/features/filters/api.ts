@@ -7,8 +7,13 @@ import { jsonBody, request } from "@/shared/lib/http";
 export interface FilterList {
   id: string;
   name: string;
+  /** Empty for inline lists */
   url: string;
-  source: "registry" | "url";
+  source: "registry" | "url" | "inline";
+  /** route: a split-DNS domain list, managed on the DNS page */
+  kind: "filter" | "route";
+  /** Route lists only */
+  upstreams: string[] | null;
   registryId: number | null;
   enabled: boolean;
   rules: number | null;
@@ -54,7 +59,10 @@ export const listsApi = {
   list: () => request<FilterList[]>("/lists"),
   installRegistry: (registryId: number) => request<FilterList>("/lists", jsonBody("POST", { registryId })),
   installUrl: (url: string, name?: string) => request<FilterList>("/lists", jsonBody("POST", { url, name })),
-  update: (id: string, patch: { enabled?: boolean; name?: string }) => request<FilterList>(`/lists/${id}`, jsonBody("PATCH", patch)),
+  addRoute: (body: { name?: string; upstreams: string[] } & ({ url: string } | { text: string })) =>
+    request<FilterList>("/lists", jsonBody("POST", { ...body, kind: "route" })),
+  update: (id: string, patch: { enabled?: boolean; name?: string; upstreams?: string[] }) => request<FilterList>(`/lists/${id}`, jsonBody("PATCH", patch)),
+  setText: (id: string, text: string) => request<FilterList>(`/lists/${id}/text`, { method: "PUT", headers: { "content-type": "text/plain" }, body: text }),
   refresh: (id: string) => request<FilterList>(`/lists/${id}/refresh`, { method: "POST" }),
   remove: (id: string) => request<void>(`/lists/${id}`, { method: "DELETE" }),
   text: (id: string) => request<string>(`/lists/${id}/text`),
@@ -62,13 +70,26 @@ export const listsApi = {
   catalog: () => request<Catalog>("/catalog"),
 };
 
+const filterLists = (lists: FilterList[]) => lists.filter((l) => l.kind !== "route");
+const routeLists = (lists: FilterList[]) => lists.filter((l) => l.kind === "route");
+
+/** Filter lists only; route lists share the query but live on the DNS page */
 export function useLists() {
-  return useQuery({ queryKey: LISTS_KEY, queryFn: listsApi.list });
+  return useQuery({ queryKey: LISTS_KEY, queryFn: listsApi.list, select: filterLists });
+}
+
+export function useRouteLists() {
+  return useQuery({ queryKey: LISTS_KEY, queryFn: listsApi.list, select: routeLists });
 }
 
 /** Display name for a list ID as stored in rules and logs; unknown IDs (since uninstalled) stay as they are */
 export function useListName(): (id: string) => string {
   const { t } = useI18n();
-  const lists = useLists();
-  return (id) => (id === CUSTOM_LIST_ID ? t("rebuild.customList") : (lists.data?.find((l) => l.id === id)?.name ?? id));
+  const lists = useQuery({ queryKey: LISTS_KEY, queryFn: listsApi.list });
+  return (id) => {
+    if (id === CUSTOM_LIST_ID) return t("rebuild.customList");
+    if (id === "safesearch") return t("profiles.safeSearch");
+    if (id === "local") return t("dns.records");
+    return lists.data?.find((l) => l.id === id)?.name ?? id;
+  };
 }

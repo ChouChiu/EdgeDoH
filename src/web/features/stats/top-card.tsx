@@ -4,6 +4,8 @@ import { QueryError } from "@/shared/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useListName } from "@/features/filters/api";
+import { useServices } from "@/features/profiles/api";
+import { ServiceIcon } from "@/shared/components/service-icon";
 import { useI18n } from "@/shared/i18n";
 import { type Range, statsApi, type TopItem, type TopKind } from "./api";
 
@@ -20,6 +22,9 @@ const BAR: Record<TopKind, string> = {
   rules: "bg-destructive/10",
   lists: "bg-primary/15",
   upstreams: "bg-success/15",
+  services: "bg-primary/15",
+  clients: "bg-info/15",
+  networks: "bg-info/15",
 };
 
 /** Rows the query log can filter by link to it; rules, lists and upstreams have no such filter */
@@ -35,9 +40,12 @@ function logLink(kind: TopKind, item: TopItem, range: Range): string | undefined
 export function TopCard({ kind, range, enabled }: { kind: TopKind; range: Range; enabled: boolean }) {
   const { t, fmt } = useI18n();
   const listName = useListName();
+  const services = useServices();
+  const service = (id: string) => services.data?.find((s) => s.id === id);
   const top = useQuery({ queryKey: ["stats", "top", kind, range], queryFn: () => statsApi.top(kind, { range }, 10), enabled });
   const max = Math.max(1, ...(top.data?.items.map((i) => i.count) ?? []));
-  const labelOf = (item: TopItem) => (kind === "devices" ? item.label || item.key : kind === "lists" ? listName(item.key) : item.key);
+  const labelOf = (item: TopItem) =>
+    kind === "devices" ? item.label || item.key : kind === "lists" ? listName(item.key) : kind === "services" ? (service(item.key)?.name ?? item.key) : item.key;
 
   return (
     <Card size="sm">
@@ -55,7 +63,10 @@ export function TopCard({ kind, range, enabled }: { kind: TopKind; range: Range;
             <>
               <div className={`absolute inset-y-0 left-0 ${BAR[kind]}`} style={{ width: `${(item.count / max) * 100}%` }} />
               <div className="relative flex items-center justify-between gap-2">
-                <span className={kind === "rules" ? "truncate font-mono text-xs" : "truncate"}>{label}</span>
+                <span className={kind === "rules" ? "truncate font-mono text-xs" : "flex min-w-0 items-center gap-1.5 truncate"}>
+                  {kind === "services" && service(item.key) && <ServiceIcon icon={service(item.key)!.icon} />}
+                  {label}
+                </span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">{fmt.number(item.count)}</span>
               </div>
             </>

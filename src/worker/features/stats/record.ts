@@ -13,6 +13,10 @@ export interface QueryEvent {
   rule?: MatchedRule;
   upstream?: string;
   colo?: string;
+  client?: string;
+  service?: string;
+  network?: string;
+  asn?: number;
   latencyMs: number;
 }
 
@@ -36,8 +40,11 @@ export function toDataPoint(event: QueryEvent): AnalyticsEngineDataPoint {
       event.upstream ? new URL(event.upstream).host : "",
       event.colo ?? "",
       event.deviceName,
+      event.client ?? "",
+      event.service ?? "",
+      event.network ?? "",
     ].map((b) => b.slice(0, MAX_BLOB)),
-    doubles: [event.latencyMs, event.rule?.line ?? 0],
+    doubles: [event.latencyMs, event.rule?.line ?? 0, event.asn ?? 0],
   };
 }
 

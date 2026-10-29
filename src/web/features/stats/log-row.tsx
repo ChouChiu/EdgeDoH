@@ -9,6 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { TableCell, TableRow } from "@/shared/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useListName } from "@/features/filters/api";
+import { useServices } from "@/features/profiles/api";
+import { ServiceIcon } from "@/shared/components/service-icon";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/lib/clipboard";
 import type { LogEntry } from "./api";
@@ -29,6 +31,9 @@ interface LogRowProps {
 export function LogRow({ entry, selected, onSelect, onRule }: LogRowProps) {
   const { t, fmt } = useI18n();
   const listName = useListName();
+  const services = useServices();
+  const service = entry.service ? services.data?.find((s) => s.id === entry.service) : undefined;
+  const origin = [entry.client, entry.network].filter(Boolean).join(" · ");
   const details = [entry.type, entry.rcode !== "NOERROR" && entry.rcode, entry.source !== "upstream" && t(`logs.source.${entry.source}`)].filter(Boolean);
   return (
     <TableRow data-state={selected ? "selected" : undefined}>
@@ -45,7 +50,27 @@ export function LogRow({ entry, selected, onSelect, onRule }: LogRowProps) {
           <span className="md:hidden"> · {entry.deviceName}</span>
         </div>
       </TableCell>
-      <TableCell className="hidden md:table-cell">{entry.deviceName}</TableCell>
+      <TableCell className="hidden md:table-cell">
+        <div className="flex items-center gap-1.5">
+          {entry.deviceName}
+          {entry.service && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {service && <ServiceIcon icon={service.icon} className="size-3.5" />}
+                  {service?.name ?? entry.service}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t("logs.serviceHint")}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        {origin && (
+          <div className="truncate text-xs text-muted-foreground" title={origin}>
+            {origin}
+          </div>
+        )}
+      </TableCell>
       <TableCell>
         <ActionBadge action={entry.action} />
       </TableCell>

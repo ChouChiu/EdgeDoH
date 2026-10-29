@@ -19,10 +19,10 @@ export async function createDevice(name = "phone"): Promise<{ id: string; dohUrl
   return res.json();
 }
 
-export function postQuery(deviceId: string, query: BodyInit): Promise<Response> {
+export function postQuery(deviceId: string, query: BodyInit, headers?: Record<string, string>): Promise<Response> {
   return exports.default.fetch(`${ORIGIN}/dns-query/${deviceId}`, {
     method: "POST",
-    headers: { "content-type": "application/dns-message" },
+    headers: { "content-type": "application/dns-message", ...headers },
     body: query,
   });
 }

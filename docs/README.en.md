@@ -17,6 +17,10 @@ A personal DNS-over-HTTPS (DoH) resolver built on Cloudflare Workers Free Tier. 
 - **DoH Resolvers**: RFC 8484 compliant (GET and POST). Generates dedicated endpoints per device and provides iOS / iPadOS / macOS configuration profiles (`.mobileconfig`) for one-click setup.
 - **Rule Engine**: Compatible with AdGuard DNS syntax, standard hosts files, and plain domain lists. Built-in AdGuard HostlistsRegistry catalog, custom URL imports, and interactive rule testing. Compiles snapshots into 64-bit hashed binary shards in the browser Web Worker; edge Workers query via in-memory binary search without CPU overhead from text parsing.
 - **Resolution Strategy & Cache**: Sequential fallback or concurrent race (fastest response) across multiple upstreams; Cloudflare edge Cache API integration with TTL clamps (Min/Max TTL); flexible blocking answers (0.0.0.0/::, NXDOMAIN, REFUSED, NODATA, custom IP); and IPv6 fast degradation (NODATA for AAAA).
+- **Per-Device Profiles**: Each device uses a profile that picks its filter lists, blocking response and upstreams. Block services from AdGuard's catalog (TikTok, Douyin, Bilibili, games and more) with one click, on a schedule by weekday and time zone, enforce Safe Search (Google / Bing / DuckDuckGo) and YouTube Restricted Mode, or pause filtering for one device for a while.
+- **Split DNS & ECS**: Domain lists (dnsmasq `server=/…/` lines such as dnsmasq-china-list are understood) can be resolved through dedicated upstreams. Optionally forward the client's /24 (IPv6 /56) as EDNS Client Subnet so CDNs answer with nearby nodes; the cache is kept per subnet.
+- **ECH & HTTP/3 Injection**: For names resolving to Cloudflare's IP ranges, HTTPS records get `alpn=h3` and Cloudflare's shared ECH config (read from `cloudflare-ech.com`), synthesised when the site publishes none. Queries with the DO bit are never edited.
+- **Local Records & Query Origin**: Maintain A / AAAA / CNAME records (with `*.` wildcards) in the dashboard. Logs tell DoH clients apart by User-Agent (browser or system resolver), infer the service a domain belongs to, and record the source network (AS organisation). DNS requests carry no app identity, so the service is an inference.
 - **Metrics & Logging**: Powered by Cloudflare Analytics Engine, capturing query counts, block ratios, average latency, and upstream distribution. Live query log with multi-attribute filtering and one-click rule creation.
 - **Abuse Protection**: Durable Objects track active networks in a sliding window (IPv4 by IP, IPv6 by /64 subnet). Exceeded networks receive REFUSED, preventing unauthorized use if DoH URLs leak.
 - **Zero Trust Security**: Dashboard and `/api/*` protected by Cloudflare Access JWT verification (fail-closed). DoH queries use a dedicated lightweight path with zero auth overhead.
@@ -133,7 +137,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 | --- | --- | --- |
 | `/api/health` | `GET` | Health check |
 | `/api/devices` | `GET`, `POST` | List devices, create new device |
-| `/api/devices/<ID>` | `PATCH`, `DELETE` | Rename device, delete device |
+| `/api/devices/<ID>` | `PATCH`, `DELETE` | Rename a device or change its profile, delete device |
 | `/api/devices/<ID>/mobileconfig` | `GET` | Download Apple mobileconfig profile |
 | `/api/devices/<ID>/clients` | `GET`, `DELETE` | Query active client networks, reset records |
 | `/api/rules` | `GET` | Active snapshot metadata overview |
@@ -150,6 +154,12 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 | `/api/lists/reports` | `POST` | Report compilation stats and syntax diagnostics |
 | `/api/custom-rules` | `GET`, `PUT` | Read and save custom rules |
 | `/api/settings` | `GET`, `PATCH` | Read and update resolver settings |
+| `/api/profiles` | `GET`, `POST` | List profiles, create a profile |
+| `/api/profiles/<ID>` | `PATCH`, `DELETE` | Update or delete a profile (the default one cannot be deleted) |
+| `/api/devices/<ID>/pause` | `POST` | Pause a device's filtering `{ minutes }`; 0 resumes |
+| `/api/services` | `GET` | AdGuard blocked-services catalog with rules and icons |
+| `/api/local-records` | `GET`, `PUT` | Read or replace the local DNS records |
+| `/api/lists/<ID>/text` | `PUT` | Replace the text of an inline list (e.g. a route list) |
 | `/api/stats/summary` | `GET` | Overview metrics (total, blocked, latency, etc.) |
 | `/api/stats/timeseries` | `GET` | Timeseries query and block trends |
 | `/api/stats/top/<kind>` | `GET` | Rankings (`domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`) |

@@ -13,8 +13,12 @@
  *   blob8    upstream host
  *   blob9    Cloudflare colo
  *   blob10   device name at query time
+ *   blob11   DoH client, from the User-Agent (browser or system resolver)
+ *   blob12   AdGuard service the name belongs to, e.g. "tiktok"
+ *   blob13   network the query came from: the client address's AS organisation
  *   double1  handling time in ms (wall clock, so mostly upstream wait)
  *   double2  matched rule line number
+ *   double3  AS number of the client address
  */
 export const Column = {
   device: "index1",
@@ -28,8 +32,12 @@ export const Column = {
   upstream: "blob8",
   colo: "blob9",
   deviceName: "blob10",
+  client: "blob11",
+  service: "blob12",
+  network: "blob13",
   latency: "double1",
   ruleLine: "double2",
+  asn: "double3",
 } as const;
 
 export const ACTIONS = ["pass", "allow", "block", "rewrite"] as const;

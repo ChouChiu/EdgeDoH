@@ -30,8 +30,8 @@ describe("devices API", () => {
   it("serves new devices to DoH right away and mirrors them into the KV runtime config", async () => {
     const { id } = await createDevice("Fresh");
     expect((await postQuery(id, buildQuery("fresh.test", RRType.A))).status).toBe(200);
-    const stored = await env.RULES.get<{ devices: Record<string, string> }>("config", "json");
-    expect(stored?.devices[id]).toBe("Fresh");
+    const stored = await env.RULES.get<{ devices: Record<string, { name: string }> }>("config:v2", "json");
+    expect(stored?.devices[id]).toEqual({ name: "Fresh" });
   });
 });
 
