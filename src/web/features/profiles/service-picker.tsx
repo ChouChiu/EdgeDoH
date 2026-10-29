@@ -5,6 +5,7 @@ import { ServiceIcon } from "@/shared/components/service-icon";
 import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useI18n } from "@/shared/i18n";
+import { compareNames } from "@/shared/lib/collate";
 import { cn } from "@/shared/lib/utils";
 import { type Service, useServices } from "./api";
 
@@ -27,6 +28,7 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
       const i = (GROUPS as readonly string[]).indexOf(g);
       return i < 0 ? GROUPS.length - 1.5 : i;
     };
+    for (const items of byGroup.values()) items.sort((a, b) => compareNames(a.name, b.name));
     return [...byGroup].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
   }, [services.data, search]);
 
