@@ -87,8 +87,6 @@ export const zhHans = {
   "overview.latency": "平均响应耗时",
   "overview.share": "占比 {percent}",
   "overview.failures": "{count} 次上游解析异常",
-  "overview.trend": "查询流量趋势",
-  "overview.trendRange": "统计周期：{range}",
   "overview.series.total": "查询",
   "overview.series.blocked": "拦截",
   "overview.top.domains": "高频查询域名",

@@ -92,8 +92,6 @@ export const enUS: Messages = {
   "overview.latency": "Average latency",
   "overview.share": "{percent} of total",
   "overview.failures": { one: "{count} upstream failure", other: "{count} upstream failures" },
-  "overview.trend": "Query volume trend",
-  "overview.trendRange": "Timeframe: {range}",
   "overview.series.total": "Queries",
   "overview.series.blocked": "Blocked",
   "overview.top.domains": "Top queried domains",

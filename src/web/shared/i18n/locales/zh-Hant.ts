@@ -88,8 +88,6 @@ export const zhHant: Messages = {
   "overview.latency": "平均回應耗時",
   "overview.share": "佔比 {percent}",
   "overview.failures": "{count} 次上游解析異常",
-  "overview.trend": "查詢流量趨勢",
-  "overview.trendRange": "統計週期：{range}",
   "overview.series.total": "查詢",
   "overview.series.blocked": "攔截",
   "overview.top.domains": "高頻查詢網域",

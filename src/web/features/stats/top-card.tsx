@@ -37,7 +37,28 @@ function logLink(kind: TopKind, item: TopItem, range: Range): string | undefined
   return `/logs?${params}`;
 }
 
-export function TopCard({ kind, range, enabled }: { kind: TopKind; range: Range; enabled: boolean }) {
+interface TopProps {
+  kind: TopKind;
+  range: Range;
+  enabled: boolean;
+}
+
+export function TopCard(props: TopProps) {
+  const { t } = useI18n();
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{t(`overview.top.${props.kind}`)}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-0.5">
+        <TopList {...props} />
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The ranked rows alone, so a card or a tab panel can host them */
+export function TopList({ kind, range, enabled }: TopProps) {
   const { t, fmt } = useI18n();
   const listName = useListName();
   const services = useServices();
@@ -48,45 +69,40 @@ export function TopCard({ kind, range, enabled }: { kind: TopKind; range: Range;
     kind === "devices" ? item.label || item.key : kind === "lists" ? listName(item.key) : kind === "services" ? (service(item.key)?.name ?? item.key) : item.key;
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{t(`overview.top.${kind}`)}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-0.5">
-        {top.error && <QueryError error={top.error} />}
-        {!top.data && !top.error && Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-7 w-full" />)}
-        {top.data?.items.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t("common.noData")}</p>}
-        {top.data?.items.map((item) => {
-          const label = labelOf(item);
-          const href = logLink(kind, item, range);
-          const body = (
-            <>
-              <div className={`absolute inset-y-0 left-0 ${BAR[kind]}`} style={{ width: `${(item.count / max) * 100}%` }} />
-              <div className="relative flex items-center justify-between gap-2">
-                <span className={kind === "rules" ? "truncate font-mono text-xs" : "flex min-w-0 items-center gap-1.5 truncate"}>
-                  {kind === "services" && service(item.key) && <ServiceIcon icon={service(item.key)!.icon} name={service(item.key)!.name} />}
-                  {label}
-                </span>
-                <span className="shrink-0 tabular-nums text-muted-foreground">{fmt.number(item.count)}</span>
-              </div>
-            </>
-          );
-          return href ? (
-            <Link
-              key={item.key}
-              to={href}
-              title={`${label} · ${t("overview.viewLogs")}`}
-              className={`${ROW} outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring`}
-            >
-              {body}
-            </Link>
-          ) : (
-            <div key={item.key} title={label} className={ROW}>
-              {body}
+    <>
+      {top.error && <QueryError error={top.error} />}
+      {!top.data && !top.error && Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-7 w-full" />)}
+      {top.data?.items.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t("common.noData")}</p>}
+      {top.data?.items.map((item) => {
+        const label = labelOf(item);
+        const href = logLink(kind, item, range);
+        const body = (
+          <>
+            <div className={`absolute inset-y-0 left-0 ${BAR[kind]}`} style={{ width: `${(item.count / max) * 100}%` }} />
+            <div className="relative flex items-center justify-between gap-2">
+              <span className={kind === "rules" ? "truncate font-mono text-xs" : "flex min-w-0 items-center gap-1.5 truncate"}>
+                {kind === "services" && service(item.key) && <ServiceIcon icon={service(item.key)!.icon} name={service(item.key)!.name} />}
+                {label}
+              </span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">{fmt.number(item.count)}</span>
             </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+          </>
+        );
+        return href ? (
+          <Link
+            key={item.key}
+            to={href}
+            title={`${label} · ${t("overview.viewLogs")}`}
+            className={`${ROW} outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring`}
+          >
+            {body}
+          </Link>
+        ) : (
+          <div key={item.key} title={label} className={ROW}>
+            {body}
+          </div>
+        );
+      })}
+    </>
   );
 }
