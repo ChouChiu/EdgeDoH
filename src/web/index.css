@@ -20,6 +20,19 @@
   max-height: calc(var(--vv-height, 100dvh) - 2rem);
 }
 
+/*
+ * Motion has three speeds. Fast (150ms, Tailwind's default `transition-*`) is hover, focus and colour feedback;
+ * base (200ms, `duration-200`) is something moving or opening in place, such as a disclosure or the sidebar;
+ * slow (450ms) is reserved for whole-screen changes, the theme switch and the page cross-fade. Everything eases out
+ * with `ease-standard`; `ease-emphasized` is for the few entrances that should settle softly
+ */
+@theme {
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
@@ -211,12 +224,12 @@ html[data-transition]::view-transition-new(root) {
   mix-blend-mode: normal;
 }
 html[data-transition="expand"]::view-transition-new(root) {
-  animation: theme-expand 450ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: theme-expand 450ms var(--ease-standard);
 }
 /* The old snapshot has to sit on top to be seen shrinking */
 html[data-transition="collapse"]::view-transition-old(root) {
   z-index: 1;
-  animation: theme-collapse 450ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: theme-collapse 450ms var(--ease-standard) both;
 }
 @keyframes theme-expand {
   from {
@@ -257,4 +270,24 @@ html:not([data-transition])::view-transition-new(root),
  */
 ::view-transition-old(.page-transition) {
   display: none;
+}
+
+/*
+ * Reduced motion: state still changes, it just does not travel. Motion-driven components get the same through
+ * ReducedMotionConfig in main.tsx; this covers CSS transitions, keyframes and any view transition that slips through
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

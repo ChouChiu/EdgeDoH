@@ -1,3 +1,4 @@
+import { ReducedMotionConfig } from "@animate-ui/react/utils/motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -51,15 +52,18 @@ function AppToaster() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <I18nProvider>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <RouterProvider router={router} />
-            <AppToaster />
-          </TooltipProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </I18nProvider>
+    {/* Every motion animation (dialogs, tabs, switches, sliding numbers, icons) follows the OS reduced-motion setting */}
+    <ReducedMotionConfig>
+      <I18nProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <RouterProvider router={router} />
+              <AppToaster />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </I18nProvider>
+    </ReducedMotionConfig>
   </StrictMode>,
 );

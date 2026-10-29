@@ -1,5 +1,6 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
+import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -130,6 +131,8 @@ function TrafficChart({ range, enabled }: { range: Range; enabled: boolean }) {
   const { t, fmt } = useI18n();
   const series = useQuery({ queryKey: ["stats", "timeseries", range], queryFn: () => statsApi.timeseries({ range }), enabled });
   const short = range === "1h" || range === "24h";
+  // Recharts draws areas in over 1.5 s by default; a short ease-out keeps the reveal from upstaging the data
+  const animate = !useShouldReduceMotion();
   const config = {
     // Same reading as the cards above: yellow is everything that came in, red is the part that was stopped
     total: { label: t("overview.series.total"), color: "var(--chart-1)" },
@@ -150,8 +153,8 @@ function TrafficChart({ range, enabled }: { range: Range; enabled: boolean }) {
               <XAxis dataKey="bucket" tickLine={false} axisLine={false} minTickGap={32} tickFormatter={(v: string) => fmt.bucket(v, short)} />
               <YAxis tickLine={false} axisLine={false} width={40} allowDecimals={false} tickFormatter={(v: number) => fmt.number(v)} />
               <ChartTooltip content={<ChartTooltipContent labelFormatter={(v) => fmt.bucket(String(v), short, true)} />} />
-              <Area dataKey="total" type="monotone" fill="var(--color-total)" fillOpacity={0.15} stroke="var(--color-total)" />
-              <Area dataKey="blocked" type="monotone" fill="var(--color-blocked)" fillOpacity={0.3} stroke="var(--color-blocked)" />
+              <Area dataKey="total" type="monotone" fill="var(--color-total)" fillOpacity={0.15} stroke="var(--color-total)" {...areaMotion(animate)} />
+              <Area dataKey="blocked" type="monotone" fill="var(--color-blocked)" fillOpacity={0.3} stroke="var(--color-blocked)" {...areaMotion(animate)} />
               <ChartLegend content={<ChartLegendContent />} />
             </AreaChart>
           </ChartContainer>
@@ -164,3 +167,5 @@ function TrafficChart({ range, enabled }: { range: Range; enabled: boolean }) {
     </Card>
   );
 }
+
+const areaMotion = (animate: boolean) => ({ isAnimationActive: animate, animationDuration: 400, animationEasing: "ease-out" as const });
