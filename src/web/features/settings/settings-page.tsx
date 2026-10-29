@@ -1,7 +1,8 @@
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
-import { type FormEvent, useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
@@ -41,7 +42,7 @@ type ListField = "upstreams" | "echForcedDomains";
 type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
 
 /** Page order; the index beside the form lists the same sections */
-const SECTIONS = ["filtering", "upstream", "cache", "abuse", "ech", "queryLog", "appearance"] as const;
+const SECTIONS = ["appearance", "filtering", "upstream", "cache", "abuse", "ech", "queryLog"] as const;
 type SectionKey = (typeof SECTIONS)[number];
 const sectionId = (key: SectionKey) => `settings-${key}`;
 
@@ -52,9 +53,9 @@ export function SettingsPage() {
       <SectionIndex />
       <div className="min-w-0 space-y-4">
         <PageHeader title={t("nav.settings")} />
-        {/* Server behaviour is what this page is for; the browser-only preferences repeat the header toggles, so they go last */}
-        <ServerSettings />
+        {/* Appearance applies at once; the server form below ends in its own save bar, so nothing may follow that bar */}
         <AppearanceCard />
+        <ServerSettings />
       </div>
     </div>
   );
@@ -66,37 +67,53 @@ export function SettingsPage() {
  */
 function SectionIndex() {
   const { t } = useI18n();
-  const ready = useSettings().isSuccess;
   const reduce = useShouldReduceMotion();
   const [active, setActive] = useState<SectionKey>(SECTIONS[0]);
+  // While a click scrolls to its section, the sections passing by must not pull the marker along
+  const jumping = useRef(false);
 
+  // Looked up on every frame rather than observed once: the server sections mount only after their draft is ready
   useEffect(() => {
-    if (!ready) return;
-    const visible = new Map<Element, boolean>();
-    // A section counts as current while it crosses the band just under the sticky header
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) visible.set(entry.target, entry.isIntersecting);
-        const first = SECTIONS.find((key) => [...visible].some(([el, on]) => on && el.id === sectionId(key)));
-        if (first) setActive(first);
-      },
-      { rootMargin: "-64px 0px -55% 0px" },
-    );
-    for (const key of SECTIONS) {
-      const el = document.getElementById(sectionId(key));
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [ready]);
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (jumping.current) return;
+      let current: SectionKey = SECTIONS[0];
+      for (const key of SECTIONS) {
+        const top = document.getElementById(sectionId(key))?.getBoundingClientRect().top;
+        if (top !== undefined && top <= 96) current = key;
+      }
+      // The last sections can never reach the top, so the bottom of the page marks the last one
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = SECTIONS[SECTIONS.length - 1]!;
+      setActive(current);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const jump = (key: SectionKey) => {
     setActive(key);
+    jumping.current = true;
+    const release = () => {
+      jumping.current = false;
+      window.removeEventListener("scrollend", release);
+    };
+    window.addEventListener("scrollend", release);
+    // Browsers without scrollend, or a target already in place, never fire it
+    setTimeout(release, 1000);
     document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   };
 
   return (
-    <nav aria-label={t("settings.sections")} className="sticky top-[calc(4rem+env(safe-area-inset-top))] hidden pt-1 lg:block">
-      <ul className="space-y-0.5">
+    // Same surface as the tab strips: a muted tray, and the current entry's raised pill slides to the next one
+    <nav aria-label={t("settings.sections")} className="sticky top-[calc(4rem+env(safe-area-inset-top))] hidden lg:block">
+      <ul className="space-y-0.5 rounded-lg bg-muted/60 p-1">
         {SECTIONS.map((key) => (
           <li key={key}>
             <button
@@ -104,11 +121,18 @@ function SectionIndex() {
               aria-current={key === active ? "true" : undefined}
               onClick={() => jump(key)}
               className={cn(
-                "w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
-                key === active && "bg-accent font-medium text-accent-foreground",
+                "relative w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+                key === active && "text-foreground",
               )}
             >
-              {t(`settings.${key}`)}
+              {key === active && (
+                <motion.span
+                  layoutId="settings-section-active"
+                  transition={{ type: "tween", duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  className="absolute inset-0 rounded-md bg-background shadow-sm dark:bg-input/60"
+                />
+              )}
+              <span className="relative">{t(`settings.${key}`)}</span>
             </button>
           </li>
         ))}

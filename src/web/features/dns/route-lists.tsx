@@ -1,6 +1,6 @@
 import { MAX_LIST_NAME } from "#contract";
 import { type FormEvent, useState } from "react";
-import { type FilterList, type ListActions, listsApi, useListAction, useRouteLists } from "@/features/filters/api";
+import { type FilterList, type ListActions, listsApi, useRouteLists } from "@/features/filters/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Network } from "@/shared/components/animate-ui/icons/network";
 import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
@@ -24,16 +24,13 @@ import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 
 const NEW_KEY = "new-route";
 
-export function RouteLists() {
+/** `actions` comes from the page, which also hosts the add button beside the tabs, so both share one busy state */
+export function RouteLists({ actions }: { actions: ListActions }) {
   const { t } = useI18n();
   const lists = useRouteLists();
-  const actions = useListAction();
   if (lists.error) return <QueryError error={lists.error} />;
   return (
     <>
-      <div className="flex justify-end">
-        <RouteDialog actions={actions} />
-      </div>
       {!lists.data && <Skeleton className="h-24 w-full" />}
       {lists.data?.length === 0 && (
         <EmptyState icon={<Network />} title={t("dns.routesEmpty")}>
@@ -110,7 +107,7 @@ function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }
 }
 
 /** Adds a route list, or edits `list`: name and upstreams, plus the domains of an inline list */
-function RouteDialog({ list, actions }: { list?: FilterList; actions: ListActions }) {
+export function RouteDialog({ list, actions }: { list?: FilterList; actions: ListActions }) {
   const { t } = useI18n();
   const key = list?.id ?? NEW_KEY;
   const busy = actions.busy[key];

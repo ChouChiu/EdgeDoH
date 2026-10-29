@@ -1,6 +1,9 @@
 import type { Messages } from "../messages";
 
 export const enUS: Messages = {
+  "nav.group.traffic": "Traffic",
+  "nav.group.filtering": "Filtering",
+  "nav.group.network": "Network",
   "nav.overview": "Overview",
   "nav.logs": "Query Log",
   "nav.filters": "Filter Lists",

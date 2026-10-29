@@ -1,6 +1,9 @@
 import type { Messages } from "../messages";
 
 export const zhHant: Messages = {
+  "nav.group.traffic": "流量",
+  "nav.group.filtering": "過濾",
+  "nav.group.network": "網路",
   "nav.overview": "概覽",
   "nav.logs": "查詢日誌",
   "nav.filters": "過濾清單",

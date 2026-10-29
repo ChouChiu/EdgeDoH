@@ -1,11 +1,13 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { NavLink, useLocation } from "react-router";
+import { ExternalLink } from "@/shared/components/animate-ui/icons/external-link";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -40,10 +42,12 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="gap-0">
         {NAV_GROUPS.map((group) => (
-          <SidebarGroup key={group[0]!.to} className="py-1.5">
+          <SidebarGroup key={group.label} className="py-1">
+            {/* Collapsed to icons, the label fades out and the gap between groups is what remains */}
+            <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.map((item) => (
+                {group.items.map((item) => (
                   <NavEntry key={item.to} item={item} pathname={pathname} onNavigate={() => setOpenMobile(false)} />
                 ))}
               </SidebarMenu>
@@ -55,19 +59,25 @@ export function AppSidebar() {
         <SidebarMenu>
           <NavEntry item={SETTINGS_NAV} pathname={pathname} onNavigate={() => setOpenMobile(false)} />
         </SidebarMenu>
-        <div className="flex flex-col gap-1 pt-1 group-data-[collapsible=icon]:hidden">
-          <p className="truncate px-2 text-xs text-muted-foreground" title={location.host}>
+        {/* Where this dashboard runs and where its source is, as one quiet line under the last entry */}
+        <div className="mx-2 flex items-center justify-between gap-2 border-t border-sidebar-border pt-2.5 pb-0.5 group-data-[collapsible=icon]:hidden">
+          <span className="type-meta truncate" title={location.host}>
             {location.host}
-          </p>
+          </span>
           {/* AGPL-3.0 section 13: whoever uses this dashboard over the network can reach its source from here */}
-          <a
-            href={SOURCE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="px-2 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-          >
-            AGPL-3.0 · {t("footer.source")}
-          </a>
+          <AnimateIcon asChild animateOnHover>
+            <a
+              href={SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              title={`AGPL-3.0 · ${t("footer.source")}`}
+              aria-label={`AGPL-3.0 · ${t("footer.source")}`}
+              className="type-meta flex shrink-0 items-center gap-1 rounded-sm outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              AGPL-3.0
+              <ExternalLink className="size-3" />
+            </a>
+          </AnimateIcon>
         </div>
       </SidebarFooter>
     </Sidebar>

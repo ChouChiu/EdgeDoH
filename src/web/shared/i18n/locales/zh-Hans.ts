@@ -1,5 +1,8 @@
 /** Source catalog: every other locale must provide exactly these keys */
 export const zhHans = {
+  "nav.group.traffic": "流量",
+  "nav.group.filtering": "过滤",
+  "nav.group.network": "网络",
   "nav.overview": "概览",
   "nav.logs": "查询日志",
   "nav.filters": "过滤列表",
