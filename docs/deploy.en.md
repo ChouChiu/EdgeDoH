@@ -1,12 +1,12 @@
 # Deployment Guide
 
-<p align="center">
-  <a href="deploy.md">简体中文</a> · <a href="deploy.zh-Hant.md">繁體中文</a> · <b>English</b>
-</p>
+<div align="center">
 
-cf-dns provides two deployment methods: an interactive CLI setup script (recommended) or the automated Deploy to Cloudflare button. Both share the same prerequisites. Complete the prerequisites before proceeding with deployment.
+[简体中文](deploy.md) · [繁體中文](deploy.zh-Hant.md) · **English**
 
----
+</div>
+
+cf-dns provides two deployment options: an interactive CLI setup script (recommended) or the automated Deploy to Cloudflare button. Both require the same prerequisites.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ cf-dns provides two deployment methods: an interactive CLI setup script (recomme
 
 1. A Cloudflare account (the Workers Free Tier is sufficient for personal and home use).
 2. A root domain hosted on this Cloudflare account (e.g. `example.com`). The DNS service will be bound to a subdomain (e.g. `dns.example.com`).
-3. No pre-created DNS records required: The subdomain record is automatically configured during deployment. Delete any pre-existing records for that subdomain to prevent conflicts.
+3. No pre-created DNS records required: The subdomain record is automatically configured during deployment. Delete any pre-existing records for that subdomain to avoid conflicts.
 4. Workers.dev limitations: On `*.workers.dev` domains, the Cache API is disabled (every query must be forwarded upstream) and access from mainland China is blocked. A custom domain is strongly recommended.
 5. Cloudflare Account ID: Copy your Account ID from the lower-right section of the Cloudflare dashboard homepage or extract it from the dashboard URL (`dash.cloudflare.com/<AccountID>`).
 
@@ -61,8 +61,6 @@ Confirm you have the following 4 credentials before deploying:
 | `CF_ACCOUNT_ID` | Cloudflare Account ID (Step 1; auto-detected by CLI setup) |
 | `STATS_API_TOKEN` | API Token with Account Analytics Read (Step 4, optional) |
 
----
-
 ## Method 1: Local Interactive Setup (Recommended)
 
 Requires [Bun](https://bun.sh) and `git` on your local machine.
@@ -89,8 +87,6 @@ The interactive script executes the following steps:
   git pull && bun install && bun run deploy
   ```
 
----
-
 ## Method 2: Deploy to Cloudflare Button
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
@@ -98,56 +94,52 @@ The interactive script executes the following steps:
 > `wrangler.jsonc` holds the account's resource IDs and is not in version control. Before using the button, fork this repository, commit a `wrangler.jsonc` copied from `wrangler.example.jsonc` (D1 and KV IDs left empty, filled in by Cloudflare), and point the button's `url` at your own fork.
 
 1. Click the button above to begin the deployment flow. Authorize Cloudflare to fork the repository into your GitHub account.
-2. Cloudflare will automatically detect and list the required D1, KV, and Durable Object bindings. Leave names at their defaults.
-3. Fill in the 4 environment secrets gathered during the prerequisites (`CF_ACCOUNT_ID` must be entered manually).
-4. Build and deploy commands are pre-configured (including remote D1 migrations). Keep them unchanged and click Deploy.
-5. Bind custom domain:
-   - Navigate to Worker Settings → Build → Variables and Secrets;
-   - Add a build variable named `CUSTOM_DOMAIN` with the value of your domain (e.g. `dns.example.com`);
-   - Go to Deployments and trigger a rebuild (Retry deployment) to attach the domain.
-6. Pushing future commits to `main` in your GitHub repository will automatically trigger CI builds and redeployments.
+2. The page will detect and list D1, KV, and Durable Object bindings. Leave default settings intact.
+3. Fill in the 4 environment secrets gathered during prerequisites (`CF_ACCOUNT_ID` must be filled manually).
+4. Build and deploy commands are preset (including D1 remote migration). Click Deploy.
+5. Bind custom domain after deployment:
+   - Go to Worker Settings → Build → Variables and Secrets.
+   - Add build variable: Name `CUSTOM_DOMAIN`, Value `dns.example.com`.
+   - Go to Deployments tab and click Retry deployment.
+6. Push commits to your fork's `main` branch to trigger automated rebuilds.
 
-Bind custom domains using the `CUSTOM_DOMAIN` build variable rather than adding routes manually in Domains & Routes. Manually assigned routes are not stored in the build configuration and can be lost on subsequent deployments.
+Bind the domain via the `CUSTOM_DOMAIN` build variable rather than manually adding it in Domains & Routes. Manually added custom domains are outside Worker build configurations and can be overwritten on rebuilds.
 
----
+## Post-Deployment Verification
 
-## Post-Deployment Setup & Verification
-
-1. Access Dashboard: Open `https://dns.example.com` in your browser and log in via Cloudflare Access email verification.
-2. Add Device: In the Devices page, click Add Device to generate a dedicated DoH endpoint URL (`https://dns.example.com/dns-query/<DeviceID>`). Apple users can download the `.mobileconfig` profile directly.
-3. Install Filter Lists: In Filter Lists, open the Catalog tab and install desired rulesets (such as AdGuard DNS filter). The browser Web Worker will compile the rules locally and upload binary shards to edge nodes.
-4. Verify Resolution: Run a command-line query to verify that the endpoint returns binary DNS responses:
+1. **Dashboard Login**: Open `https://dns.example.com` in your browser and complete email verification via Cloudflare Access.
+2. **Add Device**: In the Devices page, click "Add Device" to generate a dedicated DoH endpoint (`https://dns.example.com/dns-query/<deviceId>`). Apple users can click to download a `.mobileconfig` profile.
+3. **Subscribe to Filter Lists**: In the Filter Lists page, click "Catalog" to install recommended lists (such as AdGuard DNS filter). Compilation runs inside browser Web Workers and uploads binary shards to edge nodes.
+4. **Resolution Verification**: Send a standard RFC 8484 binary DNS query from your terminal to verify binary DNS answers:
 
 ```bash
 curl -s -H 'accept: application/dns-message' \
-  'https://dns.example.com/dns-query/<DeviceID>?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE' | xxd | head
+  'https://dns.example.com/dns-query/<deviceId>?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE' | xxd | head
 ```
-
----
 
 ## Troubleshooting
 
-### 1. `required secrets have not been set`
-Missing required environment variables on initial deploy. Verify that `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` are filled in `.env.production`, then rerun `bun run setup` or `bun run secrets:push`.
+### 1. Error: required secrets have not been set
+Missing required environment secrets. Verify `.env.production` contains `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`, then rerun `bun run setup` or `bun run secrets:push`.
 
-### 2. Error 10053 or `secret with the same name already exists`
-`ACCESS_DEV_BYPASS` is declared as a plain variable in `wrangler.jsonc`. Cloudflare prohibits variables and secrets with the same name. Never add `ACCESS_DEV_BYPASS` to `.env.production` or production Worker secrets.
+### 2. Error: 10053 or secret with the same name already exists
+`ACCESS_DEV_BYPASS` is declared as a plain runtime variable in `wrangler.jsonc`. Cloudflare prohibits secrets and plain variables from sharing the same name. Never add `ACCESS_DEV_BYPASS` to `.env.production` or Cloudflare production secrets.
 
 ### 3. Dashboard or API returns HTTP 503
-Indicates missing `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` secrets. Update `.env.production` and execute `bun run secrets:push`. If only analytics pages return 503, `STATS_API_TOKEN` is unset or lacks required permissions.
+The Worker cannot read `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD`. Update `.env.production` and run `bun run secrets:push`. If only the analytics page returns 503, `STATS_API_TOKEN` is missing or has incorrect permissions.
 
 ### 4. API returns HTTP 401
-The request did not include a valid Cloudflare Access JWT. This typically occurs when accessing via a hostname not covered by your Access application.
+The request did not carry a valid Cloudflare Access JWT. This typically indicates the requested hostname is not included within the Access application scope.
 
 ### 5. API returns HTTP 403
-Access JWT verification failed. Ensure `ACCESS_AUD` matches the AUD tag of the Access application protecting the hostname, and verify `ACCESS_TEAM_DOMAIN` spelling.
+Access JWT verification failed. Ensure the Worker's `ACCESS_AUD` secret exactly matches the AUD tag of the Access application protecting the domain, and verify `ACCESS_TEAM_DOMAIN` spelling.
 
 ### 6. Client cannot resolve DNS or receives HTML responses
-The bypass rule for `dns-query` is missing, causing DNS queries to be redirected to the Access login page. Verify the two Access applications in Step 3 of Prerequisites.
+The Access Bypass application for path `dns-query` is missing, causing DNS queries to be redirected to the Access login page. Verify the two Access application policies in Step 3.
 
 ### 7. Custom domain fails to bind
-Confirm the root domain is active in your Cloudflare account, and verify that no conflicting A/AAAA/CNAME records exist for the chosen subdomain.
+Confirm the domain is active in your Cloudflare account and ensure no pre-existing A/AAAA/CNAME records exist for that subdomain.
 
-### 8. Analytics page shows no data or fails
-- Newly deployed instances require live DNS traffic before Analytics Engine captures metrics.
-- Verify `STATS_API_TOKEN` has `Account > Account Analytics > Read` permissions and that `CF_ACCOUNT_ID` matches the token account.
+### 8. Analytics page shows no data or queries fail
+- Newly deployed instances require actual DNS traffic before Analytics Engine collects data points.
+- Verify `STATS_API_TOKEN` has `Account > Account Analytics > Read` permissions and that `CF_ACCOUNT_ID` matches the token's account.

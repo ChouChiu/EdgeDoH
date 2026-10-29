@@ -314,7 +314,7 @@ export const enUS: Messages = {
   "settings.deviceClientWindow": "Window Duration (minutes)",
   "settings.deviceClientWindowHint": "Networks inactive past this window expire; consider raising if devices roam between cellular and Wi-Fi",
   "settings.ech": "ECH Anti-Censorship",
-  "settings.echDescription": "Applies to profiles with ECH injection on",
+  "settings.echDescription": "Applies to profiles with ECH injection enabled",
   "settings.echForcedDomains": "Forced Domains",
   "settings.echForcedDomainsHint": "One per line, subdomains included, up to {max}. Handled as Cloudflare-proxied whatever the upstream answers",
   "settings.echInvalidDomain": "Invalid domain: {value}",
