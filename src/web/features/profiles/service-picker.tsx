@@ -22,8 +22,12 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
       if (term && !s.name.toLowerCase().includes(term) && !s.id.includes(term)) continue;
       byGroup.set(s.group, [...(byGroup.get(s.group) ?? []), s]);
     }
-    // "other" holds most community services, so it goes after the named groups
-    return [...byGroup].sort(([a], [b]) => Number(a === "other") - Number(b === "other") || a.localeCompare(b));
+    // In GROUPS order; a group the catalog adds later goes just before "other", which is last
+    const rank = (g: string) => {
+      const i = (GROUPS as readonly string[]).indexOf(g);
+      return i < 0 ? GROUPS.length - 1.5 : i;
+    };
+    return [...byGroup].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
   }, [services.data, search]);
 
   if (services.error) return <QueryError error={services.error} />;
@@ -63,7 +67,33 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
   );
 }
 
-const GROUPS = ["ai", "cdn", "dating", "gambling", "gaming", "hosting", "messenger", "other", "privacy", "shopping", "social_network", "software", "streaming"] as const;
+/** Display order of the groups the catalog uses */
+const GROUPS = [
+  "ai",
+  "social_network",
+  "messenger",
+  "streaming",
+  "gaming",
+  "shopping",
+  "lifestyle",
+  "travel",
+  "finance",
+  "news",
+  "education",
+  "productivity",
+  "developer",
+  "software",
+  "hosting",
+  "cdn",
+  "hardware",
+  "telecom",
+  "security",
+  "privacy",
+  "advertising",
+  "dating",
+  "gambling",
+  "other",
+] as const;
 
 function groupLabel(group: string, t: ReturnType<typeof useI18n>["t"]): string {
   return (GROUPS as readonly string[]).includes(group) ? t(`services.group.${group as (typeof GROUPS)[number]}`) : group;
