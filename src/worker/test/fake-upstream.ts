@@ -21,6 +21,12 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   if (url.hostname === "down.test") return new Response("unavailable", { status: 503 });
   if (url.hostname === "api.cloudflare.com") return fakeSqlApi(request);
   if (url.hostname === "adguardteam.github.io") return fakeRegistry(url);
+  if (url.hostname === "raw.githubusercontent.com") {
+    if (url.pathname.endsWith("/DouYin/DouYin.list")) {
+      return new Response("# NAME: DouYin\nDOMAIN,api.douyin.test\nDOMAIN-SUFFIX,douyinvod.test\nDOMAIN-KEYWORD,douyin\nIP-CIDR,1.2.3.0/24,no-resolve\n");
+    }
+    return new Response("not found", { status: 404 });
+  }
   if (url.hostname === "lists.test") {
     if (url.pathname === "/missing.txt") return new Response("gone", { status: 404 });
     if (url.pathname === "/titled.txt") return new Response(TITLED_LIST);

@@ -57,7 +57,7 @@ export function LogRow({ entry, selected, onSelect, onRule }: LogRowProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  {service && <ServiceIcon icon={service.icon} className="size-3.5" />}
+                  {service && <ServiceIcon icon={service.icon} name={service.name} className="size-3.5" />}
                   {service?.name ?? entry.service}
                 </span>
               </TooltipTrigger>

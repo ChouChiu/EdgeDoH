@@ -51,7 +51,7 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
                   selected.has(s.id) ? "border-destructive/50 bg-destructive/10 text-destructive" : "hover:bg-accent",
                 )}
               >
-                <ServiceIcon icon={s.icon} />
+                <ServiceIcon icon={s.icon} name={s.name} />
                 {s.name}
               </button>
             ))}

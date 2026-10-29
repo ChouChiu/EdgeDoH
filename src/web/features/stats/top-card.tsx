@@ -64,7 +64,7 @@ export function TopCard({ kind, range, enabled }: { kind: TopKind; range: Range;
               <div className={`absolute inset-y-0 left-0 ${BAR[kind]}`} style={{ width: `${(item.count / max) * 100}%` }} />
               <div className="relative flex items-center justify-between gap-2">
                 <span className={kind === "rules" ? "truncate font-mono text-xs" : "flex min-w-0 items-center gap-1.5 truncate"}>
-                  {kind === "services" && service(item.key) && <ServiceIcon icon={service(item.key)!.icon} />}
+                  {kind === "services" && service(item.key) && <ServiceIcon icon={service(item.key)!.icon} name={service(item.key)!.name} />}
                   {label}
                 </span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">{fmt.number(item.count)}</span>
