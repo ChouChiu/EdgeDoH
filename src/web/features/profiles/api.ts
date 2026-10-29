@@ -56,9 +56,36 @@ export const profilesApi = {
   remove: (id: string) => request<void>(`/profiles/${id}`, { method: "DELETE" }),
 };
 
+/** AdGuard's registry first, so its names and icons win when both catalogs know a service */
+const SERVICE_SOURCES = ["adguard", "community"] as const;
+const SERVICE_ID = /^[a-z0-9_]{1,64}$/;
+
 export const servicesApi = {
-  list: () => request<Service[]>("/services"),
+  /** Both catalogs merged; one that cannot be fetched is left out, only both failing is an error */
+  list: async (): Promise<Service[]> => {
+    const results = await Promise.allSettled(SERVICE_SOURCES.map((s) => request<unknown>(`/services/${s}`)));
+    const loaded = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    if (loaded.length === 0) throw (results[0] as PromiseRejectedResult).reason;
+    return mergeCatalogs(loaded);
+  },
 };
+
+/** Services with the same ID are one service: the later catalog's rules are added to it */
+export function mergeCatalogs(catalogs: unknown[]): Service[] {
+  const byId = new Map<string, Service>();
+  for (const catalog of catalogs) {
+    const services = (catalog as { services?: unknown } | null)?.services;
+    if (!Array.isArray(services)) continue;
+    for (const s of services as Partial<Record<keyof Service, unknown>>[]) {
+      if (typeof s.id !== "string" || !SERVICE_ID.test(s.id) || typeof s.name !== "string" || !Array.isArray(s.rules)) continue;
+      const rules = s.rules.filter((r): r is string => typeof r === "string");
+      const known = byId.get(s.id);
+      if (known) known.rules = [...new Set([...known.rules, ...rules])];
+      else byId.set(s.id, { id: s.id, name: s.name, group: typeof s.group === "string" ? s.group : "other", icon: typeof s.icon === "string" ? s.icon : "", rules });
+    }
+  }
+  return [...byId.values()];
+}
 
 export function useProfiles() {
   return useQuery({ queryKey: PROFILES_KEY, queryFn: profilesApi.list });

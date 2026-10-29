@@ -236,11 +236,11 @@ describe("compile", () => {
     expect(reports[0]?.badfiltered).toBe(2);
   });
 
-  it("deduplicates identical rules and reports unsupported ones", () => {
+  it("deduplicates identical rules within a list and reports unsupported ones", () => {
     const { reports, loaded } = engine("||dup.test^\n||dup.test^\nexample.com##.ad\n||x.test^$third-party\n||x.test^$third-party", "||dup.test^");
-    expect(loaded.meta.entries).toBe(1);
+    expect(loaded.meta.entries).toBe(2);
     expect(reports[0]).toMatchObject({ rules: 1, duplicates: 1, unsupported: 3, reasons: { "cosmetic rule": 1, "unsupported modifier $third-party": 2 } });
-    expect(reports[1]).toMatchObject({ rules: 0, duplicates: 1 });
+    expect(reports[1]).toMatchObject({ rules: 1, duplicates: 0 });
   });
 
   it("caps complex rules", () => {
@@ -451,6 +451,43 @@ describe("list kinds", () => {
     expect(inspect(s, { name: "x.tiktok.example", type: RRType.A })).toEqual({ verdict: { action: "pass" }, service: "service:tiktok" });
     expect(inspect(s, { name: "a.cn.example", type: RRType.A })).toEqual({ verdict: { action: "pass" }, route: "route" });
     expect(match(s, { name: "ads.example", type: RRType.A }).action).toBe("block");
+  });
+
+  it("names the most specific service, the narrower one on a tie", () => {
+    const s = loadSnapshot(
+      compile([
+        { id: "service:apple", name: "Apple", text: "||apple.example^\n||music.apple.example^\n||icloud.example^", kind: "service" },
+        { id: "service:apple_music", name: "AppleMusic", text: "||music.apple.example^", kind: "service" },
+        { id: "service:cdn", name: "CDN", text: "||img.icloud.example^\n@@||music.apple.example^", kind: "service" },
+      ]).snapshot,
+    );
+    expect(inspect(s, { name: "x.music.apple.example", type: RRType.A }).service).toBe("service:apple_music");
+    expect(inspect(s, { name: "www.apple.example", type: RRType.A }).service).toBe("service:apple");
+    expect(inspect(s, { name: "img.icloud.example", type: RRType.A }).service).toBe("service:cdn");
+  });
+
+  it("keeps a rule shared with other lists under every service", () => {
+    const s = loadSnapshot(
+      compile([
+        { id: "ads", name: "Ads", text: "||music.apple.example^" },
+        { id: "service:apple", name: "Apple", text: "||music.apple.example^", kind: "service" },
+        { id: "service:apple_music", name: "AppleMusic", text: "||music.apple.example^", kind: "service" },
+      ]).snapshot,
+    );
+    const name = "music.apple.example";
+    expect(inspect(s, { name, type: RRType.A }).service).toBe("service:apple");
+    expect(match(s, { name, type: RRType.A, active: Uint8Array.of(0, 0, 1) }).action).toBe("block");
+  });
+
+  it("keeps a rule shared by two filter lists under both", () => {
+    const s = loadSnapshot(
+      compile([
+        { id: "a", name: "A", text: "||x.example^\n||x.example^" },
+        { id: "b", name: "B", text: "||x.example^" },
+      ]).snapshot,
+    );
+    expect(match(s, { name: "x.example", type: RRType.A, active: Uint8Array.of(0, 1) })).toMatchObject({ action: "block", rule: { listId: "b" } });
+    expect(match(s, { name: "x.example", type: RRType.A })).toMatchObject({ action: "block", rule: { listId: "a" } });
   });
 
   it("applies exactly the lists in the active mask", () => {

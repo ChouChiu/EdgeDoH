@@ -8,7 +8,7 @@ import { useI18n } from "@/shared/i18n";
 import { cn } from "@/shared/lib/utils";
 import { type Service, useServices } from "./api";
 
-/** Toggle grid of AdGuard blocked services, grouped as in the registry */
+/** Toggle grid of blocked services, grouped by category */
 export function ServicePicker({ id, value, onChange }: { id: string; value: string[]; onChange: (next: string[]) => void }) {
   const { t } = useI18n();
   const services = useServices();
@@ -22,7 +22,8 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
       if (term && !s.name.toLowerCase().includes(term) && !s.id.includes(term)) continue;
       byGroup.set(s.group, [...(byGroup.get(s.group) ?? []), s]);
     }
-    return [...byGroup].sort(([a], [b]) => a.localeCompare(b));
+    // "other" holds most community services, so it goes after the named groups
+    return [...byGroup].sort(([a], [b]) => Number(a === "other") - Number(b === "other") || a.localeCompare(b));
   }, [services.data, search]);
 
   if (services.error) return <QueryError error={services.error} />;
@@ -62,7 +63,7 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
   );
 }
 
-const GROUPS = ["ai", "cdn", "dating", "gambling", "gaming", "hosting", "messenger", "privacy", "shopping", "social_network", "software", "streaming"] as const;
+const GROUPS = ["ai", "cdn", "dating", "gambling", "gaming", "hosting", "messenger", "other", "privacy", "shopping", "social_network", "software", "streaming"] as const;
 
 function groupLabel(group: string, t: ReturnType<typeof useI18n>["t"]): string {
   return (GROUPS as readonly string[]).includes(group) ? t(`services.group.${group as (typeof GROUPS)[number]}`) : group;

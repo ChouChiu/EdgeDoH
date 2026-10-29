@@ -157,7 +157,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 | `/api/settings` | `GET`, `PATCH` | Read and update resolver settings |
 | `/api/profiles` | `GET`, `POST` | List profiles, create a profile |
 | `/api/profiles/<ID>` | `PATCH`, `DELETE` | Update or delete a profile (the default one cannot be deleted) |
-| `/api/services` | `GET` | AdGuard blocked-services catalog with rules and icons |
+| `/api/services/:source` | `GET` | One services catalog file (`adguard` or `community`, from [service-catalog](https://github.com/ChouChiu/service-catalog)) |
 | `/api/local-records` | `GET`, `PUT` | Read or replace the local DNS records |
 | `/api/stats/summary` | `GET` | Overview metrics (total, blocked, latency, etc.) |
 | `/api/stats/timeseries` | `GET` | Timeseries query and block trends |

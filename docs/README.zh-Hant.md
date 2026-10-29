@@ -157,7 +157,7 @@ Cloudflare Workers 免費層單請求 CPU 時間限制為 10ms，因此 Worker �
 | `/api/settings` | `GET`, `PATCH` | 讀取與更新全域解析設定 |
 | `/api/profiles` | `GET`, `POST` | 取得策略組清單、新增策略組 |
 | `/api/profiles/<ID>` | `PATCH`, `DELETE` | 修改策略組、刪除策略組（預設策略組不可刪除） |
-| `/api/services` | `GET` | 取得 AdGuard 封鎖服務目錄（含規則與圖示） |
+| `/api/services/:source` | `GET` | 服務目錄檔案（`adguard` 或 `community`，來自 [service-catalog](https://github.com/ChouChiu/service-catalog)） |
 | `/api/local-records` | `GET`, `PUT` | 讀取與整體替換本機 DNS 記錄 |
 | `/api/stats/summary` | `GET` | 查詢概覽統計指標（總量、攔截率、平均耗時等） |
 | `/api/stats/timeseries` | `GET` | 取得查詢量與攔截量時序趨勢資料 |

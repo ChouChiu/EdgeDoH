@@ -64,7 +64,7 @@ export const zhHans = {
   "rebuild.done": "规则快照已编译生效：共 {count} 条",
   "rebuild.doneDetail": "已同步 {count} 个增量分片，各边缘节点将在 30 秒内加载最新快照",
   "rebuild.failed": "规则编译或同步失败",
-  "rebuild.servicesSkipped": "无法获取 AdGuard 屏蔽服务目录，本次编译未包含屏蔽服务，策略组中的服务屏蔽暂不生效",
+  "rebuild.servicesSkipped": "无法获取服务目录，本次编译未包含屏蔽服务，策略组中的服务屏蔽暂不生效",
   "rebuild.customList": "自定义规则",
 
   "snapshot.title": "当前生效的规则快照",
@@ -370,6 +370,7 @@ export const zhHans = {
   "services.group.social_network": "社交网络",
   "services.group.software": "软件",
   "services.group.streaming": "影音",
+  "services.group.other": "其他",
   "dns.routes": "分流",
   "dns.records": "本地记录",
   "dns.routesEmpty": "尚未添加分流列表",

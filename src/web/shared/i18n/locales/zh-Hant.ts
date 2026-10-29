@@ -65,7 +65,7 @@ export const zhHant: Messages = {
   "rebuild.done": "規則快照已編譯生效：共 {count} 條",
   "rebuild.doneDetail": "已同步 {count} 個增量分片，各邊緣節點將在 30 秒內載入最新快照",
   "rebuild.failed": "規則編譯或同步失敗",
-  "rebuild.servicesSkipped": "無法取得 AdGuard 封鎖服務目錄，本次編譯未包含封鎖服務，策略組中的服務封鎖暫不生效",
+  "rebuild.servicesSkipped": "無法取得服務目錄，本次編譯未包含封鎖服務，策略組中的服務封鎖暫不生效",
   "rebuild.customList": "自訂規則",
 
   "snapshot.title": "目前生效的規則快照",
@@ -371,6 +371,7 @@ export const zhHant: Messages = {
   "services.group.social_network": "社群網路",
   "services.group.software": "軟體",
   "services.group.streaming": "影音",
+  "services.group.other": "其他",
   "dns.routes": "分流",
   "dns.records": "本機記錄",
   "dns.routesEmpty": "尚未新增分流清單",

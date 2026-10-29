@@ -118,13 +118,16 @@ export function compile(sources: FilterSource[], options: CompileOptions = {}): 
 
   for (const { rule, list } of parsed) {
     const report = reports[list]!;
+    // Dedupe within a list only: profiles turn lists and services on one by one through the
+    // active mask, so a rule shared with an earlier list must still exist under this one
+    const scope = `${list}:`;
     if (rule.syntax === "adblock" && badfilters.has(badfilterKey(rule.text))) {
       report.badfiltered++;
       continue;
     }
 
     if (rule.pattern.kind === "wildcard" || rule.pattern.kind === "regex") {
-      if (complexSeen.has(rule.text)) {
+      if (complexSeen.has(scope + rule.text)) {
         report.duplicates++;
         continue;
       }
@@ -132,7 +135,7 @@ export function compile(sources: FilterSource[], options: CompileOptions = {}): 
         unsupported(report, "complex rule limit reached");
         continue;
       }
-      complexSeen.add(rule.text);
+      complexSeen.add(scope + rule.text);
       const i = complex.texts.length;
       complex.texts.push(rule.text);
       complex.refs.push(((list << 22) | rule.line) >>> 0);
@@ -157,7 +160,7 @@ export function compile(sources: FilterSource[], options: CompileOptions = {}): 
     const meta = (flags | ((m === undefined ? 0 : m + 1) << 8)) >>> 0;
     const [hi, lo] = hash64(rule.pattern.domain);
 
-    const key = `${hi}:${lo}:${meta}`;
+    const key = `${scope}${hi}:${lo}:${meta}`;
     if (seen.has(key)) {
       report.duplicates++;
       continue;

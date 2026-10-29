@@ -44,7 +44,10 @@ export type Verdict =
 /** A verdict plus what the name was recognised as, whether or not those lists were applied */
 export interface Inspection {
   verdict: Verdict;
-  /** ID of the first service list the name belongs to */
+  /**
+   * ID of the service list matching the name most specifically; when several match at the same
+   * domain level, the one with fewer rules, which is the narrower service (AppleMusic over Apple)
+   */
   service?: string;
   /** ID of the most specific route list covering the name */
   route?: string;
@@ -53,6 +56,8 @@ export interface Inspection {
 interface Candidate {
   /** Index into the snapshot's lists */
   list: number;
+  /** Where the matched domain starts in the name: 0 is the name itself, complex rules sort last */
+  pos: number;
   allow: boolean;
   important: boolean;
   mods: Modifiers | undefined;
@@ -75,10 +80,16 @@ export function inspect(snapshot: Snapshot, query: MatchQuery): Inspection {
   const lists = snapshot.meta.lists;
   const applied: Candidate[] = [];
   const out: Inspection = { verdict: { action: "pass" } };
+  let service: { pos: number; rules: number } | undefined;
   for (const c of collect(snapshot, query)) {
     const kind = lists[c.list]?.kind ?? "filter";
-    if (kind === "service") out.service ??= lists[c.list]!.id;
-    else if (kind === "route" && !c.allow) out.route ??= lists[c.list]!.id;
+    if (kind === "service" && !c.allow) {
+      const { id, rules } = lists[c.list]!;
+      if (!service || c.pos < service.pos || (c.pos === service.pos && rules < service.rules)) {
+        service = { pos: c.pos, rules };
+        out.service = id;
+      }
+    } else if (kind === "route" && !c.allow) out.route ??= lists[c.list]!.id;
     if (query.active ? query.active[c.list] : kind === "filter") applied.push(c);
   }
   out.verdict = decide(applied, query);
@@ -163,6 +174,7 @@ function collect(snapshot: Snapshot, query: MatchQuery): Candidate[] {
       const domain = name.slice(pos);
       out.push({
         list: ref >>> 22,
+        pos,
         allow: (flags & EntryFlag.ALLOW) !== 0,
         important: (flags & EntryFlag.IMPORTANT) !== 0,
         mods,
@@ -192,6 +204,7 @@ function collect(snapshot: Snapshot, query: MatchQuery): Candidate[] {
     const ref = complex.refs[i]!;
     out.push({
       list: ref >>> 22,
+      pos: name.length,
       allow: rule.action === "allow",
       important: rule.important,
       mods: rule.mods,

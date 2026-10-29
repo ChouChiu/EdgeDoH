@@ -14,7 +14,7 @@ export interface RebuildResult {
   lists: number;
   /** Snapshot files actually sent; unchanged shards are skipped */
   uploaded: number;
-  /** The blocked-services catalog could not be fetched, so this snapshot has no services */
+  /** Neither services catalog could be fetched, so this snapshot has no services */
   servicesSkipped: boolean;
 }
 

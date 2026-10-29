@@ -68,7 +68,7 @@ export const enUS: Messages = {
     other: "Synced {count} incremental shards; edge nodes will reload within 30 seconds",
   },
   "rebuild.failed": "Rule compilation or sync failed",
-  "rebuild.servicesSkipped": "Could not fetch the AdGuard blocked-services catalog; this compile has no services, so profile service blocking is off until the next compile",
+  "rebuild.servicesSkipped": "Could not fetch the services catalog; this compile has no services, so profile service blocking is off until the next compile",
   "rebuild.customList": "Custom rules",
 
   "snapshot.title": "Active Rule Snapshot",
@@ -375,6 +375,7 @@ export const enUS: Messages = {
   "services.group.social_network": "Social Networks",
   "services.group.software": "Software",
   "services.group.streaming": "Streaming",
+  "services.group.other": "Other",
   "dns.routes": "Split DNS",
   "dns.records": "Local Records",
   "dns.routesEmpty": "No route lists yet",

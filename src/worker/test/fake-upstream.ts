@@ -22,8 +22,8 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   if (url.hostname === "api.cloudflare.com") return fakeSqlApi(request);
   if (url.hostname === "adguardteam.github.io") return fakeRegistry(url);
   if (url.hostname === "raw.githubusercontent.com") {
-    if (url.pathname.endsWith("/DouYin/DouYin.list")) {
-      return new Response("# NAME: DouYin\nDOMAIN,api.douyin.test\nDOMAIN-SUFFIX,douyinvod.test\nDOMAIN-KEYWORD,douyin\nIP-CIDR,1.2.3.0/24,no-resolve\n");
+    if (url.pathname.endsWith("/service-catalog/main/output/adguard.json")) {
+      return new Response('{"license":"GPL-3.0","services":[{"id":"tiktok","name":"TikTok","group":"social_network","icon":"<svg/>","rules":["||tiktok.test^"]}]}');
     }
     return new Response("not found", { status: 404 });
   }
@@ -168,15 +168,6 @@ function fakeRegistry(url: URL): Response {
           downloadUrl: "https://adguardteam.github.io/HostlistsRegistry/assets/filter_99.txt",
         },
       ],
-    });
-  }
-  if (url.pathname.endsWith("/services.json")) {
-    return Response.json({
-      blocked_services: [
-        { id: "tiktok", name: "TikTok", rules: ["||tiktok.test^", "||tiktokcdn.test^"], icon_svg: "<svg/>", group: "social_network" },
-        { id: "bad id", name: "Broken", rules: [] },
-      ],
-      groups: [{ id: "social_network" }],
     });
   }
   if (url.pathname.endsWith("/filter_99.txt")) return new Response("! Title: test\n||from-registry.test^\n");
