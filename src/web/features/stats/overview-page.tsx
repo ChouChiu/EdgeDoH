@@ -125,10 +125,10 @@ function Stat({
           <span className={tone ?? "text-muted-foreground"}>{icon}</span>
           {label}
         </p>
-        <div className={primary ? "text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl" : "text-2xl font-medium tabular-nums"}>
+        <div className={primary ? "type-display max-sm:text-2xl" : "type-figure"}>
           {value ?? <Skeleton className={primary ? "h-9 w-28" : "h-8 w-24"} />}
         </div>
-        <p className="h-4 text-xs text-muted-foreground">{hint}</p>
+        <p className="type-meta h-4">{hint}</p>
       </div>
     </AnimateIcon>
   );

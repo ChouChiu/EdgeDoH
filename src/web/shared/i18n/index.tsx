@@ -1,4 +1,5 @@
 import { createContext, Fragment, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { loadSerifFor } from "@/shared/lib/fonts";
 import { createFormatters, type Formatters } from "@/shared/lib/format";
 import { enUS } from "./locales/en-US";
 import { zhHans } from "./locales/zh-Hans";
@@ -43,6 +44,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    loadSerifFor(locale);
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {

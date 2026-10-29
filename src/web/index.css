@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/noto-serif";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -33,9 +34,66 @@
     --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/*
+ * Type roles. Every piece of text is one of these, and neighbouring roles differ in more than one of face, weight and
+ * size, so the hierarchy reads even at a glance:
+ *   display   serif 600 30px   the one headline figure of a page (overview total)
+ *   figure    serif 500 24px   the other headline figures
+ *   title     serif 600 24px   page titles
+ *   subtitle  serif 500 18px   dialog and empty-state titles
+ *   heading   sans  600 14px   card and section titles
+ *   body      sans  400 14px   everything you read to operate: controls, labels, rows (Tailwind's defaults)
+ *   meta      sans  400 12px   hints, captions and secondary counts, muted
+ * Serif names things and states figures; it never sets a paragraph or a control. Faces are the Noto Serif family
+ * (Latin here; SC or TC per locale from shared/lib/fonts.ts, as unicode-range slices so a page only downloads the glyphs
+ * it shows) beside Geist.
+ * Chinese pages put their own script's Noto Serif first so shared characters take the right regional forms
+ */
+@utility type-display {
+  font-family: --theme(--font-serif);
+  font-size: --theme(--text-3xl);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-figure {
+  font-family: --theme(--font-serif);
+  font-size: --theme(--text-2xl);
+  line-height: 1.2;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-title {
+  font-family: --theme(--font-serif);
+  font-size: --theme(--text-2xl);
+  line-height: 1.25;
+  font-weight: 600;
+}
+@utility type-subtitle {
+  font-family: --theme(--font-serif);
+  font-size: --theme(--text-lg);
+  line-height: 1.3;
+  font-weight: 500;
+}
+@utility type-heading {
+  font-family: --theme(--font-sans);
+  font-size: --theme(--text-sm);
+  line-height: 1.4;
+  font-weight: 600;
+}
+@utility type-meta {
+  font-family: --theme(--font-sans);
+  font-size: --theme(--text-xs);
+  line-height: 1.35;
+  font-weight: 400;
+  color: --theme(--color-muted-foreground);
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+    --font-serif: 'Noto Serif Variable', var(--font-serif-cjk), serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -88,6 +146,7 @@
  * colour. Hue 82 is the icon's Cloudflare amber pulled towards yellow; every tinted neutral below shares it
  */
 :root {
+    --font-serif-cjk: 'Noto Serif SC Variable', 'Noto Serif TC Variable';
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -128,6 +187,10 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.915 0.008 90);
     --sidebar-ring: oklch(0.82 0.17 82);
+}
+
+:root:lang(zh-Hant) {
+    --font-serif-cjk: 'Noto Serif TC Variable', 'Noto Serif SC Variable';
 }
 
 .dark {

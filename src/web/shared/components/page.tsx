@@ -11,7 +11,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="type-title">{title}</h1>
         {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -44,7 +44,7 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
       <AnimateIcon animateOnView animateOnViewOnce animateOnHover className="text-muted-foreground [&_svg]:size-8">
         {icon}
       </AnimateIcon>
-      <p className="font-medium">{title}</p>
+      <p className="type-subtitle">{title}</p>
       {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
     </div>
   );
