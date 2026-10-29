@@ -1,7 +1,7 @@
-import { FlaskConical } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { ActionBadge } from "@/shared/components/action-badge";
+import { FlaskConical } from "@/shared/components/animate-ui/icons/flask-conical";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";

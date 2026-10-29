@@ -1,12 +1,13 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { ListChecks, PowerOff } from "lucide-react";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink } from "@/shared/components/animate-ui/icons/external-link";
+import { ListChecks } from "@/shared/components/animate-ui/icons/list-checks";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
 import { Power } from "@/shared/components/animate-ui/icons/power";
+import { PowerOff } from "@/shared/components/animate-ui/icons/power-off";
 import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { EmptyState, QueryError } from "@/shared/components/page";

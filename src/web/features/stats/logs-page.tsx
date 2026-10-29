@@ -1,11 +1,12 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Ban, ScrollText } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { Ban } from "@/shared/components/animate-ui/icons/ban";
 import { Check } from "@/shared/components/animate-ui/icons/check";
 import { ChevronLeft } from "@/shared/components/animate-ui/icons/chevron-left";
 import { ChevronRight } from "@/shared/components/animate-ui/icons/chevron-right";
+import { ScrollText } from "@/shared/components/animate-ui/icons/scroll-text";
 import { Search } from "@/shared/components/animate-ui/icons/search";
 import { X } from "@/shared/components/animate-ui/icons/x";
 import { EmptyState, PageHeader, QueryError } from "@/shared/components/page";

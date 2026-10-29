@@ -1,10 +1,12 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
+import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import { useQuery } from "@tanstack/react-query";
-import { Ban, Database } from "lucide-react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Activity } from "@/shared/components/animate-ui/icons/activity";
+import { Ban } from "@/shared/components/animate-ui/icons/ban";
+import { Database } from "@/shared/components/animate-ui/icons/database";
 import { Gauge } from "@/shared/components/animate-ui/icons/gauge";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -50,19 +52,19 @@ export function OverviewPage() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={<Activity />} tone="text-primary" label={t("overview.total")} value={data && fmt.number(data.total)} />
+            <StatCard icon={<Activity />} tone="text-primary" label={t("overview.total")} value={data && <Count value={data.total} />} />
             <StatCard
               icon={<Ban />}
               tone="text-destructive"
               label={t("overview.blocked")}
-              value={data && fmt.number(data.blocked)}
+              value={data && <Count value={data.blocked} />}
               hint={data && t("overview.share", { percent: fmt.percent(data.blockedRatio) })}
             />
             <StatCard
               icon={<Database />}
               tone="text-info"
               label={t("overview.cached")}
-              value={data && fmt.number(data.cached)}
+              value={data && <Count value={data.cached} />}
               hint={data && data.total > 0 ? t("overview.share", { percent: fmt.percent(data.cached / data.total) }) : undefined}
             />
             <StatCard
@@ -70,7 +72,7 @@ export function OverviewPage() {
               // Upstream failures are the one thing on this row that is wrong rather than just large
               tone={data && data.failed > 0 ? "text-destructive" : "text-success"}
               label={t("overview.latency")}
-              value={data && `${data.avgLatencyMs} ms`}
+              value={data && <><Count value={data.avgLatencyMs} /> ms</>}
               hint={data && data.failed > 0 ? t("overview.failures", { count: data.failed }) : undefined}
             />
           </div>
@@ -89,6 +91,11 @@ export function OverviewPage() {
   );
 }
 
+/** Digits slide to each new value (a range switch, a refetch); every locale groups thousands with a comma. Latency has one decimal */
+function Count({ value }: { value: number }) {
+  return <SlidingNumber number={value} thousandSeparator="," decimalPlaces={Number.isInteger(value) ? 0 : 1} />;
+}
+
 function StatCard({
   icon,
   label,
@@ -98,7 +105,7 @@ function StatCard({
 }: {
   icon: ReactNode;
   label: string;
-  value?: string | undefined;
+  value?: ReactNode;
   hint?: string | undefined;
   tone?: string | undefined;
 }) {

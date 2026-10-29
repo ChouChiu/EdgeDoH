@@ -1,7 +1,9 @@
-import { ListChecks, ScrollText, ShieldBan } from "lucide-react";
 import type { ComponentType } from "react";
 import { ChartNoAxesColumn } from "@/shared/components/animate-ui/icons/chart-no-axes-column";
 import { Cog } from "@/shared/components/animate-ui/icons/cog";
+import { ListChecks } from "@/shared/components/animate-ui/icons/list-checks";
+import { ScrollText } from "@/shared/components/animate-ui/icons/scroll-text";
+import { ShieldBan } from "@/shared/components/animate-ui/icons/shield-ban";
 import { Smartphone } from "@/shared/components/animate-ui/icons/smartphone";
 import type { MessageKey } from "@/shared/i18n";
 

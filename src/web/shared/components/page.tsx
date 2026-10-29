@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import type { ReactNode } from "react";
 import { CircleAlert } from "@/shared/components/animate-ui/icons/circle-alert";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -21,7 +22,7 @@ export function QueryError({ error, title }: { error: unknown; title?: string })
   const { t } = useI18n();
   return (
     <Alert variant="destructive">
-      <CircleAlert />
+      <CircleAlert animate />
       <AlertTitle>{title ?? t("common.loadFailed")}</AlertTitle>
       <AlertDescription>
         {errorMessage(error, t)}
@@ -38,7 +39,10 @@ export function QueryError({ error, title }: { error: unknown; title?: string })
 export function EmptyState({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center">
-      <div className="text-muted-foreground [&_svg]:size-8">{icon}</div>
+      {/* Plays once when the empty state shows, and again on hover */}
+      <AnimateIcon animateOnView animateOnViewOnce animateOnHover className="text-muted-foreground [&_svg]:size-8">
+        {icon}
+      </AnimateIcon>
       <p className="font-medium">{title}</p>
       {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
     </div>

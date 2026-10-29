@@ -1,5 +1,5 @@
-import { Ban } from "lucide-react";
 import { ActionBadge } from "@/shared/components/action-badge";
+import { Ban } from "@/shared/components/animate-ui/icons/ban";
 import { Check } from "@/shared/components/animate-ui/icons/check";
 import { Copy } from "@/shared/components/animate-ui/icons/copy";
 import { Ellipsis } from "@/shared/components/animate-ui/icons/ellipsis";

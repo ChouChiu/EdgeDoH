@@ -1,8 +1,9 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { cn } from "cn";
-import { Languages, Monitor } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { Check } from "@/shared/components/animate-ui/icons/check";
+import { Languages } from "@/shared/components/animate-ui/icons/languages";
+import { Monitor } from "@/shared/components/animate-ui/icons/monitor";
 import { Moon } from "@/shared/components/animate-ui/icons/moon";
 import { Sun } from "@/shared/components/animate-ui/icons/sun";
 import { type Theme, useTheme } from "@/shared/components/theme-provider";

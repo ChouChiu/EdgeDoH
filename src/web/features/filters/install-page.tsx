@@ -1,7 +1,7 @@
-import { PackagePlus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { PackagePlus } from "@/shared/components/animate-ui/icons/package-plus";
 import { PageHeader } from "@/shared/components/page";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";

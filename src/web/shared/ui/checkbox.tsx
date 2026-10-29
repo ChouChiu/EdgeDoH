@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "cn"
-import { Checkbox as CheckboxPrimitive } from "radix-ui"
+// animate-ui's Radix checkbox: the check mark animates in and out
+import * as CheckboxPrimitive from "@animate-ui/react/primitives/radix-ui/checkbox"
 import { CheckIcon } from "lucide-react"
 
 function Checkbox({
