@@ -17,9 +17,8 @@ import { Textarea } from "@/shared/ui/textarea";
 import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
-import { isIPv4, isIPv6 } from "#dns";
 import { isDomain } from "#filter";
-import { MAX_ECH_FORCED_DOMAINS, MAX_ECH_PREFERRED_IPS } from "#contract";
+import { MAX_ECH_FORCED_DOMAINS } from "#contract";
 import {
   BLOCKING_MODES,
   type BlockingMode,
@@ -34,7 +33,7 @@ import {
 type NumberField = "blockedTtl" | "upstreamTimeoutMs" | "cacheMinTtl" | "cacheMaxTtl" | "maxDeviceClients" | "deviceClientWindowMinutes";
 const NUMBER_FIELDS: NumberField[] = ["blockedTtl", "upstreamTimeoutMs", "cacheMinTtl", "cacheMaxTtl", "maxDeviceClients", "deviceClientWindowMinutes"];
 
-type ListField = "upstreams" | "echPreferredIps" | "echForcedDomains";
+type ListField = "upstreams" | "echForcedDomains";
 
 /** Form state: numbers stay strings while typing, lists are one entry per line */
 type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
@@ -100,14 +99,9 @@ function ServerSettings() {
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...draft, [key]: value });
   const upstreams = splitUpstreams(draft.upstreams);
-  const preferredIps = splitList(draft.echPreferredIps);
   const forcedDomains = splitList(draft.echForcedDomains, (d) => d.toLowerCase().replace(/\.$/, ""));
   const errors = {
     upstreams: validateUpstreams(upstreams, t),
-    echPreferredIps:
-      preferredIps.length > MAX_ECH_PREFERRED_IPS
-        ? t("settings.echTooMany", { max: MAX_ECH_PREFERRED_IPS })
-        : invalidEntry(preferredIps, (ip) => isIPv4(ip) || isIPv6(ip), (value) => t("settings.echInvalidIp", { value })),
     echForcedDomains:
       forcedDomains.length > MAX_ECH_FORCED_DOMAINS
         ? t("settings.echTooMany", { max: MAX_ECH_FORCED_DOMAINS })
@@ -120,7 +114,7 @@ function ServerSettings() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!invalid) save.mutate(fromDraft(draft, { upstreams, echPreferredIps: preferredIps, echForcedDomains: forcedDomains }));
+    if (!invalid) save.mutate(fromDraft(draft, { upstreams, echForcedDomains: forcedDomains }));
   };
 
   const number = (key: NumberField, min: number, max: number, className = "w-32") => (
@@ -240,15 +234,6 @@ function ServerSettings() {
 
       <Section title={t("settings.ech")} description={t("settings.echDescription")}>
         <ListInput
-          id="echPreferredIps"
-          label={t("settings.echPreferredIps")}
-          hint={t("settings.echPreferredIpsHint", { max: MAX_ECH_PREFERRED_IPS })}
-          error={errors.echPreferredIps}
-          placeholder={"104.16.0.1\n2606:4700::1"}
-          value={draft.echPreferredIps}
-          onChange={(v) => set("echPreferredIps", v)}
-        />
-        <ListInput
           id="echForcedDomains"
           label={t("settings.echForcedDomains")}
           hint={t("settings.echForcedDomainsHint", { max: MAX_ECH_FORCED_DOMAINS })}
@@ -336,7 +321,6 @@ function toDraft(s: Settings): Draft {
   return {
     ...s,
     upstreams: s.upstreams.join("\n"),
-    echPreferredIps: s.echPreferredIps.join("\n"),
     echForcedDomains: s.echForcedDomains.join("\n"),
     ...(Object.fromEntries(NUMBER_FIELDS.map((key) => [key, String(s[key])])) as Record<NumberField, string>),
   };

@@ -7,8 +7,6 @@ export const MAX_UPSTREAMS = 5;
 export const MAX_DEVICE_NAME = 64;
 export const MAX_PROFILE_NAME = 64;
 export const MAX_LIST_NAME = 100;
-/** Addresses swapped into answers for Cloudflare-proxied names when ECH is on */
-export const MAX_ECH_PREFERRED_IPS = 16;
 /** Names treated as Cloudflare-proxied whatever their upstream answer */
 export const MAX_ECH_FORCED_DOMAINS = 500;
 

@@ -20,7 +20,6 @@ const DEFAULTS = {
   queryLogEnabled: true,
   maxDeviceClients: 0,
   deviceClientWindowMinutes: 60,
-  echPreferredIps: [],
   echForcedDomains: [],
 };
 
@@ -58,8 +57,7 @@ describe("settings", () => {
       { filteringEnabled: "yes" },
       { maxDeviceClients: -1 },
       { deviceClientWindowMinutes: 1 },
-      { echPreferredIps: ["104.16.0.1", "104.16.0.1"] },
-      { echPreferredIps: ["cloudflare.com"] },
+      { echForcedDomains: ["example.com", "example.com"] },
       { echForcedDomains: ["Example.com"] },
       { echForcedDomains: "example.com" },
       { nope: 1 },

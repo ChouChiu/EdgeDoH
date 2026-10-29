@@ -1,4 +1,4 @@
-import { type AnswerRecord, buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeIPv6, encodeName, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
+import { type AnswerRecord, buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeName, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
 
 /**
  * Stand-in for real DoH resolvers, wired in as Miniflare's outbound service.
@@ -75,7 +75,6 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   }
   if (name === "proxied.test" || name === "proxied-https.test") {
     if (type === RRType.A) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.A, ttl: 600, data: encodeIPv4("104.16.1.2") }] }));
-    if (type === RRType.AAAA) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers: [{ type: RRType.AAAA, ttl: 600, data: encodeIPv6("2606:4700::6810:102") }] }));
     if (type === RRType.HTTPS && name === "proxied-https.test") {
       return reply(
         buildResponse(query, raw, {

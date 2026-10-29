@@ -313,11 +313,8 @@ export const zhHant: Messages = {
   "settings.deviceClientWindowHint": "超過該時長未活躍的網路將自動移出統計計數；行動裝置頻繁切換 Wi-Fi 與行動網路時建議適當調大上限",
   "settings.ech": "ECH 抗審查",
   "settings.echDescription": "僅對開啟 ECH 注入的 Profile 生效",
-  "settings.echPreferredIps": "優選 IP",
-  "settings.echPreferredIpsHint": "每行一個，最多 {max} 個。Cloudflare 代理網站的 A/AAAA 應答與 HTTPS 位址提示替換為這些位址；缺少某一協定族時，該族回傳空應答",
   "settings.echForcedDomains": "強制注入網域",
   "settings.echForcedDomainsHint": "每行一個，含子網域，最多 {max} 個。無論上游如何應答，都按 Cloudflare 代理網站處理",
-  "settings.echInvalidIp": "無效的 IP 位址：{value}",
   "settings.echInvalidDomain": "無效的網域：{value}",
   "settings.echTooMany": "最多 {max} 筆",
 

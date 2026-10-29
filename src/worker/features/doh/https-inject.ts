@@ -79,40 +79,23 @@ export function isCloudflareAddress(address: Uint8Array): boolean {
   });
 }
 
-/** The global ECH settings in wire form */
-export interface EdgeConfig {
-  /** Preferred addresses by family; both empty means upstream addresses are kept */
-  v4: Uint8Array[];
-  v6: Uint8Array[];
-  forced: Set<string>;
-}
+const forcedSets = new WeakMap<Settings, Set<string>>();
 
-const edgeConfigs = new WeakMap<Settings, EdgeConfig>();
-
-/** Settings objects are rebuilt only when the runtime config changes, so the encoded form is kept with them */
-export function edgeConfig(settings: Settings): EdgeConfig {
-  let edge = edgeConfigs.get(settings);
-  if (!edge) {
-    const ips = settings.echPreferredIps;
-    edge = {
-      v4: ips.filter((ip) => !ip.includes(":")).map(encodeIPv4),
-      v6: ips.filter((ip) => ip.includes(":")).map(encodeIPv6),
-      forced: new Set(settings.echForcedDomains),
-    };
-    edgeConfigs.set(settings, edge);
+/** Settings objects are rebuilt only when the runtime config changes, so the set is kept with them */
+export function forcedDomains(settings: Settings): Set<string> {
+  let forced = forcedSets.get(settings);
+  if (!forced) {
+    forced = new Set(settings.echForcedDomains);
+    forcedSets.set(settings, forced);
   }
-  return edge;
-}
-
-export function hasPreferred(edge: EdgeConfig): boolean {
-  return edge.v4.length > 0 || edge.v6.length > 0;
+  return forced;
 }
 
 /** The name or one of its parent domains is in the forced list */
-function isForced(edge: EdgeConfig, name: string): boolean {
-  if (edge.forced.size === 0) return false;
+function isForced(forced: Set<string>, name: string): boolean {
+  if (forced.size === 0) return false;
   for (let suffix = name; ; suffix = suffix.slice(suffix.indexOf(".") + 1)) {
-    if (edge.forced.has(suffix)) return true;
+    if (forced.has(suffix)) return true;
     if (!suffix.includes(".")) return false;
   }
 }
@@ -120,14 +103,15 @@ function isForced(edge: EdgeConfig, name: string): boolean {
 export interface InjectOptions {
   ech: boolean;
   h3: boolean;
-  edge: EdgeConfig;
+  /** Names handled as Cloudflare-proxied whatever the upstream answers */
+  forced: Set<string>;
 }
 
 /**
  * For HTTPS queries about Cloudflare-proxied names (judged at the end of any CNAME chain, or
- * forced by name): adds `h3` to the ALPN set, Cloudflare's shared ECH config and, with ECH on, the
- * preferred addresses as hints to the existing ServiceMode records, or synthesises one when the
- * zone publishes none, together with the TTL clients may keep it. Returns undefined when nothing
+ * forced by name): adds `h3` to the ALPN set and Cloudflare's shared ECH config to the existing
+ * ServiceMode records, or synthesises one when the zone publishes none, together with the TTL
+ * clients may keep it. Returns undefined when nothing
  * applies, leaving the upstream answer untouched.
  * DNSSEC-aware clients are skipped, since edited records would no longer validate
  */
@@ -155,8 +139,7 @@ export async function injectHttps(
   } catch {
     return undefined;
   }
-  const forced = isForced(opts.edge, name.toLowerCase()) || isForced(opts.edge, owner);
-  const preferred = opts.ech && hasPreferred(opts.edge) ? opts.edge : undefined;
+  const forced = isForced(opts.forced, name.toLowerCase()) || isForced(opts.forced, owner);
 
   const hints = records.flatMap(({ svcb }) => [
     ...splitHints(svcb.params.get(SvcParam.IPV4HINT) ?? new Uint8Array(0), 4),
@@ -181,53 +164,19 @@ export async function injectHttps(
 
   if (records.some((r) => r.svcb.priority > 0)) {
     for (const { ttl: recordTtl, svcb } of records) {
-      if (svcb.priority > 0) changed = augment(svcb, opts.h3, ech, preferred) || changed;
+      if (svcb.priority > 0) changed = augment(svcb, opts.h3, ech) || changed;
       answers.push({ name: ownerName, type: RRType.HTTPS, ttl: recordTtl, data: encodeSvcb(svcb) });
     }
   } else if (records.length === 0) {
     const params = new Map<number, Uint8Array>([[SvcParam.ALPN, encodeAlpn(opts.h3 ? ["h3", "h2"] : ["h2"])]]);
-    const v4 = preferred ? preferred.v4 : addresses.filter((a) => a.length === 4);
-    const v6 = preferred ? preferred.v6 : [];
+    const v4 = addresses.filter((a) => a.length === 4);
     if (v4.length > 0) params.set(SvcParam.IPV4HINT, concat(v4));
-    if (v6.length > 0) params.set(SvcParam.IPV6HINT, concat(v6));
     if (ech) params.set(SvcParam.ECH, ech);
     answers.push({ name: ownerName, type: RRType.HTTPS, ttl, data: encodeSvcb({ priority: 1, target: "", params }) });
     changed = true;
   }
   if (!changed) return undefined;
   if (ownerName) answers.unshift(...cnames(response, msg));
-  return { response: buildResponse(query, raw, { rcode: Rcode.NOERROR, answers }), ttl: Math.min(ttl, ...answers.map((a) => a.ttl)) };
-}
-
-/**
- * For A/AAAA queries about Cloudflare-proxied or forced names: answers with the preferred
- * addresses of that family instead of the upstream's. A family with no preferred address gets an
- * empty answer, so dual-stack clients connect to the preferred family instead of racing to an
- * unlisted address. Returns undefined when nothing applies
- */
-export function preferAddresses(query: Message, raw: Uint8Array, response: Uint8Array, edge: EdgeConfig): { response: Uint8Array; ttl: number } | undefined {
-  if (dnssecOk(query)) return undefined;
-  const { name, type } = query.questions[0]!;
-  const msg = parseMessage(response);
-  let owner: string;
-  try {
-    owner = chainEnd(response, msg.answers, name);
-  } catch {
-    return undefined;
-  }
-  const upstreamAddresses = msg.answers.filter((rr) => rr.type === type && rr.name.toLowerCase() === owner);
-  const forced = isForced(edge, name.toLowerCase()) || isForced(edge, owner);
-  if (!forced) {
-    if (rcodeOf(msg.header) !== Rcode.NOERROR || upstreamAddresses.length === 0) return undefined;
-    if (!upstreamAddresses.every((rr) => isCloudflareAddress(rr.data))) return undefined;
-  }
-
-  const ttl = Math.min(MAX_TTL, ...upstreamAddresses.map((rr) => rr.ttl));
-  const ownerName = owner === name.toLowerCase() ? undefined : encodeName(owner);
-  const answers: AnswerRecord[] = [
-    ...(ownerName ? cnames(response, msg) : []),
-    ...(type === RRType.A ? edge.v4 : edge.v6).map((data) => ({ name: ownerName, type, ttl, data })),
-  ];
   return { response: buildResponse(query, raw, { rcode: Rcode.NOERROR, answers }), ttl: Math.min(ttl, ...answers.map((a) => a.ttl)) };
 }
 
@@ -246,8 +195,8 @@ function cnames(buf: Uint8Array, msg: Message): AnswerRecord[] {
   return copyAnswers(buf, msg).filter((a) => a.type === RRType.CNAME);
 }
 
-/** Adds what is missing; never removes anything the zone published, except hints replaced by preferred addresses */
-function augment(svcb: Svcb, h3: boolean, ech: Uint8Array | undefined, preferred: EdgeConfig | undefined): boolean {
+/** Adds what is missing; never removes anything the zone published */
+function augment(svcb: Svcb, h3: boolean, ech: Uint8Array | undefined): boolean {
   let changed = false;
   if (h3) {
     const alpn = decodeAlpn(svcb.params.get(SvcParam.ALPN) ?? new Uint8Array(0));
@@ -260,20 +209,7 @@ function augment(svcb: Svcb, h3: boolean, ech: Uint8Array | undefined, preferred
     svcb.params.set(SvcParam.ECH, ech);
     changed = true;
   }
-  if (preferred) {
-    changed = setHints(svcb, SvcParam.IPV4HINT, preferred.v4) || changed;
-    changed = setHints(svcb, SvcParam.IPV6HINT, preferred.v6) || changed;
-  }
   return changed;
-}
-
-function setHints(svcb: Svcb, key: number, addresses: Uint8Array[]): boolean {
-  const current = svcb.params.get(key);
-  if (addresses.length === 0) return svcb.params.delete(key);
-  const next = concat(addresses);
-  if (current && current.length === next.length && current.every((b, i) => b === next[i])) return false;
-  svcb.params.set(key, next);
-  return true;
 }
 
 async function lookupA(name: string, upstream: UpstreamConfig, ctx: Pick<ExecutionContext, "waitUntil">) {

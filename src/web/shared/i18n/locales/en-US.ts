@@ -317,11 +317,8 @@ export const enUS: Messages = {
   "settings.deviceClientWindowHint": "Networks inactive past this window expire; consider raising if devices roam between cellular and Wi-Fi",
   "settings.ech": "ECH Anti-Censorship",
   "settings.echDescription": "Applies to profiles with ECH injection on",
-  "settings.echPreferredIps": "Preferred IPs",
-  "settings.echPreferredIpsHint": "One per line, up to {max}. Replace A/AAAA answers and HTTPS address hints of Cloudflare-proxied sites; a family with none listed gets an empty answer",
   "settings.echForcedDomains": "Forced Domains",
   "settings.echForcedDomainsHint": "One per line, subdomains included, up to {max}. Handled as Cloudflare-proxied whatever the upstream answers",
-  "settings.echInvalidIp": "Invalid IP address: {value}",
   "settings.echInvalidDomain": "Invalid domain: {value}",
   "settings.echTooMany": "At most {max} entries",
 

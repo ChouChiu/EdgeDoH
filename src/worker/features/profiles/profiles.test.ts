@@ -45,7 +45,7 @@ async function publishAll() {
 afterEach(async () => {
   vi.useRealTimers();
   await env.DB.exec("DELETE FROM filter_lists; UPDATE profiles SET config = '{}' WHERE id = 'default'");
-  await api("/settings", json({ filteringEnabled: true, echPreferredIps: [], echForcedDomains: [] }, "PATCH"));
+  await api("/settings", json({ filteringEnabled: true, echForcedDomains: [] }, "PATCH"));
 });
 
 describe("profiles API", () => {
@@ -206,31 +206,17 @@ describe("ECS and HTTPS injection", () => {
     expect([...parseSvcb(https!.data).params.get(SvcParam.ECH)!]).toEqual([0xec, 0x40]);
   });
 
-  it("swaps in preferred addresses and handles forced names as proxied", async () => {
+  it("handles forced names as Cloudflare-proxied", async () => {
     const device = await deviceWith(null);
-    expect((await api("/settings", json({ echPreferredIps: ["104.17.0.1"], echForcedDomains: ["plain.test"] }, "PATCH"))).status).toBe(200);
-    // Only profiles with ECH on use them
-    expect(await firstAddress(device, "proxied.test")).toBe("104.16.1.2");
-
     await api("/profiles/default", json({ ech: true }, "PATCH"));
-    expect(await firstAddress(device, "proxied.test")).toBe("104.17.0.1");
-    // No preferred IPv6: AAAA comes back empty, so clients use the preferred IPv4
-    expect((await query(device, "proxied.test", RRType.AAAA)).msg.answers).toHaveLength(0);
-    const viaCname = (await query(device, "cname-proxied.test")).msg.answers;
-    expect(viaCname.map((rr) => rr.type)).toEqual([RRType.CNAME, RRType.A]);
-    expect([...viaCname[1]!.data].join(".")).toBe("104.17.0.1");
+    expect((await query(device, "www.plain.test", RRType.HTTPS)).msg.answers).toHaveLength(0);
 
-    const augmented = parseSvcb((await query(device, "proxied-https.test", RRType.HTTPS)).msg.answers[0]!.data);
-    expect(splitHints(augmented.params.get(SvcParam.IPV4HINT)!, 4).map((a) => a.join("."))).toEqual(["104.17.0.1"]);
-    expect(augmented.params.has(SvcParam.ECH)).toBe(true);
-
-    // Forced: not on Cloudflare according to the upstream, handled as if it were, subdomains included
-    expect(await firstAddress(device, "plain.test")).toBe("104.17.0.1");
+    expect((await api("/settings", json({ echForcedDomains: ["plain.test"] }, "PATCH"))).status).toBe(200);
+    // Not on Cloudflare according to the upstream, handled as if it were, subdomains included
     const forced = parseSvcb((await query(device, "www.plain.test", RRType.HTTPS)).msg.answers[0]!.data);
     expect([...forced.params.get(SvcParam.ECH)!]).toEqual([0xec, 0x40]);
-    expect(splitHints(forced.params.get(SvcParam.IPV4HINT)!, 4).map((a) => a.join("."))).toEqual(["104.17.0.1"]);
-    // Everything else is left alone
-    expect(await firstAddress(device, "other.test")).toMatch(/^192\.0\.2\./);
+    // Address answers are never touched
+    expect(await firstAddress(device, "plain.test")).toMatch(/^192\.0\.2\./);
   });
 
   it("falls back to the stored ECH config when the source cannot be resolved", async () => {
