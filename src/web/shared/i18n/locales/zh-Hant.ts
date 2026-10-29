@@ -351,7 +351,7 @@ export const zhHant: Messages = {
   "profiles.splitDns": "分流解析",
   "profiles.splitDnsHint": "分流清單中的網域交由對應上游解析",
   "profiles.ecs": "ECS 用戶端子網",
-  "profiles.ecsHint": "向上游傳送用戶端 /24（IPv6 /56）以取得就近 CDN 節點；需上游支援，如 Google、AliDNS、DNSPod",
+  "profiles.ecsHint": "向上游傳送用戶端 /24（IPv6 /56）以取得就近 CDN 節點；需上游支援，如 AliDNS、DNSPod",
   "profiles.ech": "ECH 注入",
   "profiles.echHint": "為 Cloudflare 代理的網站補上 Cloudflare 公用 ECH 設定，加密 TLS 交握中的網域",
   "profiles.h3": "HTTP/3 注入",

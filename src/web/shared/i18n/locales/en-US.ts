@@ -355,7 +355,7 @@ export const enUS: Messages = {
   "profiles.splitDns": "Split DNS",
   "profiles.splitDnsHint": "Names on route lists go to that list's upstreams",
   "profiles.ecs": "EDNS Client Subnet",
-  "profiles.ecsHint": "Sends the client's /24 (IPv6 /56) upstream for nearby CDN nodes; needs an upstream that honours it, such as Google, AliDNS or DNSPod",
+  "profiles.ecsHint": "Sends the client's /24 (IPv6 /56) upstream for nearby CDN nodes; needs an upstream that honours it, such as AliDNS or DNSPod",
   "profiles.ech": "ECH Injection",
   "profiles.echHint": "Adds Cloudflare's shared ECH config to Cloudflare-proxied sites, encrypting the name in the TLS handshake",
   "profiles.h3": "HTTP/3 Injection",

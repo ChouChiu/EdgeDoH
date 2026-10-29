@@ -350,7 +350,7 @@ export const zhHans = {
   "profiles.splitDns": "分流解析",
   "profiles.splitDnsHint": "分流列表中的域名交给对应上游解析",
   "profiles.ecs": "ECS 客户端子网",
-  "profiles.ecsHint": "向上游发送客户端 /24（IPv6 /56）以获得就近 CDN 节点；需上游支持，如 Google、AliDNS、DNSPod",
+  "profiles.ecsHint": "向上游发送客户端 /24（IPv6 /56）以获得就近 CDN 节点；需上游支持，如 AliDNS、DNSPod",
   "profiles.ech": "ECH 注入",
   "profiles.echHint": "为 Cloudflare 代理的站点补充 Cloudflare 公共 ECH 配置，加密 TLS 握手中的域名",
   "profiles.h3": "HTTP/3 注入",
