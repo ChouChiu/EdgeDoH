@@ -1,7 +1,8 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
-import { Tabs as TabsPrimitive } from "radix-ui"
+// animate-ui's Radix Tabs: the active tab's surface slides between triggers and panels fade between values
+import * as TabsPrimitive from "@animate-ui/react/primitives/radix-ui/tabs"
 
 function Tabs({
   className,

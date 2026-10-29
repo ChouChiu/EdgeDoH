@@ -436,6 +436,9 @@ function PageTransition({
       key={key}
       enter={(types) => animation(types).enter}
       exit={(types) => animation(types).exit}
+      // Same-path navigations (a query-string change such as ?range=) are updates: swap instantly instead of the
+      // browser cross-fade, whose hidden old snapshot (index.css) would make the page blink
+      update={{ opacity: 1, transition: { duration: 0 } }}
     >
       <div
         ref={localRef}
