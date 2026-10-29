@@ -1,11 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { jsonBody, request } from "@/shared/lib/http";
 
-export const BLOCKING_MODES = ["null_ip", "custom_ip", "nxdomain", "refused", "nodata"] as const;
-export type BlockingMode = (typeof BLOCKING_MODES)[number];
+import type { BlockingMode, UpstreamMode } from "#contract";
 
-export const UPSTREAM_MODES = ["fallback", "parallel"] as const;
-export type UpstreamMode = (typeof UPSTREAM_MODES)[number];
+export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 
 export interface Settings {
   filteringEnabled: boolean;

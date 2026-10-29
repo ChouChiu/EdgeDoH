@@ -1,6 +1,6 @@
 import { HttpError, isHttpUrl, readBody, readJson, readJsonObject, router } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
-import { isUpstreamList, UPSTREAMS_ERROR } from "../settings/store.ts";
+import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 import {
   addInlineList,
   addList,
@@ -153,8 +153,8 @@ function fetchCatalog(): Promise<Response> {
 
 function readKind(value: unknown): ListKind {
   if (value === undefined) return "filter";
-  if (!(LIST_KINDS as readonly unknown[]).includes(value)) throw new HttpError(400, `kind must be one of ${LIST_KINDS.join(", ")}`);
-  return value as ListKind;
+  if (!isOneOf(LIST_KINDS, value)) throw new HttpError(400, `kind must be one of ${LIST_KINDS.join(", ")}`);
+  return value;
 }
 
 function readUpstreams(value: unknown): string[] {

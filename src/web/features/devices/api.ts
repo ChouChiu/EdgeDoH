@@ -19,7 +19,7 @@ export interface DeviceClients {
   clients: { client: string; lastSeen: number }[];
 }
 
-export const MAX_DEVICE_NAME = 64;
+export { MAX_DEVICE_NAME } from "#contract";
 
 export const devicesApi = {
   list: () => request<Device[]>("/devices"),

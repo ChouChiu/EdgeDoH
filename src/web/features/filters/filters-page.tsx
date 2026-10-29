@@ -2,10 +2,9 @@ import { useSearchParams } from "react-router";
 import { PageHeader } from "@/shared/components/page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n";
-import { useLists } from "./api";
+import { useListAction, useLists } from "./api";
 import { CatalogBrowser } from "./catalog-browser";
 import { InstalledLists } from "./installed-lists";
-import { useListAction } from "./use-list-action";
 
 export function FiltersPage() {
   const { t } = useI18n();

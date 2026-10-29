@@ -36,7 +36,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 ## 3. Architecture & Feature-Driven Modularity
 
 ### Directory Structure & Responsibilities
-- src/lib: Platform-agnostic algorithms and codecs. Subpath aliases #dns (DNS wireformat codec) and #filter (rule compilation & matching engine). No dependency on Cloudflare or browser APIs.
+- src/lib: Platform-agnostic algorithms and codecs. Subpath aliases #dns (DNS wireformat codec), #filter (rule compilation & matching engine) and #contract (limits and enums shared by the Worker API and the dashboard). No dependency on Cloudflare or browser APIs.
 - src/worker: Cloudflare Worker backend. Main entry at src/worker/index.ts. Hono router handles /api/*; DoH endpoint (/dns-query/:id) bypasses Hono routing to maximize raw throughput and conserve CPU time.
 - src/web: React 19 SPA dashboard using Vite, Tailwind CSS v4, Radix UI primitives, and TanStack Query.
 - src/cli: Bun scripts for local setup, seeding, and management tasks.

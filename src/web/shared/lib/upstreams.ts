@@ -1,8 +1,5 @@
 import type { Translate } from "@/shared/i18n/messages";
-import { isHttpUrl } from "./http";
-
-/** Same limit the Worker enforces for global, profile and route-list upstreams */
-export const MAX_UPSTREAMS = 5;
+import { isHttpUrl, MAX_UPSTREAMS } from "#contract";
 
 /** Upstreams are edited one per line (any whitespace separates them) */
 export function splitUpstreams(text: string): string[] {

@@ -1,3 +1,4 @@
+import { MAX_DEVICE_NAME } from "#contract";
 import type { Context } from "hono";
 import { type AppEnv, HttpError, readJsonObject, router } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
@@ -7,7 +8,6 @@ import { mobileconfig } from "./mobileconfig.ts";
 import { findProfile } from "../profiles/store.ts";
 import { createDevice, deleteDevice, type Device, type DevicePatch, findDevice, isDeviceId, listDevices, updateDevice } from "./store.ts";
 
-const MAX_NAME_LENGTH = 64;
 /** A day; longer breaks are better expressed by switching the device's profile */
 const MAX_PAUSE_MINUTES = 24 * 60;
 const NOT_FOUND = "device not found";
@@ -92,7 +92,7 @@ devicesApi.get("/:id/mobileconfig", async (c) => {
 
 function readName(name: unknown): string {
   const trimmed = typeof name === "string" ? name.trim() : "";
-  if (trimmed.length === 0 || trimmed.length > MAX_NAME_LENGTH) throw new HttpError(400, `name must be 1-${MAX_NAME_LENGTH} characters`);
+  if (trimmed.length === 0 || trimmed.length > MAX_DEVICE_NAME) throw new HttpError(400, `name must be 1-${MAX_DEVICE_NAME} characters`);
   return trimmed;
 }
 

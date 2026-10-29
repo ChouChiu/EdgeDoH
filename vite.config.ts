@@ -42,6 +42,7 @@ export default defineConfig({
               groups: [
                 { name: "react", test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
                 { name: "radix", test: /node_modules[\\/](radix-ui|@radix-ui|@floating-ui)[\\/]/ },
+                { name: "motion", test: /node_modules[\\/](motion|motion-dom|motion-utils|framer-motion|@animate-ui)[\\/]/ },
                 {
                   name: "charts",
                   test: /node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|internmap|@reduxjs|redux|react-redux|reselect|immer|es-toolkit|decimal\.js-light|eventemitter3)[\\/]/,

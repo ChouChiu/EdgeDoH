@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { api, json } from "../../test/helpers.ts";
 
@@ -84,5 +85,17 @@ describe("custom rules", () => {
     expect(await (await api("/custom-rules")).text()).toBe("||mine.test^\n");
     expect(await (await api("/lists/custom/text")).text()).toBe("||mine.test^\n");
     expect((await api("/custom-rules", { method: "PUT", body: "x".repeat(1024 * 1024 + 1) })).status).toBe(413);
+  });
+});
+
+describe("route list API", () => {
+  it("only accepts upstreams on route lists", async () => {
+    const route = await api("/lists", json({ kind: "route", name: "Corp", text: "corp.test", upstreams: ["https://route.test/dns-query"] }));
+    expect(route.status).toBe(201);
+    const { id } = await route.json<{ id: string }>();
+    expect((await api(`/lists/${id}`, json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(200);
+    await env.DB.prepare("INSERT INTO filter_lists (id, name, url, source, enabled, created_at) VALUES ('plain', 'Plain', '', 'url', 1, 0)").run();
+    expect((await api("/lists/plain", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(400);
+    expect((await api("/lists/missing", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(404);
   });
 });

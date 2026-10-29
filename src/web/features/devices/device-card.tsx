@@ -1,17 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/shared/ui/alert-dialog";
+import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { Copy } from "@/shared/components/animate-ui/icons/copy";
 import { Download } from "@/shared/components/animate-ui/icons/download";
 import { Network } from "@/shared/components/animate-ui/icons/network";
@@ -58,25 +48,16 @@ export function DeviceCard({ device }: { device: Device }) {
         </CardDescription>
         <CardAction className="flex gap-1">
           <DeviceNameDialog device={device} />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={t("common.delete")} title={t("common.delete")} disabled={remove.isPending}>
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("devices.deleteTitle", { name: device.name })}</AlertDialogTitle>
-                <AlertDialogDescription>{t("devices.deleteBody")}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={() => remove.mutate()}>
-                  {t("common.delete")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDialog
+            title={t("devices.deleteTitle", { name: device.name })}
+            description={t("devices.deleteBody")}
+            confirmLabel={t("common.delete")}
+            onConfirm={() => remove.mutate()}
+          >
+            <Button variant="ghost" size="icon-sm" aria-label={t("common.delete")} title={t("common.delete")} disabled={remove.isPending}>
+              <Trash2 />
+            </Button>
+          </ConfirmDialog>
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-2">

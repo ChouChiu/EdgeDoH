@@ -1,12 +1,10 @@
 import { isIPv4, isIPv6 } from "#dns";
-import { isHttpUrl } from "../../shared/http.ts";
 import { getRuntimeConfig, publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
+import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 
-export const BLOCKING_MODES = ["null_ip", "custom_ip", "nxdomain", "refused", "nodata"] as const;
-export type BlockingMode = (typeof BLOCKING_MODES)[number];
+import { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 
-export const UPSTREAM_MODES = ["fallback", "parallel"] as const;
-export type UpstreamMode = (typeof UPSTREAM_MODES)[number];
+export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode };
 
 export interface Settings {
   /** Off: every query is forwarded, rules are not even loaded */
@@ -33,7 +31,6 @@ export interface Settings {
 }
 
 const MAX_TTL = 86400;
-export const MAX_UPSTREAMS = 5;
 const MIN_TIMEOUT_MS = 500;
 const MAX_TIMEOUT_MS = 10_000;
 const MAX_MIN_TTL = 3600;
@@ -164,20 +161,4 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
     }
   }
   return { valid: valid as Partial<Settings>, errors };
-}
-
-export const UPSTREAMS_ERROR = `upstreams must be 1-${MAX_UPSTREAMS} https:// DoH URLs`;
-
-/** 1 to MAX_UPSTREAMS https:// URLs; shared by settings, profiles and route lists */
-export function isUpstreamList(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) &&
-    value.length >= 1 &&
-    value.length <= MAX_UPSTREAMS &&
-    value.every((u) => typeof u === "string" && isHttpUrl(u, ["https:"]))
-  );
-}
-
-export function isOneOf<T extends string>(options: readonly T[], value: unknown): value is T {
-  return options.includes(value as T);
 }

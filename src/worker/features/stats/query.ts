@@ -1,3 +1,4 @@
+import type { StatsRange } from "#contract";
 import { sha256Hex } from "../../shared/crypto.ts";
 import { HttpError } from "../../shared/http.ts";
 import { isDeviceId } from "../devices/store.ts";
@@ -48,8 +49,8 @@ export const RANGES = {
   "24h": { span: "'24' HOUR", bucket: "'1' HOUR", bucketMs: 3_600_000, spanMs: 86_400_000 },
   "7d": { span: "'7' DAY", bucket: "'6' HOUR", bucketMs: 6 * 3_600_000, spanMs: 7 * 86_400_000 },
   "30d": { span: "'30' DAY", bucket: "'1' DAY", bucketMs: 86_400_000, spanMs: 30 * 86_400_000 },
-} as const;
-export type Range = keyof typeof RANGES;
+} as const satisfies Record<StatsRange, unknown>;
+export type Range = StatsRange;
 
 export interface StatsFilter {
   range: Range;

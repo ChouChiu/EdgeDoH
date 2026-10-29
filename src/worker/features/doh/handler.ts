@@ -15,9 +15,9 @@ import {
 } from "#dns";
 import type { Inspection, Verdict } from "#filter";
 import { HttpError, readBody } from "../../shared/http.ts";
-import { getRuntimeConfig } from "../../shared/runtime-config.ts";
+import { getRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { admitClient } from "../devices/client-guard.ts";
-import { findDevice } from "../devices/store.ts";
+import { type Device, findDevice } from "../devices/store.ts";
 import { getProfile, type Profile, SERVICE_LIST_PREFIX } from "../profiles/store.ts";
 import { getSettings, type Settings } from "../settings/store.ts";
 import { clientLabel } from "../stats/client.ts";
@@ -58,54 +58,10 @@ export async function handleDoh(request: Request, env: Env, ctx: WaitUntil, devi
   const question = query.questions[0]!;
   const name = question.name.toLowerCase();
   const ip = request.headers.get("cf-connecting-ip");
-  let verdict: Verdict = { action: "pass" };
-  let answer: Answer;
-  let inspection: Inspection | undefined;
-  const limit = { maxClients: settings.maxDeviceClients, windowMs: settings.deviceClientWindowMinutes * 60_000 };
-  if (!(await admitClient(env, device.id, ip, limit))) {
-    answer = { response: buildResponse(query, raw, { rcode: Rcode.REFUSED }), source: "limited" };
-  } else {
-    const decision = await decide(env, { device, profile, settings, records: runtime.records, name, type: question.type, ip, now: started });
-    ({ verdict, inspection } = decision);
-    if (decision.ipv6Off) {
-      // Clients fall back to IPv4 on an empty answer, without the delay an error would cause
-      answer = { response: buildResponse(query, raw, { rcode: Rcode.NOERROR }), source: "local", ttl: settings.blockedTtl };
-    } else {
-      const routed = profile.splitDns && inspection?.route ? runtime.routes[inspection.route] : undefined;
-      const config = answerConfig(settings, profile, routed, ip);
-      answer = await answerQuery(query, raw, verdict, config, ctx);
-      if (question.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && answer.source !== "error") {
-        const injected = await injectHttps(query, raw, answer.response, profile, config.upstream, ctx).catch((err: unknown) => {
-          console.warn("HTTPS record injection failed", String(err));
-          return undefined;
-        });
-        // The edited records may live shorter than the upstream answer, e.g. a long negative TTL
-        if (injected) answer = { ...answer, response: injected.response, ttl: Math.min(answer.ttl ?? injected.ttl, injected.ttl) };
-      }
-    }
-  }
+  const result = await answer({ env, ctx, query, raw, device, settings, profile, runtime, name, type: question.type, ip, now: started });
 
-  if (!settings.queryLogEnabled) return dnsResponse(answer.response, answer.ttl);
-  const cf = request.cf as { colo?: string; asn?: number; asOrganization?: string } | undefined;
-  const service = inspection?.service?.slice(SERVICE_LIST_PREFIX.length);
-  recordQuery(env.QUERY_LOG, {
-    deviceId: device.id,
-    deviceName: device.name,
-    name,
-    type: question.type,
-    action: verdict.action,
-    source: answer.source,
-    response: answer.response,
-    ...("rule" in verdict && { rule: verdict.rule }),
-    ...(answer.upstream && { upstream: answer.upstream }),
-    ...(cf?.colo && { colo: cf.colo }),
-    client: clientLabel(request.headers.get("user-agent")),
-    ...(service && { service }),
-    ...(cf?.asOrganization && { network: cf.asOrganization }),
-    ...(cf?.asn && { asn: cf.asn }),
-    latencyMs: Date.now() - started,
-  });
-  return dnsResponse(answer.response, answer.ttl);
+  if (settings.queryLogEnabled) logQuery(env, request, { device, name, type: question.type, started }, result);
+  return dnsResponse(result.response, result.ttl);
 }
 
 interface Answer {
@@ -113,6 +69,77 @@ interface Answer {
   source: AnswerSource;
   ttl?: number | undefined;
   upstream?: string | undefined;
+}
+
+interface Answered extends Answer {
+  verdict: Verdict;
+  inspection?: Inspection | undefined;
+}
+
+interface QueryContext {
+  env: Env;
+  ctx: WaitUntil;
+  query: Message;
+  raw: Uint8Array;
+  device: Device;
+  settings: Settings;
+  profile: Profile;
+  runtime: RuntimeConfig;
+  name: string;
+  type: number;
+  ip: string | null;
+  now: number;
+}
+
+/** Client limit, then the verdict, then the answer it calls for, with HTTPS records edited last */
+async function answer(q: QueryContext): Promise<Answered> {
+  const { env, ctx, query, raw, device, settings, profile, runtime, ip } = q;
+  const limit = { maxClients: settings.maxDeviceClients, windowMs: settings.deviceClientWindowMinutes * 60_000 };
+  if (!(await admitClient(env, device.id, ip, limit))) {
+    return { response: buildResponse(query, raw, { rcode: Rcode.REFUSED }), source: "limited", verdict: { action: "pass" } };
+  }
+
+  const { verdict, inspection, ipv6Off } = await decide(env, { device, profile, settings, records: runtime.records, name: q.name, type: q.type, ip, now: q.now });
+  if (ipv6Off) {
+    // Clients fall back to IPv4 on an empty answer, without the delay an error would cause
+    return { response: buildResponse(query, raw, { rcode: Rcode.NOERROR }), source: "local", ttl: settings.blockedTtl, verdict, inspection };
+  }
+
+  const routed = profile.splitDns && inspection?.route ? runtime.routes[inspection.route] : undefined;
+  const config = answerConfig(settings, profile, routed, ip);
+  let result = await answerQuery(query, raw, verdict, config, ctx);
+  if (q.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && result.source !== "error") {
+    const injected = await injectHttps(query, raw, result.response, profile, config.upstream, ctx).catch((err: unknown) => {
+      console.warn("HTTPS record injection failed", String(err));
+      return undefined;
+    });
+    // The edited records may live shorter than the upstream answer, e.g. a long negative TTL
+    if (injected) result = { ...result, response: injected.response, ttl: Math.min(result.ttl ?? injected.ttl, injected.ttl) };
+  }
+  return { ...result, verdict, inspection };
+}
+
+function logQuery(env: Env, request: Request, q: { device: Device; name: string; type: number; started: number }, result: Answered): void {
+  const { verdict, inspection } = result;
+  const cf = request.cf as { colo?: string; asn?: number; asOrganization?: string } | undefined;
+  const service = inspection?.service?.slice(SERVICE_LIST_PREFIX.length);
+  recordQuery(env.QUERY_LOG, {
+    deviceId: q.device.id,
+    deviceName: q.device.name,
+    name: q.name,
+    type: q.type,
+    action: verdict.action,
+    source: result.source,
+    response: result.response,
+    ...("rule" in verdict && { rule: verdict.rule }),
+    ...(result.upstream && { upstream: result.upstream }),
+    ...(cf?.colo && { colo: cf.colo }),
+    client: clientLabel(request.headers.get("user-agent")),
+    ...(service && { service }),
+    ...(cf?.asOrganization && { network: cf.asOrganization }),
+    ...(cf?.asn && { asn: cf.asn }),
+    latencyMs: Date.now() - q.started,
+  });
 }
 
 async function answerQuery(query: Message, raw: Uint8Array, verdict: Verdict, config: AnswerConfig, ctx: WaitUntil): Promise<Answer> {

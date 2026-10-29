@@ -1,3 +1,4 @@
+import { MAX_LIST_NAME } from "#contract";
 import { type FormEvent, useState } from "react";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Plus } from "@/shared/components/animate-ui/icons/plus";
@@ -6,8 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { useI18n } from "@/shared/i18n";
-import { listsApi } from "./api";
-import type { ListActions } from "./use-list-action";
+import { type ListActions, listsApi } from "./api";
 
 const BUSY_KEY = "new-url";
 
@@ -65,7 +65,7 @@ export function AddUrlDialog({ actions }: { actions: ListActions }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="list-name">{t("filters.nameOptional")}</Label>
-            <Input id="list-name" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("filters.namePlaceholder")} enterKeyHint="done" />
+            <Input id="list-name" maxLength={MAX_LIST_NAME} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("filters.namePlaceholder")} enterKeyHint="done" />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={busy !== undefined}>

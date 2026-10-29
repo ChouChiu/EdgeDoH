@@ -1,3 +1,4 @@
+export { isHttpUrl } from "#contract";
 import type { Context } from "hono";
 import { Hono } from "hono/quick";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -52,12 +53,4 @@ export async function readBody(request: Request, max: number): Promise<Uint8Arra
     offset += chunk.byteLength;
   }
   return out;
-}
-
-export function isHttpUrl(value: string, protocols: readonly string[] = ["https:", "http:"]): boolean {
-  try {
-    return protocols.includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
 }

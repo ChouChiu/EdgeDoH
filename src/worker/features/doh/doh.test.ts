@@ -3,7 +3,7 @@ import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test"
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { resolve } from "./upstream.ts";
-import { createDevice, ORIGIN, postQuery } from "../../test/helpers.ts";
+import { api, createDevice, json, ORIGIN, postQuery, publishRules } from "../../test/helpers.ts";
 
 async function answerOf(res: Response) {
   expect(res.status).toBe(200);
@@ -124,5 +124,19 @@ describe("resolve", () => {
     expect(msg.header.id).toBe(6);
     expect(rcodeOf(msg.header)).toBe(Rcode.SERVFAIL);
     await waitOnExecutionContext(ctx);
+  });
+});
+
+describe("rule tester", () => {
+  it("follows the same pipeline as DoH, global switch included", async () => {
+    await publishRules("||ads.example^");
+    const verdict = async () => (await (await api("/rules/test", json({ name: "ads.example" }))).json<{ verdict: { action: string } }>()).verdict.action;
+    expect(await verdict()).toBe("block");
+    await api("/settings", json({ filteringEnabled: false }, "PATCH"));
+    try {
+      expect(await verdict()).toBe("pass");
+    } finally {
+      await api("/settings", json({ filteringEnabled: true }, "PATCH"));
+    }
   });
 });

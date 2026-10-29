@@ -23,8 +23,8 @@
 - **本地记录与请求来源**：面板中直接维护 A / AAAA / CNAME 本地记录（支持 `*.` 通配）；日志按 User-Agent 区分 DoH 客户端（浏览器或系统解析器），按域名归属推断所属服务，并记录来源网络（AS 组织）。DNS 请求本身不携带发起的 App，服务归属为推断结果。
 - **指标与日志**：基于 Cloudflare Analytics Engine 记录查询量、拦截率、平均延迟与上游解析分布；提供实时查询日志与多条件组合筛选，支持直接从日志一键添加放行或拦截规则。
 - **客户端防滥用**：基于 Durable Objects 记录滑动窗口内的活跃网络（IPv4 按单 IP、IPv6 按 /64 网段），超额网络自动响应 REFUSED，防止专属 DoH 地址泄漏后被未授权网络利用。
-- **零信任安全**：管理面板与 `/api/*` 受 Cloudflare Access (Zero Trust) JWT 校验保护（Fail-closed）；DoH 解析流量走独立路径，零鉴权冗余开销。
-- **Web 管理面板**：响应式单页应用（Vite + React + Tailwind + shadcn/ui），深度适配移动端与暗色模式；支持简体中文、繁体中文与英文；基于 View Transitions API 提供平滑页面过渡与主题动效。
+- **零信任安全**：管理面板与 `/api/*` 受 Cloudflare Access (Zero Trust) JWT 校验保护（Fail-closed）；DoH 解析流量走独立路径，不经过鉴权。
+- **Web 管理面板**：响应式单页应用（Vite + React + Tailwind + shadcn/ui），适配移动端与暗色模式；支持简体中文、繁体中文与英文。
 
 ## 快速开始
 
@@ -80,25 +80,25 @@ bun run dev
 
 1. 设备路由与配置加载：从请求路径 `/dns-query/:deviceId` 读取设备标识。优先查询 KV 运行时配置镜像，未命中时回退查询 D1 数据库；设备不存在时直接返回 404。
 2. 来源网络频控 (Client Guard)：若启用网络数限制，提取客户端 IP（`cf-connecting-ip`），由该设备对应的 Durable Object 校验时间窗口内的活跃来源网络（IPv4 单 IP、IPv6 `/64` 网段）。超出上限返回 REFUSED（标记 `source: limited`）。已放行网络在 isolate 内存中缓存 5 分钟以避免频繁唤醒 Durable Object。
-3. IPv6 降级：若开启「禁用 IPv6 解析」，针对 AAAA 查询直接返回 NODATA 空应答（NOERROR 且 Answer 为空），引导客户端立即回退至 IPv4。
-4. 规则引擎匹配：若启用过滤，基于当前版本的规则快照执行域名及修饰符匹配：
+3. 本地记录与 IPv6 降级：先匹配面板中维护的本地记录，命中即本地应答；未命中且开启「禁用 IPv6 解析」时，AAAA 查询直接返回 NODATA（NOERROR 且 Answer 为空），客户端会立即回退到 IPv4。
+4. 规则匹配：设备所属策略组启用过滤且设备未暂停时，用当前规则快照匹配域名（只启用策略组选中的列表与屏蔽服务，定时屏蔽只在时间窗内生效），未命中再检查安全搜索与 YouTube 受限模式：
    - 拦截：根据配置的响应模式（`null_ip` 返回 0.0.0.0/::、`nxdomain`、`refused`、`nodata` 或 `custom_ip`）在本地构建并返回 DNS 报文；
    - 改写：命中 `$dnsrewrite` 或 hosts 条目时本地合成应答（若为 CNAME 则递归向上游解析目标域名并组装应答）；
-   - 放行：命中白名单例外规则或未命中拦截规则，进入上游解析流程。
-5. 边缘缓存匹配：基于 `qclass/qtype/小写域名/DO/CD` 构造缓存键，查询 Cloudflare 边缘 Cache API。命中时递减 TTL，并回写原始客户端 Query ID 与大小写格式后直接返回。
+   - 放行：命中白名单例外或未命中任何规则，进入上游解析；域名属于已启用的分流列表时改用该列表的上游。
+5. 边缘缓存匹配：基于 `qclass/qtype/小写域名/DO/CD` 与上游集合（开启 ECS 时再加客户端子网）构造缓存键，查询 Cloudflare 边缘 Cache API。命中时递减 TTL，并回写原始客户端 Query ID 与大小写格式后直接返回。
 6. 上游 DoH 请求：缓存未命中时向配置的上游 DoH 节点发送 POST 请求（遵循 RFC 8484）：
    - 顺序模式 (Fallback)：按顺序请求，遇到网络错误、超时或 SERVFAIL 时自动尝试下一个节点；
    - 并行竞速 (Parallel)：并发请求所有上游，采纳首个非 SERVFAIL 的有效应答；
    - 全部失败时返回 SERVFAIL。
-7. 缓存回写与 TTL 收紧：对有效响应（NOERROR 与 NXDOMAIN）按 RFC 2308 及设置的 TTL 上下限区间（Min/Max TTL）进行收紧，回写至边缘 Cache API，同时下发给客户端。
-8. 异步指标上报：若启用统计，通过 `ctx.waitUntil` 异步向 Analytics Engine 写入查询指标（不记录具体客户端 IP，仅保留设备 ID、查询域名、记录类型、拦截动作、延迟及上游节点），零阻塞下发响应。
+7. 缓存回写与 TTL 收紧：对有效响应（NOERROR 与 NXDOMAIN）按 RFC 2308 及设置的 TTL 上下限区间（Min/Max TTL）进行收紧，回写至边缘 Cache API，同时下发给客户端。策略组开启 ECH / HTTP/3 注入时，再改写 Cloudflare 站点的 HTTPS 记录。
+8. 异步指标上报：若启用统计，通过 `ctx.waitUntil` 向 Analytics Engine 写入一条记录（设备、域名、类型、动作、延迟、上游、机房、DoH 客户端类型与来源网络），不记录客户端 IP，也不阻塞响应。
 
 ## 来源网络上限
 
 - 每台设备绑定一个独立的 SQLite 版 Durable Object（`DeviceClients`），记录滑动窗口内活跃的来源网络。IPv4 按独立 IP 统计，IPv6 针对隐私扩展地址特性按 `/64` 子网聚类统计。
 - 已放行的来源网络在当前 Worker isolate 内存中缓存 5 分钟，常规查询无额外开销；若 Durable Object 发生异常默认放行，确保解析高可用。
 - 限制阈值与时间窗口在面板设置页「防滥用」中调整，设为 0 表示不限制；设备卡片可实时查看当前活跃网络数并支持手动重置。
-- HTTPS 记录（Type 65）及其中的 ECH (Encrypted Client Hello) 配置均原样透明转发，支持 ECH 的客户端在安全 DNS 下可自动建立加密握手。
+- 未开启 ECH / HTTP/3 注入时，HTTPS 记录（Type 65）及其中的 ECH 配置原样转发。
 
 ## 规则引擎架构
 
@@ -127,7 +127,7 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms，因此 Worker �
 - 统计接口通过 SQL API 查询汇总，计数值按 `_sample_interval` 加权计算，查询结果在当前机房边缘缓存 60 秒。
 - 通用查询参数支持 `range=1h|24h|7d|30d`（默认 24h）、`device`、`action=pass|allow|block|rewrite`、`source=upstream|cache|local|error|limited`、`search`（域名模糊搜索，支持 `*` 通配符）。
 - 前四个参数采用严格枚举白名单校验，`search` 仅允许包含字母、数字与 `.-_*`。
-- 每天支持写入 10 万个数据点（与每天 10 万次 Worker 免费请求完全对齐），每月支持充分的 SQL 读取额度。
+- 免费层每天可写入 10 万个数据点，与 Workers 免费层每天 10 万次请求相当。
 
 ## API 接口
 
@@ -140,6 +140,7 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms，因此 Worker �
 | `/api/devices/<ID>` | `PATCH`, `DELETE` | 修改设备名称或策略组、删除设备 |
 | `/api/devices/<ID>/mobileconfig` | `GET` | 下载 Apple 设备描述文件 |
 | `/api/devices/<ID>/clients` | `GET`, `DELETE` | 查询当前来源网络记录、清空记录 |
+| `/api/devices/<ID>/pause` | `POST` | 暂停设备过滤 `{ minutes }`，0 表示恢复 |
 | `/api/rules` | `GET` | 获取当前规则快照元数据概况 |
 | `/api/rules/manifest` | `GET` | 查询已存在的分片列表 |
 | `/api/rules/blobs/<hash>` | `PUT` | 上传单个增量快照分片 |
@@ -150,19 +151,17 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms，因此 Worker �
 | `/api/lists` | `GET`, `POST` | 获取已安装列表、添加新列表 |
 | `/api/lists/<ID>` | `PATCH`, `DELETE` | 修改列表状态或名称、卸载列表 |
 | `/api/lists/<ID>/refresh` | `POST` | 手动拉取并更新指定列表原文 |
-| `/api/lists/<ID>/text` | `GET` | 读取指定列表在 KV 中的原始文本 |
+| `/api/lists/<ID>/text` | `GET`, `PUT` | 读取列表在 KV 中的原文；替换手动输入列表（如分流列表）的文本 |
 | `/api/lists/reports` | `POST` | 客户端上报编译统计与语法诊断结果 |
 | `/api/custom-rules` | `GET`, `PUT` | 读取与保存自定义规则文本 |
 | `/api/settings` | `GET`, `PATCH` | 读取与更新全局解析设置 |
 | `/api/profiles` | `GET`, `POST` | 获取策略组列表、新建策略组 |
 | `/api/profiles/<ID>` | `PATCH`, `DELETE` | 修改策略组、删除策略组（默认策略组不可删除） |
-| `/api/devices/<ID>/pause` | `POST` | 暂停设备过滤 `{ minutes }`，0 表示恢复 |
 | `/api/services` | `GET` | 获取 AdGuard 屏蔽服务目录（含规则与图标） |
 | `/api/local-records` | `GET`, `PUT` | 读取与整体替换本地 DNS 记录 |
-| `/api/lists/<ID>/text` | `PUT` | 替换手动输入列表（如分流列表）的文本 |
 | `/api/stats/summary` | `GET` | 查询概览统计指标（总量、拦截率、平均耗时等） |
 | `/api/stats/timeseries` | `GET` | 获取查询量与拦截量时序趋势数据 |
-| `/api/stats/top/<kind>` | `GET` | 排行榜统计（支持 `domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`） |
+| `/api/stats/top/<kind>` | `GET` | 排行榜统计（支持 `domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`, `services`, `clients`, `networks`） |
 | `/api/stats/logs` | `GET` | 分页查询 DNS 请求日志（支持 `limit` 与 `offset`） |
 
 ## CLI 命令行工具
@@ -191,16 +190,18 @@ bunx wrangler d1 execute DB --remote --command "INSERT INTO devices (id, name, c
 src/
 ├── lib/
 │   ├── dns/       # 标准 DNS 报文编解码，零运行时依赖（别名 #dns）
-│   └── filter/    # 规则语法解析、编译器、快照分片与匹配引擎，跨环境共用（别名 #filter）
+│   ├── filter/    # 规则语法解析、编译器、快照分片与匹配引擎，跨环境共用（别名 #filter）
+│   └── contract/  # Worker API 与面板共用的上限与枚举（别名 #contract）
 ├── worker/        # Cloudflare Worker 后端源码
-│   ├── features/  # 业务模块（devices, doh, lists, rules, settings, stats），含 store、api 与单元测试
+│   ├── features/  # 业务模块（devices, doh, lists, profiles, records, rules, services, settings, stats），含 store、api 与单元测试
 │   │   └── devices/client-guard.ts  # 来源网络频控 Durable Object (DeviceClients)
-│   ├── shared/    # Access JWT 鉴权、KV 运行时配置同步、HttpError 封装与 SHA-256
+│   ├── shared/    # Access JWT 鉴权、KV 运行时配置同步、HttpError、通用校验与 SHA-256
 │   └── test/      # 模拟上游、Analytics Engine SQL API 与测试辅助工具
 ├── web/           # 管理面板前端（Vite + React + Tailwind + shadcn/ui，别名 @/）
 │   ├── app/       # 应用路由、导航与全局布局
-│   ├── features/  # 页面与业务组件（stats, filters, rules, snapshot, devices, settings）
-│   └── shared/    # shadcn UI 组件、通用 hooks、工具函数与 i18n 语言包
+│   ├── features/  # 页面与业务组件（devices, dns, filters, profiles, rules, settings, snapshot, stats）
+│   ├── shared/    # shadcn UI 组件、通用 hooks、工具函数与 i18n 语言包
+│   └── test/      # 组件测试初始化
 ├── cli/           # 命令行工具（main.ts）与一键部署交互脚本（setup.ts）
 docs/              # 详细部署与配置指南（含多语言 README）
 migrations/        # D1 数据库版本迁移脚本
@@ -212,14 +213,15 @@ tsconfig/          # TypeScript 分层编译配置（lib, worker, web, cli, node
 运行代码检查与完整测试套件：
 
 ```bash
-bun run test
 bun run typecheck
+bun run test
+bun run build
 ```
 
-- Worker 测试基于 `@cloudflare/vitest-plugin` 运行在真实 workerd 环境中；`src/lib` 与前端测试则运行在 Node 环境下；外部依赖通过 `src/worker/test/fake-upstream.ts` 完整模拟。
+- Worker 测试基于 `@cloudflare/vitest-plugin` 运行在真实 workerd 环境中；`src/lib` 与前端测试则运行在 Node 环境下（组件测试使用 happy-dom）；外部依赖通过 `src/worker/test/fake-upstream.ts` 完整模拟。
 - API 路由内部一律抛出 `HttpError`，由顶层统一转换为标准 JSON 错误格式。
-- 语言包位于 `src/web/shared/i18n/locales`，以 `zh-Hans.ts` 为基准键目录，`zh-Hant.ts` 与 `en-US.ts` 通过 TypeScript 类型及 `locales.test.ts` 保持键名与参数占位符的 100% 严格一致。
-- 切页与主题切换均深度集成 View Transitions API；页面路由切换时自动重置滚动位置；桌面端导航仅淡入更新正文内容，侧边栏保持平稳无闪烁。
+- 语言包位于 `src/web/shared/i18n/locales`，以 `zh-Hans.ts` 为基准键目录，`zh-Hant.ts` 与 `en-US.ts` 通过 TypeScript 类型及 `locales.test.ts` 保持键名与参数占位符一致。
+- 页面切换使用 React `<ViewTransition>`（基于 View Transitions API），切换路由时重置滚动位置。
 - 所有数据表结构变更统一递增存放在 `migrations` 目录下，`bun run deploy` 部署时自动执行未应用的远程迁移。
 
 ## 许可证

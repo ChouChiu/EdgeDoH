@@ -1,6 +1,6 @@
+import { MAX_LIST_NAME } from "#contract";
 import { type FormEvent, useState } from "react";
-import { type FilterList, listsApi, useRouteLists } from "@/features/filters/api";
-import { type ListActions, useListAction } from "@/features/filters/use-list-action";
+import { type FilterList, type ListActions, listsApi, useListAction, useRouteLists } from "@/features/filters/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Network } from "@/shared/components/animate-ui/icons/network";
 import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
@@ -8,16 +8,7 @@ import { Plus } from "@/shared/components/animate-ui/icons/plus";
 import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { EmptyState, QueryError } from "@/shared/components/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/shared/ui/alert-dialog";
+import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -103,27 +94,15 @@ function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }
               {t("filters.update")}
             </Button>
           )}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon-sm" disabled={busy !== undefined} aria-label={t("common.delete")} title={t("common.delete")}>
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("filters.uninstallTitle", { name: list.name })}</AlertDialogTitle>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  onClick={() => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove"))}
-                >
-                  {t("common.delete")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDialog
+            title={t("filters.uninstallTitle", { name: list.name })}
+            confirmLabel={t("common.delete")}
+            onConfirm={() => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove"))}
+          >
+            <Button variant="ghost" size="icon-sm" disabled={busy !== undefined} aria-label={t("common.delete")} title={t("common.delete")}>
+              <Trash2 />
+            </Button>
+          </ConfirmDialog>
         </div>
       </CardFooter>
     </Card>
@@ -206,7 +185,7 @@ function RouteDialog({ list, actions }: { list?: FilterList; actions: ListAction
           )}
           <div className="space-y-2">
             <Label htmlFor="route-name">{mode === "inline" && !list ? t("common.name") : t("filters.nameOptional")}</Label>
-            <Input id="route-name" maxLength={100} required={mode === "inline" && !list} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="route-name" maxLength={MAX_LIST_NAME} required={mode === "inline" && !list} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           {!list && mode === "url" && (
             <div className="space-y-2">

@@ -4,11 +4,10 @@ import { sha256, toHex } from "../../shared/crypto.ts";
 import { HttpError } from "../../shared/http.ts";
 
 export const CATALOG_URL = "https://adguardteam.github.io/HostlistsRegistry/assets/filters.json";
-export const CUSTOM_LIST_ID = "custom";
+export { CUSTOM_LIST_ID, MAX_LIST_NAME } from "#contract";
 /** Leaves headroom under the 25 MiB KV value limit */
 export const MAX_LIST_BYTES = 20 * 1024 * 1024;
 export const MAX_CUSTOM_RULES_BYTES = 1024 * 1024;
-export const MAX_LIST_NAME = 100;
 
 export const LIST_KINDS = ["filter", "route"] as const;
 export type ListKind = (typeof LIST_KINDS)[number];

@@ -3,8 +3,9 @@ import { isDomain, type Verdict } from "#filter";
 import { HttpError } from "../../shared/http.ts";
 import { publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 
-export const RECORD_TYPES = ["A", "AAAA", "CNAME"] as const;
-export type RecordType = (typeof RECORD_TYPES)[number];
+import { RECORD_TYPES, type RecordType } from "#contract";
+
+export { RECORD_TYPES, type RecordType } from "#contract";
 /** Kept small: every record travels in the runtime config each isolate loads */
 export const MAX_RECORDS = 1000;
 /** Shown as the matched list in logs and the rule tester */

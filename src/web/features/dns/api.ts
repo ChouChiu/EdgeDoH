@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { jsonBody, request } from "@/shared/lib/http";
 
-export const RECORD_TYPES = ["A", "AAAA", "CNAME"] as const;
-export type RecordType = (typeof RECORD_TYPES)[number];
+import type { RecordType } from "#contract";
+
+export { RECORD_TYPES, type RecordType } from "#contract";
 
 export interface LocalRecord {
   name: string;

@@ -1,4 +1,5 @@
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
+import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 import { fakeUpstream } from "./src/worker/test/fake-upstream.ts";
 
@@ -7,8 +8,11 @@ export default defineConfig(async () => {
   return {
     test: {
       projects: [
-        // Shared libraries and dashboard code run in plain Node
-        { test: { name: "node", include: ["src/lib/**/*.test.ts", "src/web/**/*.test.ts"] } },
+        // Shared libraries and dashboard code run in Node; component tests opt into happy-dom per file
+        {
+          resolve: { alias: { "@": resolve(import.meta.dirname, "./src/web") } },
+          test: { name: "node", include: ["src/lib/**/*.test.ts", "src/web/**/*.test.{ts,tsx}"], setupFiles: ["./src/web/test/setup.ts"] },
+        },
         {
           plugins: [
             cloudflareTest({

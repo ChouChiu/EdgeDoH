@@ -22,7 +22,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { useDevices } from "@/features/devices/api";
 import { appendCustomRules } from "@/features/rules/api";
-import { useRebuild } from "@/features/snapshot/rebuild-provider";
+import { useRebuild } from "@/features/snapshot/api";
 import { useSelection } from "@/shared/hooks/use-selection";
 import { type MessageKey, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";

@@ -43,7 +43,7 @@ async function publishAll() {
 
 afterEach(async () => {
   vi.useRealTimers();
-  await env.DB.exec("DELETE FROM filter_lists; DELETE FROM local_records; UPDATE profiles SET config = '{}' WHERE id = 'default'");
+  await env.DB.exec("DELETE FROM filter_lists; UPDATE profiles SET config = '{}' WHERE id = 'default'");
   await api("/settings", json({ filteringEnabled: true }, "PATCH"));
 });
 
@@ -159,45 +159,6 @@ describe("per-profile filtering", () => {
   });
 });
 
-describe("local records", () => {
-  it("validates and answers exact and wildcard names", async () => {
-    expect((await api("/local-records", json([{ name: "bad name", type: "A", value: "1.2.3.4" }], "PUT"))).status).toBe(400);
-    expect(
-      (await api("/local-records", json([{ name: "a.lan", type: "CNAME", value: "b.lan" }, { name: "a.lan", type: "A", value: "1.2.3.4" }], "PUT"))).status,
-    ).toBe(400);
-    const saved = await api(
-      "/local-records",
-      json(
-        [
-          { name: "NAS.lan.", type: "A", value: "192.168.1.20" },
-          { name: "*.home.lan", type: "A", value: "192.168.1.30" },
-        ],
-        "PUT",
-      ),
-    );
-    expect(await saved.json()).toEqual([
-      { name: "*.home.lan", type: "A", value: "192.168.1.30" },
-      { name: "nas.lan", type: "A", value: "192.168.1.20" },
-    ]);
-    const device = await deviceWith(null);
-    expect(await firstAddress(device, "nas.lan")).toBe("192.168.1.20");
-    expect(await firstAddress(device, "tv.home.lan")).toBe("192.168.1.30");
-    expect((await query(device, "nas.lan", RRType.AAAA)).msg.answers).toHaveLength(0);
-  });
-
-  it("answers local AAAA records even with IPv6 resolution disabled", async () => {
-    await api("/local-records", json([{ name: "v6.lan", type: "AAAA", value: "fd00::20" }], "PUT"));
-    await api("/settings", json({ disableIpv6: true }, "PATCH"));
-    try {
-      const device = await deviceWith(null);
-      expect((await query(device, "v6.lan", RRType.AAAA)).msg.answers).toHaveLength(1);
-      expect((await query(device, "other.lan", RRType.AAAA)).msg.answers).toHaveLength(0);
-    } finally {
-      await api("/settings", json({ disableIpv6: false }, "PATCH"));
-    }
-  });
-});
-
 describe("ECS and HTTPS injection", () => {
   it("forwards the client subnet only when the profile asks for it", async () => {
     const device = await deviceWith(null);
@@ -231,39 +192,6 @@ describe("ECS and HTTPS injection", () => {
 
     // Not on Cloudflare: left alone
     expect((await query(device, "plain.test", RRType.HTTPS)).msg.answers).toHaveLength(0);
-  });
-});
-
-describe("route list API", () => {
-  it("only accepts upstreams on route lists", async () => {
-    const route = await api("/lists", json({ kind: "route", name: "Corp", text: "corp.test", upstreams: ["https://route.test/dns-query"] }));
-    expect(route.status).toBe(201);
-    const { id } = await route.json<{ id: string }>();
-    expect((await api(`/lists/${id}`, json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(200);
-    await env.DB.prepare("INSERT INTO filter_lists (id, name, url, source, enabled, created_at) VALUES ('plain', 'Plain', '', 'url', 1, 0)").run();
-    expect((await api("/lists/plain", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(400);
-    expect((await api("/lists/missing", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(404);
-  });
-});
-
-describe("rule tester", () => {
-  it("follows the same pipeline as DoH, global switch included", async () => {
-    await publishAll();
-    const verdict = async () => (await (await api("/rules/test", json({ name: "ads.example" }))).json<{ verdict: { action: string } }>()).verdict.action;
-    expect(await verdict()).toBe("block");
-    await api("/settings", json({ filteringEnabled: false }, "PATCH"));
-    expect(await verdict()).toBe("pass");
-  });
-});
-
-describe("services API", () => {
-  it("serves the registry and community rule sets with invalid entries dropped", async () => {
-    const services = await (await api("/services")).json<{ id: string }[]>();
-    // Community rule sets that cannot be fetched (all but DouYin here) are left out
-    expect(services).toEqual([
-      { id: "tiktok", name: "TikTok", group: "social_network", icon: "<svg/>", rules: ["||tiktok.test^", "||tiktokcdn.test^"] },
-      { id: "douyin", name: "抖音", group: "social_network", icon: "", rules: ["|api.douyin.test^", "||douyinvod.test^"] },
-    ]);
   });
 });
 

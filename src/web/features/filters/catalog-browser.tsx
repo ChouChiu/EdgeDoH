@@ -17,8 +17,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { useSelection } from "@/shared/hooks/use-selection";
 import { type MessageKey, useI18n } from "@/shared/i18n";
-import { type CatalogFilter, type FilterList, listsApi } from "./api";
-import type { ListActions } from "./use-list-action";
+import { type CatalogFilter, type FilterList, type ListActions, listsApi } from "./api";
 
 const ALL = "all";
 const KNOWN_GROUPS = new Set([1, 2, 3, 4]);

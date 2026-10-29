@@ -5,7 +5,7 @@ import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import { LocaleToggle, ThemeSwitch } from "@/shared/components/header-controls";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/shared/ui/sidebar";
-import { useRebuild } from "@/features/snapshot/rebuild-provider";
+import { useRebuild } from "@/features/snapshot/api";
 import { useI18n } from "@/shared/i18n";
 import { AppSidebar } from "./app-sidebar";
 import { pageLabel } from "./nav";

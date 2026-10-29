@@ -9,7 +9,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Textarea } from "@/shared/ui/textarea";
-import { useRebuild } from "@/features/snapshot/rebuild-provider";
+import { useRebuild } from "@/features/snapshot/api";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { CUSTOM_RULES_KEY, rulesApi } from "./api";

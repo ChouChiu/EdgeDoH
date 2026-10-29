@@ -1,11 +1,9 @@
 import { ApiError, queryString, request } from "@/shared/lib/http";
 
-export const RANGES = ["1h", "24h", "7d", "30d"] as const;
-export type Range = (typeof RANGES)[number];
-export const ACTIONS = ["pass", "allow", "block", "rewrite"] as const;
-export type FilterAction = (typeof ACTIONS)[number];
-export const SOURCES = ["upstream", "cache", "local", "error", "limited"] as const;
-export type AnswerSource = (typeof SOURCES)[number];
+import { type AnswerSource, type FilterAction, type StatsRange as Range, STATS_RANGES as RANGES } from "#contract";
+
+export { FILTER_ACTIONS as ACTIONS, ANSWER_SOURCES as SOURCES, STATS_RANGES as RANGES } from "#contract";
+export type { AnswerSource, FilterAction, Range };
 export type TopKind = "domains" | "blocked" | "devices" | "rules" | "lists" | "upstreams" | "services" | "clients" | "networks";
 
 export interface StatsQuery {

@@ -1,19 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LISTS_KEY } from "@/features/filters/api";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { SNAPSHOT_KEY } from "./api";
-import { rebuildSnapshot, type RebuildResult, type RebuildStage } from "./rebuild";
-
-interface RebuildContextValue {
-  stage: RebuildStage | null;
-  /** Recompiles and activates the snapshot, reporting progress and errors as toasts */
-  rebuild: (reason?: string) => Promise<RebuildResult | undefined>;
-}
-
-const RebuildContext = createContext<RebuildContextValue | null>(null);
+import { RebuildContext, SNAPSHOT_KEY } from "./api";
+import { rebuildSnapshot, type RebuildStage } from "./rebuild";
 
 export function RebuildProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
@@ -57,10 +49,4 @@ export function RebuildProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ stage, rebuild }), [stage, rebuild]);
   return <RebuildContext.Provider value={value}>{children}</RebuildContext.Provider>;
-}
-
-export function useRebuild(): RebuildContextValue {
-  const value = useContext(RebuildContext);
-  if (!value) throw new Error("useRebuild must be used within RebuildProvider");
-  return value;
 }

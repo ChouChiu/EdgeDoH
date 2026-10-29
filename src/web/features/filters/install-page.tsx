@@ -1,3 +1,4 @@
+import { MAX_LIST_NAME } from "#contract";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
@@ -8,9 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { useI18n } from "@/shared/i18n";
-import { listsApi } from "./api";
+import { listsApi, useListAction } from "./api";
 import { isHttpUrl } from "@/shared/lib/http";
-import { useListAction } from "./use-list-action";
 
 const BUSY_KEY = "deeplink";
 
@@ -49,7 +49,7 @@ export function InstallPage() {
         {valid && (
           <CardContent className="space-y-2">
             <Label htmlFor="install-name">{t("common.name")}</Label>
-            <Input id="install-name" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder={new URL(url).hostname} />
+            <Input id="install-name" maxLength={MAX_LIST_NAME} value={name} onChange={(e) => setName(e.target.value)} placeholder={new URL(url).hostname} />
           </CardContent>
         )}
         <CardFooter className="justify-end gap-2">

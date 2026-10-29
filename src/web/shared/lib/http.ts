@@ -1,3 +1,4 @@
+export { isHttpUrl } from "#contract";
 import type { Translate } from "@/shared/i18n/messages";
 
 /** Non-2xx API answer; `message` is the server's own English error text, when it sent one */
@@ -48,12 +49,4 @@ export function errorMessage(err: unknown, t: Translate): string {
   if (err instanceof SessionExpiredError) return t("errors.sessionExpired");
   if (err instanceof ApiError) return err.serverMessage ?? t("errors.http", { status: err.status });
   return err instanceof Error ? err.message : String(err);
-}
-
-export function isHttpUrl(value: string, protocols: readonly string[] = ["https:", "http:"]): boolean {
-  try {
-    return protocols.includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
 }

@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import type { BlockingMode } from "@/features/settings/api";
+import type { BlockingMode } from "#contract";
 import type { Translate } from "@/shared/i18n";
 import { jsonBody, request } from "@/shared/lib/http";
 
-export const DEFAULT_PROFILE_ID = "default";
-/** Snapshot list ID prefix of a compiled blocked service */
-export const SERVICE_LIST_PREFIX = "service:";
-export const MAX_PROFILE_NAME = 64;
+import { DEFAULT_PROFILE_ID } from "#contract";
+
+export { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, SERVICE_LIST_PREFIX } from "#contract";
 
 export interface Schedule {
   timezone: string;

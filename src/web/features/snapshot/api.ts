@@ -1,4 +1,6 @@
+import { createContext, useContext } from "react";
 import { jsonBody, request } from "@/shared/lib/http";
+import type { RebuildResult, RebuildStage } from "./rebuild";
 
 export type SnapshotInfo =
   | { active: false }
@@ -27,3 +29,18 @@ export const snapshotApi = {
   commit: (manifest: { meta: string; shards: string[] }) => request<SnapshotInfo>("/rules/commit", jsonBody("POST", manifest)),
   clear: () => request<void>("/rules/snapshot", { method: "DELETE" }),
 };
+
+export interface RebuildContextValue {
+  stage: RebuildStage | null;
+  /** Recompiles and activates the snapshot, reporting progress and errors as toasts */
+  rebuild: (reason?: string) => Promise<RebuildResult | undefined>;
+}
+
+/** Provided once for the whole app by `RebuildProvider` */
+export const RebuildContext = createContext<RebuildContextValue | null>(null);
+
+export function useRebuild(): RebuildContextValue {
+  const value = useContext(RebuildContext);
+  if (!value) throw new Error("useRebuild must be used within RebuildProvider");
+  return value;
+}

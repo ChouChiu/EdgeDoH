@@ -1,11 +1,12 @@
 import type { Snapshot } from "#filter";
 import { HttpError } from "../../shared/http.ts";
 import { getRuntimeConfig, publishRuntimeConfig } from "../../shared/runtime-config.ts";
-import { BLOCKING_MODES, type BlockingMode, isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../settings/store.ts";
+import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
+import { BLOCKING_MODES, type BlockingMode } from "../settings/store.ts";
 
-export const DEFAULT_PROFILE_ID = "default";
-export const SERVICE_LIST_PREFIX = "service:";
-export const MAX_PROFILE_NAME = 64;
+import { DEFAULT_PROFILE_ID, SERVICE_LIST_PREFIX } from "#contract";
+
+export { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, SERVICE_LIST_PREFIX } from "#contract";
 const MAX_IDS = 1000;
 const ID_RE = /^[A-Za-z0-9_.:-]{1,100}$/;
 

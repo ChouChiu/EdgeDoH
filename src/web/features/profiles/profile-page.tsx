@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useLists } from "@/features/filters/api";
 import { CUSTOM_LIST_ID } from "@/features/rules/api";
 import { snapshotApi } from "@/features/snapshot/api";
-import { useRebuild } from "@/features/snapshot/rebuild-provider";
+import { useRebuild } from "@/features/snapshot/api";
 import { BLOCKING_MODES, type BlockingMode } from "@/features/settings/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
@@ -13,16 +13,7 @@ import { Save } from "@/shared/components/animate-ui/icons/save";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { Row, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/shared/ui/alert-dialog";
+import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
@@ -108,25 +99,12 @@ function ProfileForm({ profile }: { profile: Profile }) {
         title={profileName(profile, t)}
         actions={
           !isDefault && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" disabled={remove.isPending}>
-                  <Trash2 />
-                  {t("common.delete")}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("profiles.deleteTitle", { name: profile.name })}</AlertDialogTitle>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction variant="destructive" onClick={() => remove.mutate()}>
-                    {t("common.delete")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog title={t("profiles.deleteTitle", { name: profile.name })} confirmLabel={t("common.delete")} onConfirm={() => remove.mutate()}>
+              <Button type="button" variant="ghost" size="sm" disabled={remove.isPending}>
+                <Trash2 />
+                {t("common.delete")}
+              </Button>
+            </ConfirmDialog>
           )
         }
       />

@@ -1,3 +1,4 @@
+import { MAX_LIST_NAME } from "#contract";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
@@ -10,19 +11,9 @@ import { Power } from "@/shared/components/animate-ui/icons/power";
 import { PowerOff } from "@/shared/components/animate-ui/icons/power-off";
 import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
+import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { EmptyState, QueryError } from "@/shared/components/page";
 import { SelectionBar } from "@/shared/components/selection-bar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/shared/ui/alert-dialog";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -33,15 +24,12 @@ import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
-import { SnapshotCard } from "@/features/snapshot/snapshot-card";
 import { type Selection, useSelection } from "@/shared/hooks/use-selection";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage, isHttpUrl } from "@/shared/lib/http";
 import { AddUrlDialog } from "./add-url-dialog";
-import { type FilterList, LISTS_KEY, listsApi } from "./api";
-import type { ListActions } from "./use-list-action";
-
-const MAX_LIST_NAME = 100;
+import { SnapshotCard } from "./snapshot-card";
+import { type FilterList, type ListActions, LISTS_KEY, listsApi } from "./api";
 
 export function InstalledLists({
   lists,
@@ -114,8 +102,10 @@ export function InstalledLists({
           <RefreshCw />
           {t("filters.update")}
         </Button>
-        <ConfirmUninstall
+        <ConfirmDialog
           title={t("filters.uninstallManyTitle", { count: selection.selected.length })}
+          description={t("filters.uninstallBody")}
+          confirmLabel={t("filters.uninstall")}
           onConfirm={() =>
             batch(selection.selected, t("filters.step.removing"), listsApi.remove, t("filters.reason.removeMany", { count: selection.selected.length }))
           }
@@ -124,7 +114,7 @@ export function InstalledLists({
             <Trash2 />
             {t("filters.uninstall")}
           </Button>
-        </ConfirmUninstall>
+        </ConfirmDialog>
       </SelectionBar>
     </>
   );
@@ -202,39 +192,20 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
             <RefreshCw />
             {t("filters.update")}
           </Button>
-          <ConfirmUninstall
+          <ConfirmDialog
             title={t("filters.uninstallTitle", { name: list.name })}
+            description={t("filters.uninstallBody")}
+            confirmLabel={t("filters.uninstall")}
             onConfirm={() => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove"))}
           >
             <Button variant="ghost" size="sm" disabled={busy !== undefined}>
               <Trash2 />
               {t("filters.uninstall")}
             </Button>
-          </ConfirmUninstall>
+          </ConfirmDialog>
         </div>
       </CardFooter>
     </Card>
-  );
-}
-
-function ConfirmUninstall({ title, onConfirm, children }: { title: string; onConfirm: () => void; children: ReactNode }) {
-  const { t } = useI18n();
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{t("filters.uninstallBody")}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            {t("filters.uninstall")}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }
 

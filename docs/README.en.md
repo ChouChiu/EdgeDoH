@@ -23,8 +23,8 @@ A personal DNS-over-HTTPS (DoH) resolver built on Cloudflare Workers Free Tier. 
 - **Local Records & Query Origin**: Maintain A / AAAA / CNAME records (with `*.` wildcards) in the dashboard. Logs tell DoH clients apart by User-Agent (browser or system resolver), infer the service a domain belongs to, and record the source network (AS organisation). DNS requests carry no app identity, so the service is an inference.
 - **Metrics & Logging**: Powered by Cloudflare Analytics Engine, capturing query counts, block ratios, average latency, and upstream distribution. Live query log with multi-attribute filtering and one-click rule creation.
 - **Abuse Protection**: Durable Objects track active networks in a sliding window (IPv4 by IP, IPv6 by /64 subnet). Exceeded networks receive REFUSED, preventing unauthorized use if DoH URLs leak.
-- **Zero Trust Security**: Dashboard and `/api/*` protected by Cloudflare Access JWT verification (fail-closed). DoH queries use a dedicated lightweight path with zero auth overhead.
-- **Web Dashboard**: Single-page application built with Vite, React, Tailwind, and shadcn/ui. Responsive mobile layout, dark mode, multi-language support (English, Simplified Chinese, Traditional Chinese), and smooth page transitions via the View Transitions API.
+- **Zero Trust Security**: Dashboard and `/api/*` protected by Cloudflare Access JWT verification (fail-closed). DoH queries take a separate path with no authentication.
+- **Web Dashboard**: Single-page application built with Vite, React, Tailwind, and shadcn/ui. Responsive layout, dark mode, and English, Simplified Chinese and Traditional Chinese.
 
 ## Quick Start
 
@@ -80,25 +80,25 @@ Account-specific values remain outside source control: `wrangler.jsonc` is copie
 
 1. Route & Device Identification: Extracts the device ID from `/dns-query/:deviceId`. Reads runtime configuration from KV, falling back to D1; returns 404 if the device does not exist.
 2. Client Guard: If client limits are active, extracts the client IP (`cf-connecting-ip`) and checks active networks in the sliding window via the device's Durable Object (IPv4 by IP, IPv6 by /64 prefix). Extra networks receive REFUSED (`source: limited`). Admitted networks are cached in isolate memory for 5 minutes to avoid continuous Durable Object wakeups.
-3. IPv6 Degradation: If IPv6 resolution is disabled, AAAA queries immediately return NODATA (NOERROR with empty answers), prompting dual-stack clients to fall back to IPv4 without delay.
-4. Rule Matching: If filtering is active, queries are matched against the compiled snapshot:
+3. Local Records & IPv6 Degradation: Local records maintained in the dashboard are checked first and answered locally. Otherwise, if IPv6 resolution is disabled, AAAA queries return NODATA (NOERROR with empty answers) so clients fall back to IPv4 without delay.
+4. Rule Matching: If the device's profile has filtering on and the device is not paused, the name is matched against the snapshot (only the lists and services the profile selects; scheduled services only inside their window), then against Safe Search and YouTube Restricted Mode:
    - Block: Constructs a DNS response locally according to configured mode (`null_ip` with 0.0.0.0/::, `nxdomain`, `refused`, `nodata`, or `custom_ip`).
    - Rewrite: Rewrites response locally for `$dnsrewrite` and hosts entries (recursively resolves upstream if rewritten to a CNAME).
-   - Pass: Proceeds to upstream resolution if covered by an allowlist exception or if no rules match.
-5. Edge Cache Lookup: Computes cache key from `qclass/qtype/lowercase domain/DO/CD` and queries Cloudflare edge Cache API. On cache hit, decrements TTL, restores client Query ID and original letter casing, and returns immediately.
+   - Pass: Allowlisted or unmatched names go upstream; names covered by an enabled split-DNS list use that list's upstreams.
+5. Edge Cache Lookup: Computes the cache key from `qclass/qtype/lowercase domain/DO/CD` and the upstream set (plus the client subnet when ECS is on) and queries Cloudflare edge Cache API. On cache hit, decrements TTL, restores client Query ID and original letter casing, and returns immediately.
 6. Upstream Query: On cache miss, sends an RFC 8484 POST request to upstream DoH resolvers:
    - Fallback: Queries resolvers in configured order; fails over on network error, timeout, or SERVFAIL.
    - Parallel: Queries all resolvers concurrently, returning the first non-SERVFAIL response.
    - Returns SERVFAIL if all upstreams fail.
-7. Cache Store & TTL Clamp: Clamps NOERROR and NXDOMAIN responses according to RFC 2308 and configured Min/Max TTL limits, stores them in edge Cache API, and returns to client.
-8. Async Analytics: If logging is enabled, writes query metrics to Analytics Engine via `ctx.waitUntil` (records device ID, query name, type, action, latency, and upstream without logging client IP), returning the DNS response with zero latency overhead.
+7. Cache Store & TTL Clamp: Clamps NOERROR and NXDOMAIN responses according to RFC 2308 and configured Min/Max TTL limits, stores them in edge Cache API, and returns to client. Profiles with ECH / HTTP/3 injection then edit HTTPS records of Cloudflare-hosted names.
+8. Async Analytics: If logging is enabled, writes one data point to Analytics Engine via `ctx.waitUntil` (device, name, type, action, latency, upstream, colo, DoH client type and source network). Client IPs are not recorded, and the response is not delayed.
 
 ## Abuse Protection
 
 - Each device is paired with a SQLite-backed Durable Object (`DeviceClients`) tracking unique networks seen in the sliding window. IPv4 counts per address; IPv6 aggregates by `/64` prefix to accommodate privacy address rotation.
 - Allowed networks are cached in isolate memory for 5 minutes, adding zero latency to regular queries. If the Durable Object encounters an error, queries are permitted by default to guarantee DNS availability.
 - Network limits and time windows are configured in Settings under Abuse Protection; set to 0 to disable. Device cards display current active network counts with a manual reset option.
-- HTTPS records (Type 65) including ECH (Encrypted Client Hello) parameters are forwarded transparently, allowing ECH-capable browsers to establish encrypted handshakes.
+- Without ECH / HTTP/3 injection, HTTPS records (Type 65) and the ECH config in them are forwarded unchanged.
 
 ## Rule Engine Architecture
 
@@ -127,7 +127,7 @@ Each query logs one data point to Analytics Engine (schema defined in `src/worke
 - Metrics are queried via the Analytics Engine SQL API and weighted by `_sample_interval`. Results are cached for 60 seconds at the local edge colo.
 - Supported query parameters: `range=1h|24h|7d|30d` (default 24h), `device`, `action=pass|allow|block|rewrite`, `source=upstream|cache|local|error|limited`, and `search` (domain search with `*` wildcards).
 - Parameter Sanitization: Filter parameters use strict enums; `search` allows only alphanumeric characters and `.-_*`.
-- 100,000 writes/day (aligned with Worker free request limits) and ample monthly SQL query allowance.
+- The free tier allows 100,000 data points per day, matching the Workers free tier's 100,000 requests per day.
 
 ## API Endpoints
 
@@ -140,6 +140,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 | `/api/devices/<ID>` | `PATCH`, `DELETE` | Rename a device or change its profile, delete device |
 | `/api/devices/<ID>/mobileconfig` | `GET` | Download Apple mobileconfig profile |
 | `/api/devices/<ID>/clients` | `GET`, `DELETE` | Query active client networks, reset records |
+| `/api/devices/<ID>/pause` | `POST` | Pause a device's filtering `{ minutes }`; 0 resumes |
 | `/api/rules` | `GET` | Active snapshot metadata overview |
 | `/api/rules/manifest` | `GET` | List existing snapshot shards |
 | `/api/rules/blobs/<hash>` | `PUT` | Upload snapshot binary shard |
@@ -150,19 +151,17 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 | `/api/lists` | `GET`, `POST` | List installed lists, add new list |
 | `/api/lists/<ID>` | `PATCH`, `DELETE` | Update list state/name, uninstall list |
 | `/api/lists/<ID>/refresh` | `POST` | Fetch latest content for a list |
-| `/api/lists/<ID>/text` | `GET` | Retrieve raw list text from KV |
+| `/api/lists/<ID>/text` | `GET`, `PUT` | Read raw list text from KV; replace the text of an inline list (e.g. a route list) |
 | `/api/lists/reports` | `POST` | Report compilation stats and syntax diagnostics |
 | `/api/custom-rules` | `GET`, `PUT` | Read and save custom rules |
 | `/api/settings` | `GET`, `PATCH` | Read and update resolver settings |
 | `/api/profiles` | `GET`, `POST` | List profiles, create a profile |
 | `/api/profiles/<ID>` | `PATCH`, `DELETE` | Update or delete a profile (the default one cannot be deleted) |
-| `/api/devices/<ID>/pause` | `POST` | Pause a device's filtering `{ minutes }`; 0 resumes |
 | `/api/services` | `GET` | AdGuard blocked-services catalog with rules and icons |
 | `/api/local-records` | `GET`, `PUT` | Read or replace the local DNS records |
-| `/api/lists/<ID>/text` | `PUT` | Replace the text of an inline list (e.g. a route list) |
 | `/api/stats/summary` | `GET` | Overview metrics (total, blocked, latency, etc.) |
 | `/api/stats/timeseries` | `GET` | Timeseries query and block trends |
-| `/api/stats/top/<kind>` | `GET` | Rankings (`domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`) |
+| `/api/stats/top/<kind>` | `GET` | Rankings (`domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`, `services`, `clients`, `networks`) |
 | `/api/stats/logs` | `GET` | Paginated query logs (`limit` and `offset`) |
 
 ## CLI Tool
@@ -191,16 +190,18 @@ Monorepo package with source code in `src`, separated by runtime environment and
 src/
 ├── lib/
 │   ├── dns/       # DNS wire format codec, zero dependencies (#dns alias)
-│   └── filter/    # Rule parser, compiler, snapshot sharding, and matcher (#filter alias)
+│   ├── filter/    # Rule parser, compiler, snapshot sharding, and matcher (#filter alias)
+│   └── contract/  # Limits and enums shared by the Worker API and the dashboard (#contract alias)
 ├── worker/        # Cloudflare Worker backend
-│   ├── features/  # Domain modules (devices, doh, lists, rules, settings, stats) with store, api, and tests
+│   ├── features/  # Domain modules (devices, doh, lists, profiles, records, rules, services, settings, stats) with store, api, and tests
 │   │   └── devices/client-guard.ts  # Client limit Durable Object (DeviceClients)
-│   ├── shared/    # Access JWT validation, KV runtime config, HttpError, and SHA-256
+│   ├── shared/    # Access JWT validation, KV runtime config, HttpError, shared validators, and SHA-256
 │   └── test/      # Fake upstreams, Analytics Engine SQL mock, and helpers
 ├── web/           # Web dashboard (Vite + React + Tailwind + shadcn/ui, @/ alias)
 │   ├── app/       # Router, navigation, and root layout
-│   ├── features/  # Pages and components (stats, filters, rules, snapshot, devices, settings)
-│   └── shared/    # shadcn UI components, hooks, utilities, and i18n locales
+│   ├── features/  # Pages and components (devices, dns, filters, profiles, rules, settings, snapshot, stats)
+│   ├── shared/    # shadcn UI components, hooks, utilities, and i18n locales
+│   └── test/      # Component test setup
 ├── cli/           # CLI tool (main.ts) and setup script (setup.ts)
 docs/              # Deployment and configuration documentation (including multilingual READMEs)
 migrations/        # D1 SQL migrations
@@ -212,14 +213,15 @@ tsconfig/          # TypeScript multi-project configurations (lib, worker, web, 
 Run tests and type checks:
 
 ```bash
-bun run test
 bun run typecheck
+bun run test
+bun run build
 ```
 
-- Worker unit tests execute in workerd via `@cloudflare/vitest-plugin`. Frontend and `src/lib` tests run in Node. Upstreams and external APIs are mocked in `src/worker/test/fake-upstream.ts`.
+- Worker unit tests execute in workerd via `@cloudflare/vitest-plugin`. Frontend and `src/lib` tests run in Node (component tests in happy-dom). Upstreams and external APIs are mocked in `src/worker/test/fake-upstream.ts`.
 - API endpoints throw `HttpError` instances, caught and formatted into standard JSON by the top-level handler.
-- Localization files live in `src/web/shared/i18n/locales`. `zh-Hans.ts` is the single source of truth for message keys; `zh-Hant.ts` and `en-US.ts` enforce 1:1 key and placeholder parity via TypeScript and `locales.test.ts`.
-- Navigation and theme switching use the View Transitions API. Route changes reset window scroll. Desktop sidebar navigation performs smooth in-place content transitions without sidebar jitter.
+- Localization files live in `src/web/shared/i18n/locales`. `zh-Hans.ts` is the single source of truth for message keys; `zh-Hant.ts` and `en-US.ts` are kept in sync with it, keys and placeholders alike, by TypeScript and `locales.test.ts`.
+- Page changes use React `<ViewTransition>` (built on the View Transitions API); route changes reset the scroll position.
 - Database schema changes are versioned sequentially in `migrations/`. `bun run deploy` automatically applies pending remote migrations before deployment.
 
 ## License

@@ -40,9 +40,4 @@ export const Column = {
   asn: "double3",
 } as const;
 
-export const ACTIONS = ["pass", "allow", "block", "rewrite"] as const;
-export type FilterAction = (typeof ACTIONS)[number];
-
-/** `limited`: refused because the device exceeded its client limit */
-export const SOURCES = ["upstream", "cache", "local", "error", "limited"] as const;
-export type AnswerSource = (typeof SOURCES)[number];
+export { FILTER_ACTIONS as ACTIONS, ANSWER_SOURCES as SOURCES, type AnswerSource, type FilterAction } from "#contract";
