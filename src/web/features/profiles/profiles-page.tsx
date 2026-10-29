@@ -25,7 +25,7 @@ export function ProfilesPage() {
   const count = (id: string) => devices.data?.filter((d) => (d.profileId ?? DEFAULT_PROFILE_ID) === id).length ?? 0;
   return (
     <>
-      <PageHeader title={t("nav.profiles")} description={t("profiles.description")} actions={<NewProfileDialog />} />
+      <PageHeader title={t("nav.profiles")} actions={<NewProfileDialog />} />
       {profiles.error && <QueryError error={profiles.error} />}
       {profiles.isPending && <Skeleton className="h-32 w-full" />}
       <div className="grid gap-2">

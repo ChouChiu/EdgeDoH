@@ -5,6 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { useListAction, useLists } from "./api";
 import { CatalogBrowser } from "./catalog-browser";
 import { InstalledLists } from "./installed-lists";
+import { RebuildButton, SnapshotStatus } from "./snapshot-status";
 
 export function FiltersPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export function FiltersPage() {
 
   return (
     <>
-      <PageHeader title={t("nav.filters")} description={t("filters.description")} />
+      <PageHeader title={t("nav.filters")} description={<SnapshotStatus />} actions={<RebuildButton />} />
       <Tabs value={tab} onValueChange={(v) => setParams(v === "installed" ? {} : { tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="installed">

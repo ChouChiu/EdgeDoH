@@ -28,7 +28,6 @@ import { type Selection, useSelection } from "@/shared/hooks/use-selection";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage, isHttpUrl } from "@/shared/lib/http";
 import { AddUrlDialog } from "./add-url-dialog";
-import { SnapshotCard } from "./snapshot-card";
 import { type FilterList, type ListActions, LISTS_KEY, listsApi } from "./api";
 
 export function InstalledLists({
@@ -60,7 +59,6 @@ export function InstalledLists({
 
   return (
     <>
-      <SnapshotCard />
       <div className="flex flex-wrap items-center gap-2">
         {lists && lists.length > 0 && (
           <label className="mr-auto flex items-center gap-2 pl-3 text-sm text-muted-foreground">

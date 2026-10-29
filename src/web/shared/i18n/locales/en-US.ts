@@ -86,7 +86,6 @@ export const enUS: Messages = {
   "stats.notConfigured.body":
     "DNS queries are recorded in the background, but reading metrics requires an API token with Account Analytics Read permissions. Set STATS_API_TOKEN in .env.production, run {command}, and reload the page",
 
-  "overview.description": "Query volume, block ratios, and rankings",
   "overview.total": "Total queries",
   "overview.blocked": "Blocked",
   "overview.cached": "Cache hits",
@@ -140,7 +139,6 @@ export const enUS: Messages = {
   "logs.batchReason.allow": "Allow {count} domains",
   "logs.writeFailed": "Failed to update custom rules",
 
-  "filters.description": "Install directly from the official AdGuard registry, or subscribe to any list using AdGuard or hosts syntax",
   "filters.tab.installed": "Installed Lists",
   "filters.tab.catalog": "Registry",
   "filters.group.all": "All",
@@ -224,7 +222,6 @@ export const enUS: Messages = {
   "tester.noRecords": "{rcode} (no records)",
   "tester.passed": "No rules matched; query will be forwarded upstream",
 
-  "devices.description": "Dedicated DoH endpoints per device, isolating query statistics and enabling device-specific rules ($client)",
   "devices.empty": "No devices added yet",
   "devices.emptyHint": "Add a device to generate its dedicated DoH endpoint and configuration profiles",
   "devices.added": "Created {time}",
@@ -258,7 +255,6 @@ export const enUS: Messages = {
   "guide.android.title": "Android",
   "guide.android.body": "Native Android Private DNS only supports DoT (port 853), which Cloudflare Workers cannot terminate directly. Use DoH-capable clients like Intra, Nebulo, or Surfboard",
 
-  "settings.description": "Global DNS resolution behavior, filtering rules, and cache configuration",
   "settings.blockingMode": "Blocking Response Mode",
   "settings.mode.null_ip": "Null IP (0.0.0.0 / ::)",
   "settings.mode.null_ip.hint": "A returns 0.0.0.0, AAAA returns ::, other types return NODATA (matches AdGuard default)",
@@ -275,6 +271,7 @@ export const enUS: Messages = {
   "settings.upstreamCount": "Must configure between 1 and 5 upstream resolvers",
   "settings.saved": "Settings saved successfully",
   "settings.savedDetail": "Changes written; edge nodes will sync within 1 minute",
+  "settings.sections": "Sections",
   "settings.appearance": "Interface Appearance",
   "settings.appearanceDescription": "Stored locally in this browser; takes effect immediately",
   "settings.theme": "Theme Mode",
@@ -324,7 +321,6 @@ export const enUS: Messages = {
 
   "nav.profiles": "Profiles",
   "nav.dns": "Resolution",
-  "profiles.description": "Assign filter lists, blocked services, schedules and resolution per device",
   "profiles.devices": { one: "{count} device", other: "{count} devices" },
   "profiles.default": "Default",
   "profiles.add": "New Profile",
@@ -378,7 +374,6 @@ export const enUS: Messages = {
   "services.group.social_network": "Social Networks",
   "services.group.software": "Software",
   "services.group.streaming": "Streaming",
-  "dns.description": "Upstreams for chosen domains, and local records",
   "dns.routes": "Split DNS",
   "dns.records": "Local Records",
   "dns.routesEmpty": "No route lists yet",

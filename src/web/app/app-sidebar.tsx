@@ -13,7 +13,7 @@ import {
   useSidebar,
 } from "@/shared/ui/sidebar";
 import { useI18n } from "@/shared/i18n";
-import { isActive, NAV } from "./nav";
+import { isActive, NAV_GROUPS, type NavItem, SETTINGS_NAV } from "./nav";
 
 // A modified copy served to others has to offer them its own source, so a fork points this at its own repository
 const SOURCE_URL = "https://github.com/ChouChiu/cf-dns";
@@ -38,40 +38,54 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <AnimateIcon asChild animateOnHover>
-                    <SidebarMenuButton asChild tooltip={t(item.label)} isActive={isActive(item, pathname)}>
-                      <NavLink to={item.to} onClick={() => setOpenMobile(false)}>
-                        <item.icon />
-                        <span>{t(item.label)}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </AnimateIcon>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="gap-0">
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group[0]!.to} className="py-1.5">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.map((item) => (
+                  <NavEntry key={item.to} item={item} pathname={pathname} onNavigate={() => setOpenMobile(false)} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
-      <SidebarFooter className="gap-1 group-data-[collapsible=icon]:hidden">
-        <p className="truncate px-2 text-xs text-muted-foreground" title={location.host}>
-          {location.host}
-        </p>
-        {/* AGPL-3.0 section 13: whoever uses this dashboard over the network can reach its source from here */}
-        <a
-          href={SOURCE_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="px-2 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          AGPL-3.0 · {t("footer.source")}
-        </a>
+      <SidebarFooter className="gap-1">
+        <SidebarMenu>
+          <NavEntry item={SETTINGS_NAV} pathname={pathname} onNavigate={() => setOpenMobile(false)} />
+        </SidebarMenu>
+        <div className="flex flex-col gap-1 pt-1 group-data-[collapsible=icon]:hidden">
+          <p className="truncate px-2 text-xs text-muted-foreground" title={location.host}>
+            {location.host}
+          </p>
+          {/* AGPL-3.0 section 13: whoever uses this dashboard over the network can reach its source from here */}
+          <a
+            href={SOURCE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="px-2 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            AGPL-3.0 · {t("footer.source")}
+          </a>
+        </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function NavEntry({ item, pathname, onNavigate }: { item: NavItem; pathname: string; onNavigate: () => void }) {
+  const { t } = useI18n();
+  return (
+    <SidebarMenuItem>
+      <AnimateIcon asChild animateOnHover>
+        <SidebarMenuButton asChild tooltip={t(item.label)} isActive={isActive(item, pathname)}>
+          <NavLink to={item.to} onClick={onNavigate}>
+            <item.icon />
+            <span>{t(item.label)}</span>
+          </NavLink>
+        </SidebarMenuButton>
+      </AnimateIcon>
+    </SidebarMenuItem>
   );
 }

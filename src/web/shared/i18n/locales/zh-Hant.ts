@@ -82,7 +82,6 @@ export const zhHant: Messages = {
   "stats.notConfigured.title": "查詢統計未啟用",
   "stats.notConfigured.body": "背景已在記錄 DNS 查詢，讀取統計圖表需要設定具有 Account Analytics Read 權限的 API Token。在 .env.production 中填入 STATS_API_TOKEN 並執行 {command}，重新整理頁面後生效",
 
-  "overview.description": "DNS 查詢概況、攔截比例與排行統計",
   "overview.total": "總查詢量",
   "overview.blocked": "攔截總量",
   "overview.cached": "邊緣快取命中",
@@ -136,7 +135,6 @@ export const zhHant: Messages = {
   "logs.batchReason.allow": "批次放行 {count} 個網域",
   "logs.writeFailed": "更新自訂規則失敗",
 
-  "filters.description": "支援從 AdGuard 官方規則庫一鍵匯入，或訂閱相容 AdGuard / hosts 語法的外部規則清單",
   "filters.tab.installed": "已安裝清單",
   "filters.tab.catalog": "規則庫目錄",
   "filters.group.all": "全部",
@@ -220,7 +218,6 @@ export const zhHant: Messages = {
   "tester.noRecords": "{rcode}（無紀錄）",
   "tester.passed": "未命中任何過濾規則，將直接轉送至上游 DoH",
 
-  "devices.description": "為不同裝置分配獨立的 DoH 接入點，實現查詢統計隔離與依裝置客製過濾策略 ($client)",
   "devices.empty": "尚未新增任何裝置",
   "devices.emptyHint": "新增首台裝置以取得專屬的 DoH 解析位址與設定檔",
   "devices.added": "建立於 {time}",
@@ -254,7 +251,6 @@ export const zhHant: Messages = {
   "guide.android.title": "Android",
   "guide.android.body": "Android 原生「私人 DNS (Private DNS)」僅支援基於 TLS 的 DoT (853)，Cloudflare Workers 暫無法直接提供；建議配合 Intra、Nebulo 或 Surfboard 等支援 DoH 的應用程式使用",
 
-  "settings.description": "全域 DNS 解析行為、攔截策略與快取參數設定",
   "settings.blockingMode": "攔截回應模式",
   "settings.mode.null_ip": "空位址 (0.0.0.0 / ::)",
   "settings.mode.null_ip.hint": "A 查詢回傳 0.0.0.0，AAAA 查詢回傳 ::，其他類型回傳 NODATA 空回應（與 AdGuard 預設行為一致）",
@@ -271,6 +267,7 @@ export const zhHant: Messages = {
   "settings.upstreamCount": "上游伺服器數量須在 1 到 5 個之間",
   "settings.saved": "設定已成功儲存",
   "settings.savedDetail": "修改已寫入，全球邊緣節點將在 1 分鐘內同步生效",
+  "settings.sections": "頁面分區",
   "settings.appearance": "介面外觀",
   "settings.appearanceDescription": "僅儲存在目前瀏覽器本機，立即生效",
   "settings.theme": "主題模式",
@@ -320,7 +317,6 @@ export const zhHant: Messages = {
 
   "nav.profiles": "策略組",
   "nav.dns": "解析",
-  "profiles.description": "依裝置分配過濾清單、封鎖服務、定時規則與解析方式",
   "profiles.devices": { one: "{count} 台裝置", other: "{count} 台裝置" },
   "profiles.default": "預設",
   "profiles.add": "新增策略組",
@@ -374,7 +370,6 @@ export const zhHant: Messages = {
   "services.group.social_network": "社群網路",
   "services.group.software": "軟體",
   "services.group.streaming": "影音",
-  "dns.description": "指定網域的解析上游與本機記錄",
   "dns.routes": "分流",
   "dns.records": "本機記錄",
   "dns.routesEmpty": "尚未新增分流清單",

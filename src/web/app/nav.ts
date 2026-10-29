@@ -15,16 +15,29 @@ export interface NavItem {
   icon: ComponentType;
 }
 
-export const NAV: NavItem[] = [
-  { to: "/", label: "nav.overview", icon: ChartNoAxesColumn },
-  { to: "/logs", label: "nav.logs", icon: ScrollText },
-  { to: "/filters", label: "nav.filters", icon: ListChecks },
-  { to: "/rules", label: "nav.rules", icon: ShieldBan },
-  { to: "/profiles", label: "nav.profiles", icon: Users },
-  { to: "/dns", label: "nav.dns", icon: Network },
-  { to: "/devices", label: "nav.devices", icon: Smartphone },
-  { to: "/settings", label: "nav.settings", icon: Cog },
+/**
+ * Every page is one click away; the groups only add space between what you watch (traffic), what decides an answer
+ * (filtering) and where answers go (resolution and devices). Settings sits apart at the foot of the sidebar
+ */
+export const NAV_GROUPS: NavItem[][] = [
+  [
+    { to: "/", label: "nav.overview", icon: ChartNoAxesColumn },
+    { to: "/logs", label: "nav.logs", icon: ScrollText },
+  ],
+  [
+    { to: "/filters", label: "nav.filters", icon: ListChecks },
+    { to: "/rules", label: "nav.rules", icon: ShieldBan },
+    { to: "/profiles", label: "nav.profiles", icon: Users },
+  ],
+  [
+    { to: "/dns", label: "nav.dns", icon: Network },
+    { to: "/devices", label: "nav.devices", icon: Smartphone },
+  ],
 ];
+
+export const SETTINGS_NAV: NavItem = { to: "/settings", label: "nav.settings", icon: Cog };
+
+const NAV: NavItem[] = [...NAV_GROUPS.flat(), SETTINGS_NAV];
 
 export function isActive(item: NavItem, pathname: string): boolean {
   return item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);

@@ -32,7 +32,6 @@ export function OverviewPage() {
     <>
       <PageHeader
         title={t("nav.overview")}
-        description={t("overview.description")}
         actions={
           <Tabs value={range} onValueChange={(v) => setParams(v === "24h" ? {} : { range: v }, { replace: true })}>
             <TabsList>

@@ -81,7 +81,6 @@ export const zhHans = {
   "stats.notConfigured.title": "查询统计未启用",
   "stats.notConfigured.body": "后台已在记录 DNS 查询，读取统计图表需要配置具有 Account Analytics Read 权限的 API Token。在 .env.production 中填入 STATS_API_TOKEN 并执行 {command}，刷新页面后生效",
 
-  "overview.description": "DNS 查询概况、拦截比例与排行统计",
   "overview.total": "总查询量",
   "overview.blocked": "拦截总量",
   "overview.cached": "边缘缓存命中",
@@ -135,7 +134,6 @@ export const zhHans = {
   "logs.batchReason.allow": "批量放行 {count} 个域名",
   "logs.writeFailed": "更新自定义规则失败",
 
-  "filters.description": "支持从 AdGuard 官方规则库一键导入，或订阅兼容 AdGuard / hosts 语法的外部规则列表",
   "filters.tab.installed": "已安装列表",
   "filters.tab.catalog": "规则库目录",
   "filters.group.all": "全部",
@@ -219,7 +217,6 @@ export const zhHans = {
   "tester.noRecords": "{rcode}（无记录）",
   "tester.passed": "未匹配到任何过滤规则，将直接转发至上游 DoH",
 
-  "devices.description": "为不同设备分配独立的 DoH 接入点，实现查询统计隔离与按设备定制过滤策略 ($client)",
   "devices.empty": "暂未添加任何设备",
   "devices.emptyHint": "添加首台设备以获取专用的 DoH 解析地址与配置文件",
   "devices.added": "创建于 {time}",
@@ -253,7 +250,6 @@ export const zhHans = {
   "guide.android.title": "Android",
   "guide.android.body": "Android 原生「专用 DNS (Private DNS)」仅支持基于 TLS 的 DoT (853)，Cloudflare Workers 暂无法直接提供；建议配合 Intra、Nebulo 或 Surfboard 等支持 DoH 的应用使用",
 
-  "settings.description": "全局 DNS 解析行为、拦截策略与缓存参数配置",
   "settings.blockingMode": "拦截响应模式",
   "settings.mode.null_ip": "空地址 (0.0.0.0 / ::)",
   "settings.mode.null_ip.hint": "A 查询返回 0.0.0.0，AAAA 查询返回 ::，其他类型返回 NODATA 空响应（与 AdGuard 默认行为一致）",
@@ -270,6 +266,7 @@ export const zhHans = {
   "settings.upstreamCount": "上游服务器数量须在 1 到 5 个之间",
   "settings.saved": "配置已成功保存",
   "settings.savedDetail": "修改已写入，全球边缘节点将在 1 分钟内同步生效",
+  "settings.sections": "页面分区",
   "settings.appearance": "界面外观",
   "settings.appearanceDescription": "仅保存在当前浏览器本地，立即生效",
   "settings.theme": "主题模式",
@@ -319,7 +316,6 @@ export const zhHans = {
 
 "nav.profiles": "策略组",
   "nav.dns": "解析",
-  "profiles.description": "按设备分配过滤列表、屏蔽服务、定时规则与解析方式",
   "profiles.devices": { one: "{count} 台设备", other: "{count} 台设备" },
   "profiles.default": "默认",
   "profiles.add": "新建策略组",
@@ -373,7 +369,6 @@ export const zhHans = {
   "services.group.social_network": "社交网络",
   "services.group.software": "软件",
   "services.group.streaming": "影音",
-  "dns.description": "指定域名的解析上游与本地记录",
   "dns.routes": "分流",
   "dns.records": "本地记录",
   "dns.routesEmpty": "尚未添加分流列表",

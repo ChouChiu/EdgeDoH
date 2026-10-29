@@ -2,15 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Hammer } from "@/shared/components/animate-ui/icons/hammer";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Button } from "@/shared/ui/button";
-import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { SNAPSHOT_KEY, snapshotApi, useRebuild } from "@/features/snapshot/api";
 
-export function SnapshotCard() {
+/** One line on what DoH is filtering with right now; it stands where the page description would be */
+export function SnapshotStatus() {
   const { t, fmt } = useI18n();
   const info = useQuery({ queryKey: SNAPSHOT_KEY, queryFn: snapshotApi.info });
-  const { rebuild, stage } = useRebuild();
   const data = info.data;
 
   let summary = t("common.loading");
@@ -26,18 +25,16 @@ export function SnapshotCard() {
     tone = "text-warning";
   }
 
+  return <span className={tone}>{summary}</span>;
+}
+
+export function RebuildButton() {
+  const { t } = useI18n();
+  const { rebuild, stage } = useRebuild();
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{t("snapshot.title")}</CardTitle>
-        <CardDescription className={tone}>{summary}</CardDescription>
-        <CardAction>
-          <Button variant="outline" size="sm" disabled={stage !== null} onClick={() => void rebuild()}>
-            {stage ? <LoaderCircle animate /> : <Hammer />}
-            {t("rebuild.default")}
-          </Button>
-        </CardAction>
-      </CardHeader>
-    </Card>
+    <Button variant="outline" disabled={stage !== null} onClick={() => void rebuild()}>
+      {stage ? <LoaderCircle animate /> : <Hammer />}
+      {t("rebuild.default")}
+    </Button>
   );
 }

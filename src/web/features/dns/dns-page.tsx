@@ -13,7 +13,7 @@ export function DnsPage() {
   const tab = (TABS as readonly string[]).includes(params.get("tab") ?? "") ? params.get("tab")! : "routes";
   return (
     <>
-      <PageHeader title={t("nav.dns")} description={t("dns.description")} />
+      <PageHeader title={t("nav.dns")} />
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="routes">{t("dns.routes")}</TabsTrigger>

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RebuildContext } from "@/features/snapshot/api";
 import { I18nProvider } from "@/shared/i18n";
 import { enUS } from "@/shared/i18n/locales/en-US";
-import { SnapshotCard } from "./snapshot-card";
+import { SnapshotStatus } from "./snapshot-status";
 
 beforeEach(() => localStorage.setItem("locale", "en-US"));
 afterEach(() => {
@@ -20,14 +20,14 @@ function renderWith(status: number, body: unknown) {
     <QueryClientProvider client={client}>
       <I18nProvider>
         <RebuildContext.Provider value={{ stage: null, rebuild: vi.fn() }}>
-          <SnapshotCard />
+          <SnapshotStatus />
         </RebuildContext.Provider>
       </I18nProvider>
     </QueryClientProvider>,
   );
 }
 
-describe("SnapshotCard", () => {
+describe("SnapshotStatus", () => {
   it("shows the server's error instead of loading forever", async () => {
     renderWith(500, { error: "KV unavailable" });
     expect((await screen.findByText("KV unavailable")).className).toContain("text-destructive");

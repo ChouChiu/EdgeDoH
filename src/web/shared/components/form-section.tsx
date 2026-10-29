@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Label } from "@/shared/ui/label";
 
-export function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+/** `id` makes the section a jump target; the scroll margin keeps its title clear of the sticky header */
+export function Section({ id, title, description, children }: { id?: string; title: string; description?: string; children: ReactNode }) {
   return (
-    <Card size="sm" className="gap-0 pb-0">
+    <Card id={id} size="sm" className="scroll-mt-[calc(4rem+env(safe-area-inset-top))] gap-0 pb-0">
       <CardHeader className="border-b pb-3">
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription className="text-xs">{description}</CardDescription>}

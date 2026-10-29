@@ -73,11 +73,10 @@ export function DeviceCard({ device }: { device: Device }) {
             <Copy />
           </Button>
         </div>
+        {/* One row of controls: what the device gets (profile, pause) first, then setup and drill-downs */}
         <div className="flex flex-wrap items-center gap-2">
           <ProfileSelect device={device} />
           <PauseButton device={device} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" asChild>
             <a href={devicesApi.mobileconfigUrl(device.id)} download>
               <Download />

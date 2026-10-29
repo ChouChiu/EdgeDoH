@@ -29,8 +29,9 @@ export default function App() {
       <SidebarInset>
         <header data-vt="header" className="sticky top-0 z-10 flex h-[calc(3rem+env(safe-area-inset-top))] items-center gap-2 border-b bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur">
           <SidebarTrigger className="-ml-1" aria-label={t("nav.toggleSidebar")} />
-          <div aria-hidden className="mr-1 h-4 w-px shrink-0 bg-border" />
-          <span className="truncate text-sm font-medium">{title ?? "cf-dns"}</span>
+          {/* Wider screens already name the page twice, in the sidebar and the page heading; phones hide both behind the trigger */}
+          <div aria-hidden className="mr-1 h-4 w-px shrink-0 bg-border md:hidden" />
+          <span className="truncate text-sm font-medium md:hidden">{title ?? "cf-dns"}</span>
           <div className="ml-auto flex items-center gap-1">
             {stage && (
               <span className="mr-2 flex items-center gap-1.5 text-xs text-muted-foreground" role="status">

@@ -1,4 +1,6 @@
+import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { cn } from "cn";
 import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
@@ -38,14 +40,80 @@ type ListField = "upstreams" | "echForcedDomains";
 /** Form state: numbers stay strings while typing, lists are one entry per line */
 type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
 
+/** Page order; the index beside the form lists the same sections */
+const SECTIONS = ["filtering", "upstream", "cache", "abuse", "ech", "queryLog", "appearance"] as const;
+type SectionKey = (typeof SECTIONS)[number];
+const sectionId = (key: SectionKey) => `settings-${key}`;
+
 export function SettingsPage() {
   const { t } = useI18n();
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4">
-      <PageHeader title={t("nav.settings")} description={t("settings.description")} />
-      <AppearanceCard />
-      <ServerSettings />
+    <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-5xl lg:grid-cols-[10rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+      <SectionIndex />
+      <div className="min-w-0 space-y-4">
+        <PageHeader title={t("nav.settings")} />
+        {/* Server behaviour is what this page is for; the browser-only preferences repeat the header toggles, so they go last */}
+        <ServerSettings />
+        <AppearanceCard />
+      </div>
     </div>
+  );
+}
+
+/**
+ * Wide screens keep every section one click away while the form scrolls; the entry for the section at the top of the
+ * view is marked. Phones scroll the single column instead
+ */
+function SectionIndex() {
+  const { t } = useI18n();
+  const ready = useSettings().isSuccess;
+  const reduce = useShouldReduceMotion();
+  const [active, setActive] = useState<SectionKey>(SECTIONS[0]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const visible = new Map<Element, boolean>();
+    // A section counts as current while it crosses the band just under the sticky header
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) visible.set(entry.target, entry.isIntersecting);
+        const first = SECTIONS.find((key) => [...visible].some(([el, on]) => on && el.id === sectionId(key)));
+        if (first) setActive(first);
+      },
+      { rootMargin: "-64px 0px -55% 0px" },
+    );
+    for (const key of SECTIONS) {
+      const el = document.getElementById(sectionId(key));
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [ready]);
+
+  const jump = (key: SectionKey) => {
+    setActive(key);
+    document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  };
+
+  return (
+    <nav aria-label={t("settings.sections")} className="sticky top-[calc(4rem+env(safe-area-inset-top))] hidden pt-1 lg:block">
+      <ul className="space-y-0.5">
+        {SECTIONS.map((key) => (
+          <li key={key}>
+            <button
+              type="button"
+              aria-current={key === active ? "true" : undefined}
+              onClick={() => jump(key)}
+              className={cn(
+                "w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+                key === active && "bg-accent font-medium text-accent-foreground",
+              )}
+            >
+              {t(`settings.${key}`)}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -53,7 +121,7 @@ export function SettingsPage() {
 function AppearanceCard() {
   const { t, locale, setLocale } = useI18n();
   return (
-    <Section title={t("settings.appearance")} description={t("settings.appearanceDescription")}>
+    <Section id={sectionId("appearance")} title={t("settings.appearance")} description={t("settings.appearanceDescription")}>
       <Row label={t("settings.theme")} htmlFor="theme" inline>
         <ThemeSwitch />
       </Row>
@@ -135,7 +203,7 @@ function ServerSettings() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Section title={t("settings.filtering")} description={t("settings.filteringDescription")}>
+      <Section id={sectionId("filtering")} title={t("settings.filtering")} description={t("settings.filteringDescription")}>
         <Row label={t("settings.filteringEnabled")} hint={t("settings.filteringEnabledHint")} htmlFor="filteringEnabled" inline>
           <Switch id="filteringEnabled" checked={draft.filteringEnabled} onCheckedChange={(v) => set("filteringEnabled", v)} />
         </Row>
@@ -168,7 +236,7 @@ function ServerSettings() {
         </Row>
       </Section>
 
-      <Section title={t("settings.upstream")} description={t("settings.upstreamDescription")}>
+      <Section id={sectionId("upstream")} title={t("settings.upstream")} description={t("settings.upstreamDescription")}>
         <div className="grid gap-2 py-3">
           <Label htmlFor="upstreams">{t("settings.upstreams")}</Label>
           <Textarea
@@ -207,7 +275,7 @@ function ServerSettings() {
         </Row>
       </Section>
 
-      <Section title={t("settings.cache")} description={t("settings.cacheDescription")}>
+      <Section id={sectionId("cache")} title={t("settings.cache")} description={t("settings.cacheDescription")}>
         <Row label={t("settings.cacheEnabled")} htmlFor="cacheEnabled" inline>
           <Switch id="cacheEnabled" checked={draft.cacheEnabled} onCheckedChange={(v) => set("cacheEnabled", v)} />
         </Row>
@@ -221,7 +289,7 @@ function ServerSettings() {
         </fieldset>
       </Section>
 
-      <Section title={t("settings.abuse")} description={t("settings.abuseDescription")}>
+      <Section id={sectionId("abuse")} title={t("settings.abuse")} description={t("settings.abuseDescription")}>
         <Row label={t("settings.maxDeviceClients")} hint={t("settings.maxDeviceClientsHint")} htmlFor="maxDeviceClients">
           {number("maxDeviceClients", 0, 1000)}
         </Row>
@@ -232,7 +300,7 @@ function ServerSettings() {
         </fieldset>
       </Section>
 
-      <Section title={t("settings.ech")} description={t("settings.echDescription")}>
+      <Section id={sectionId("ech")} title={t("settings.ech")} description={t("settings.echDescription")}>
         <ListInput
           id="echForcedDomains"
           label={t("settings.echForcedDomains")}
@@ -244,7 +312,7 @@ function ServerSettings() {
         />
       </Section>
 
-      <Section title={t("settings.queryLog")}>
+      <Section id={sectionId("queryLog")} title={t("settings.queryLog")}>
         <Row label={t("settings.queryLogEnabled")} hint={t("settings.queryLogHint")} htmlFor="queryLogEnabled" inline>
           <Switch id="queryLogEnabled" checked={draft.queryLogEnabled} onCheckedChange={(v) => set("queryLogEnabled", v)} />
         </Row>
