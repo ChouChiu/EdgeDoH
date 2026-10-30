@@ -20,6 +20,7 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   const url = new URL(request.url);
   if (url.hostname === "down.test") return new Response("unavailable", { status: 503 });
   if (url.hostname === "api.cloudflare.com") return fakeSqlApi(request);
+  if (url.hostname === "hooks.test") return fakeWebhook(url, request);
   if (url.hostname === "adguardteam.github.io") return fakeRegistry(url);
   if (url.hostname === "raw.githubusercontent.com") {
     // Counts fetches, so tests can tell a cached catalog from a fresh one
@@ -129,6 +130,16 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   );
 }
 
+/** Messages posted to hooks.test/ok, read back and cleared through hooks.test/received */
+const hookLog: unknown[] = [];
+
+async function fakeWebhook(url: URL, request: Request): Promise<Response> {
+  if (url.pathname === "/received") return Response.json(hookLog.splice(0));
+  if (url.pathname === "/fail") return new Response("nope", { status: 500 });
+  hookLog.push(await request.json());
+  return new Response(null, { status: 204 });
+}
+
 /** Last SQL statements received, exposed through a debug row so tests can assert on them */
 const sqlLog: string[] = [];
 
@@ -140,6 +151,7 @@ async function fakeSqlApi(request: Request): Promise<Response> {
   const data = (rows: unknown[]) => Response.json({ meta: [], data: rows, rows: rows.length });
 
   if (sql.includes("fail_please")) return new Response("boom", { status: 500 });
+  if (sql.includes("AS limited")) return data([{ total: "200", failed: "20", blocked: "50", limited: "3" }]);
   if (sql.includes("AS avg_latency_ms")) {
     return data([{ total: "200", blocked: "50", rewritten: "2", allowlisted: "3", cached: "80", failed: "1", avg_latency_ms: 12.345 }]);
   }

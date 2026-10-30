@@ -1,4 +1,6 @@
 import { SnapshotError } from "#filter";
+import { alertsApi } from "./features/alerts/api.ts";
+import { runAlerts } from "./features/alerts/store.ts";
 import { backupApi } from "./features/backup/api.ts";
 import { devicesApi } from "./features/devices/api.ts";
 export { DeviceClients } from "./features/devices/client-guard.ts";
@@ -30,6 +32,7 @@ api.route("/profiles", profilesApi);
 api.route("/services", servicesApi);
 api.route("/local-records", recordsApi);
 api.route("/backup", backupApi);
+api.route("/alerts", alertsApi);
 api.all("*", (c) => c.json({ error: "not found" }, 404));
 api.onError((err, c) => {
   if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
@@ -42,8 +45,9 @@ const app = router();
 app.route("/api", api);
 
 const DOH_PATH = /^\/dns-query\/([^/]+)$/;
-/** Must match `triggers.crons` in wrangler.jsonc */
+/** Both must match `triggers.crons` in wrangler.jsonc */
 const LIST_CHECK_CRON = "17 */6 * * *";
+const ALERT_CRON = "*/15 * * * *";
 
 export default {
   fetch(request, env, ctx) {
@@ -59,6 +63,9 @@ export default {
     if (controller.cron === LIST_CHECK_CRON) {
       const { checked, updates } = await checkListUpdates(env);
       console.log("list update check", { checked, updates });
+    } else if (controller.cron === ALERT_CRON) {
+      const result = await runAlerts(env);
+      if (result.sent) console.log("alerts sent", result);
     }
   },
 } satisfies ExportedHandler<Env>;

@@ -169,6 +169,16 @@ ORDER BY count DESC
 LIMIT 200`;
 }
 
+/** Totals for the alert check over the last `minutes` */
+export function alertSql(table: string, minutes: number): string {
+  return `SELECT
+  SUM(${N}) AS total,
+  sumIf(${N}, ${C.source} = 'error') AS failed,
+  sumIf(${N}, ${C.action} = 'block') AS blocked,
+  sumIf(${N}, ${C.source} = 'limited') AS limited
+FROM ${table} WHERE timestamp > NOW() - INTERVAL '${Math.trunc(minutes)}' MINUTE`;
+}
+
 export function logsSql(table: string, f: StatsFilter, limit: number, offset: number): string {
   return `SELECT timestamp, ${C.device} AS device, ${C.deviceName} AS device_name, ${C.name} AS name, ${C.type} AS type,
   ${C.action} AS action, ${C.source} AS source, ${C.rcode} AS rcode, ${C.rule} AS rule, ${C.list} AS list,

@@ -35,9 +35,10 @@
     "bindings": [{ "name": "DEVICE_CLIENTS", "class_name": "DeviceClients" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceClients"] }],
-  // Every 6 hours: ask filter list sources whether they changed, see checkListUpdates in src/worker/features/lists/store.ts.
-  // Each cron counts against the account's limit (5 on the free plan)
-  "triggers": { "crons": ["17 */6 * * *"] },
+  // Every 6 hours: ask filter list sources whether they changed (checkListUpdates in src/worker/features/lists/store.ts).
+  // Every 15 minutes: alert thresholds (src/worker/features/alerts/store.ts). Each cron counts against the account's limit
+  // (5 on the free plan)
+  "triggers": { "crons": ["17 */6 * * *", "*/15 * * * *"] },
   "analytics_engine_datasets": [
     // One data point per DNS query, see src/worker/features/stats/schema.ts
     { "binding": "QUERY_LOG", "dataset": "edgedoh_queries" }

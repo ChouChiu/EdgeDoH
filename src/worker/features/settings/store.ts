@@ -3,7 +3,7 @@ import { isDomain } from "#filter";
 import { getRuntimeConfig, publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 
-import { BLOCKING_MODES, type BlockingMode, MAX_ECH_FORCED_DOMAINS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
+import { BLOCKING_MODES, type BlockingMode, isHttpUrl, MAX_ECH_FORCED_DOMAINS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 
 export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode };
 
@@ -31,6 +31,14 @@ export interface Settings {
   deviceClientWindowMinutes: number;
   /** Lowercase names (and their subdomains) handled as Cloudflare-proxied whatever the upstream answers */
   echForcedDomains: string[];
+  /** https:// URL that receives alert messages as JSON; empty turns alerts off */
+  alertWebhookUrl: string;
+  /** Percent of queries answered with SERVFAIL because every upstream failed; 0 turns this alert off */
+  alertFailurePercent: number;
+  /** Percent of queries blocked; 0 turns this alert off */
+  alertBlockedPercent: number;
+  /** Queries refused by the client limit in one check window; 0 turns this alert off */
+  alertLimitedQueries: number;
 }
 
 const MAX_TTL = 86400;
@@ -39,6 +47,7 @@ const MAX_TIMEOUT_MS = 10_000;
 const MAX_MIN_TTL = 3600;
 const MAX_DEVICE_CLIENTS = 1000;
 const MAX_CLIENT_WINDOW_MINUTES = 7 * 24 * 60;
+const MAX_URL = 2048;
 
 /** Recomputed only when the runtime config object changes */
 let cached: { source: RuntimeConfig; settings: Settings } | undefined;
@@ -72,6 +81,10 @@ export function defaultSettings(env: Env): Settings {
     maxDeviceClients: 0,
     deviceClientWindowMinutes: 60,
     echForcedDomains: [],
+    alertWebhookUrl: "",
+    alertFailurePercent: 5,
+    alertBlockedPercent: 0,
+    alertLimitedQueries: 1,
   };
 }
 
@@ -159,6 +172,17 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
       case "upstreams":
         if (isUpstreamList(value)) valid[key] = value;
         else errors.push(UPSTREAMS_ERROR);
+        break;
+      case "alertWebhookUrl":
+        if (value === "" || (typeof value === "string" && value.length <= MAX_URL && isHttpUrl(value, ["https:"]))) valid[key] = value;
+        else errors.push("alertWebhookUrl must be an https:// URL or empty");
+        break;
+      case "alertFailurePercent":
+      case "alertBlockedPercent":
+        integer(key, value, 0, 100);
+        break;
+      case "alertLimitedQueries":
+        integer(key, value, 0, 100_000);
         break;
       case "echForcedDomains":
         if (isListOf(value, MAX_ECH_FORCED_DOMAINS, (v) => v === v.toLowerCase() && isDomain(v))) valid[key] = value;

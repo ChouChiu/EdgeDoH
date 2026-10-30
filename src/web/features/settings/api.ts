@@ -22,6 +22,10 @@ export interface Settings {
   maxDeviceClients: number;
   deviceClientWindowMinutes: number;
   echForcedDomains: string[];
+  alertWebhookUrl: string;
+  alertFailurePercent: number;
+  alertBlockedPercent: number;
+  alertLimitedQueries: number;
 }
 
 export const SETTINGS_KEY = ["settings"];
@@ -40,6 +44,10 @@ export interface ImportResult {
   /** Downloaded lists to fetch again before the rebuild */
   pending: string[];
 }
+
+export const alertsApi = {
+  test: () => request<{ status: number }>("/alerts/test", { method: "POST" }),
+};
 
 export const backupApi = {
   /** The backup file exactly as the Worker serves it, ready to save */

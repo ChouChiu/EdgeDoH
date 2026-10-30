@@ -18,11 +18,12 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Textarea } from "@/shared/ui/textarea";
 import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
-import { errorMessage } from "@/shared/lib/http";
+import { errorMessage, isHttpUrl } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 import { isDomain } from "#filter";
 import { MAX_ECH_FORCED_DOMAINS } from "#contract";
 import { BackupCard } from "./backup-card";
+import { TestAlertButton } from "./test-alert-button";
 import {
   BLOCKING_MODES,
   type BlockingMode,
@@ -34,8 +35,27 @@ import {
   useSettings,
 } from "./api";
 
-type NumberField = "blockedTtl" | "upstreamTimeoutMs" | "cacheMinTtl" | "cacheMaxTtl" | "maxDeviceClients" | "deviceClientWindowMinutes";
-const NUMBER_FIELDS: NumberField[] = ["blockedTtl", "upstreamTimeoutMs", "cacheMinTtl", "cacheMaxTtl", "maxDeviceClients", "deviceClientWindowMinutes"];
+type NumberField =
+  | "blockedTtl"
+  | "upstreamTimeoutMs"
+  | "cacheMinTtl"
+  | "cacheMaxTtl"
+  | "maxDeviceClients"
+  | "deviceClientWindowMinutes"
+  | "alertFailurePercent"
+  | "alertBlockedPercent"
+  | "alertLimitedQueries";
+const NUMBER_FIELDS: NumberField[] = [
+  "blockedTtl",
+  "upstreamTimeoutMs",
+  "cacheMinTtl",
+  "cacheMaxTtl",
+  "maxDeviceClients",
+  "deviceClientWindowMinutes",
+  "alertFailurePercent",
+  "alertBlockedPercent",
+  "alertLimitedQueries",
+];
 
 type ListField = "upstreams" | "echForcedDomains";
 
@@ -43,7 +63,7 @@ type ListField = "upstreams" | "echForcedDomains";
 type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
 
 /** Page order; the index beside the form lists the same sections */
-const SECTIONS = ["appearance", "backup", "filtering", "upstream", "cache", "abuse", "ech", "queryLog"] as const;
+const SECTIONS = ["appearance", "backup", "filtering", "upstream", "cache", "abuse", "ech", "queryLog", "alerts"] as const;
 type SectionKey = (typeof SECTIONS)[number];
 const sectionId = (key: SectionKey) => `settings-${key}`;
 
@@ -202,6 +222,7 @@ function ServerSettings() {
         : invalidEntry(forcedDomains, isDomain, (value) => t("settings.echInvalidDomain", { value })),
     customIp: draft.blockingMode === "custom_ip" && !draft.blockingIpv4.trim() && !draft.blockingIpv6.trim() ? t("settings.customIpRequired") : undefined,
     cacheRange: Number(draft.cacheMinTtl) > Number(draft.cacheMaxTtl) ? t("settings.cacheRange") : undefined,
+    alertWebhookUrl: draft.alertWebhookUrl.trim() && !isHttpUrl(draft.alertWebhookUrl.trim(), ["https:"]) ? t("settings.alertWebhookInvalid") : undefined,
   };
   const invalid = Object.values(errors).some(Boolean);
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(settings.data));
@@ -344,6 +365,41 @@ function ServerSettings() {
         </Row>
       </Section>
 
+      <Section id={sectionId("alerts")} title={t("settings.alerts")} description={t("settings.alertsDescription")}>
+        <div className="grid gap-2 py-2.5">
+          <Label htmlFor="alertWebhookUrl">{t("settings.alertWebhookUrl")}</Label>
+          <div className="flex gap-2">
+            <Input
+              id="alertWebhookUrl"
+              type="url"
+              inputMode="url"
+              spellCheck={false}
+              autoCapitalize="none"
+              placeholder="https://"
+              aria-invalid={errors.alertWebhookUrl !== undefined}
+              className="font-mono text-sm"
+              value={draft.alertWebhookUrl}
+              onChange={(e) => set("alertWebhookUrl", e.target.value)}
+            />
+            <TestAlertButton disabled={!settings.data.alertWebhookUrl || draft.alertWebhookUrl !== settings.data.alertWebhookUrl} />
+          </div>
+          <p className={errors.alertWebhookUrl ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+            {errors.alertWebhookUrl ?? t("settings.alertWebhookHint")}
+          </p>
+        </div>
+        <fieldset disabled={!draft.alertWebhookUrl.trim()} className="divide-y disabled:opacity-60">
+          <Row label={t("settings.alertFailurePercent")} hint={t("settings.alertPercentHint")} htmlFor="alertFailurePercent">
+            {number("alertFailurePercent", 0, 100)}
+          </Row>
+          <Row label={t("settings.alertBlockedPercent")} hint={t("settings.alertPercentHint")} htmlFor="alertBlockedPercent">
+            {number("alertBlockedPercent", 0, 100)}
+          </Row>
+          <Row label={t("settings.alertLimitedQueries")} hint={t("settings.alertLimitedHint")} htmlFor="alertLimitedQueries">
+            {number("alertLimitedQueries", 0, 100000)}
+          </Row>
+        </fieldset>
+      </Section>
+
       <div className="sticky bottom-keyboard-float z-10 flex items-center justify-end gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
         {dirty && <span className="mr-auto text-xs text-muted-foreground">{t("common.unsaved")}</span>}
         <Button type="button" variant="ghost" disabled={!dirty || save.isPending} onClick={() => setDraft(toDraft(settings.data))}>
@@ -425,6 +481,7 @@ function fromDraft(draft: Draft, lists: Pick<Settings, ListField>): Settings {
     ...draft,
     blockingIpv4: draft.blockingIpv4.trim(),
     blockingIpv6: draft.blockingIpv6.trim(),
+    alertWebhookUrl: draft.alertWebhookUrl.trim(),
     ...lists,
     ...(Object.fromEntries(NUMBER_FIELDS.map((key) => [key, Number(draft[key])])) as Record<NumberField, number>),
   };

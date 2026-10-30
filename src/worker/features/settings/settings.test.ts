@@ -21,6 +21,10 @@ const DEFAULTS = {
   maxDeviceClients: 0,
   deviceClientWindowMinutes: 60,
   echForcedDomains: [],
+  alertWebhookUrl: "",
+  alertFailurePercent: 5,
+  alertBlockedPercent: 0,
+  alertLimitedQueries: 1,
 };
 
 async function patch(settings: Record<string, unknown>) {
