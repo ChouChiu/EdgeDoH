@@ -27,6 +27,9 @@ export interface FilterList {
   fetchedAt: number | null;
   compiledAt: number | null;
   createdAt: number;
+  /** The scheduled check found a newer copy at the source */
+  updateAvailable: boolean;
+  checkedAt: number | null;
 }
 
 export interface CompileReport {
@@ -68,6 +71,7 @@ export const listsApi = {
   update: (id: string, patch: { enabled?: boolean; name?: string; upstreams?: string[] }) => request<FilterList>(`/lists/${id}`, jsonBody("PATCH", patch)),
   setText: (id: string, text: string) => request<FilterList>(`/lists/${id}/text`, { method: "PUT", headers: { "content-type": "text/plain" }, body: text }),
   refresh: (id: string) => request<FilterList>(`/lists/${id}/refresh`, { method: "POST" }),
+  checkUpdates: () => request<{ checked: number; updates: number; uncheckable: number }>("/lists/check-updates", { method: "POST" }),
   remove: (id: string) => request<void>(`/lists/${id}`, { method: "DELETE" }),
   text: (id: string) => request<string>(`/lists/${id}/text`),
   reports: (reports: CompileReport[]) => request<void>("/lists/reports", jsonBody("POST", reports)),

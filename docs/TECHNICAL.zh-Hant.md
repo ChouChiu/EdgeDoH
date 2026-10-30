@@ -114,6 +114,7 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `PATCH /api/lists/:id`：修改清單啟用狀態或名稱。
 - `DELETE /api/lists/:id`：卸載過濾清單。
 - `POST /api/lists/:id/refresh`：重新擷取遠端清單內容。
+- `POST /api/lists/check-updates`：立即偵測遠端清單是否有新版本（每 6 小時由 Cron 觸發器 `17 */6 * * *` 自動執行）。以下載時記錄的 ETag / Last-Modified 發送條件請求，只讀取回應標頭；有變化的清單標記為 `updateAvailable`，重新整理後清除。來源不提供版本資訊的清單計入 `uncheckable`。
 - `GET /api/lists/:id/text`：讀取清單原文。
 - `PUT /api/lists/:id/text`：更新手動清單（如分流網域）內容。
 - `POST /api/lists/reports`：用戶端回報規則編譯診斷報告。

@@ -5,6 +5,7 @@ export { DeviceClients } from "./features/devices/client-guard.ts";
 import { ruleTestApi } from "./features/doh/api.ts";
 import { handleDoh } from "./features/doh/handler.ts";
 import { catalogApi, customRulesApi, listsApi } from "./features/lists/api.ts";
+import { checkListUpdates } from "./features/lists/store.ts";
 import { profilesApi } from "./features/profiles/api.ts";
 import { recordsApi } from "./features/records/api.ts";
 import { rulesApi } from "./features/rules/api.ts";
@@ -41,6 +42,8 @@ const app = router();
 app.route("/api", api);
 
 const DOH_PATH = /^\/dns-query\/([^/]+)$/;
+/** Must match `triggers.crons` in wrangler.jsonc */
+const LIST_CHECK_CRON = "17 */6 * * *";
 
 export default {
   fetch(request, env, ctx) {
@@ -51,5 +54,11 @@ export default {
       return deviceId ? handleDoh(request, env, ctx, deviceId) : new Response("unknown device", { status: 404 });
     }
     return app.fetch(request, env, ctx);
+  },
+  async scheduled(controller, env) {
+    if (controller.cron === LIST_CHECK_CRON) {
+      const { checked, updates } = await checkListUpdates(env);
+      console.log("list update check", { checked, updates });
+    }
   },
 } satisfies ExportedHandler<Env>;

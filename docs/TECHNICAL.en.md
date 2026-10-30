@@ -114,6 +114,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `PATCH /api/lists/:id`: Toggle or rename a list.
 - `DELETE /api/lists/:id`: Uninstall a list.
 - `POST /api/lists/:id/refresh`: Refresh list content from remote URL.
+- `POST /api/lists/check-updates`: Check remote lists for new versions now (the `17 */6 * * *` cron trigger runs it every 6 hours). Sends conditional requests with the ETag / Last-Modified stored at download and reads headers only; changed lists get `updateAvailable`, which a refresh clears. Sources without version information count as `uncheckable`.
 - `GET /api/lists/:id/text`: Read raw list content.
 - `PUT /api/lists/:id/text`: Update inline list content (e.g. split-DNS domains).
 - `POST /api/lists/reports`: Report rule compilation diagnostic metrics.

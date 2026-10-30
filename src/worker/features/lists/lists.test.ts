@@ -1,5 +1,7 @@
+import { createScheduledController } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import worker from "../../index.ts";
 import { api, json } from "../../test/helpers.ts";
 
 describe("catalog", () => {
@@ -97,5 +99,40 @@ describe("route list API", () => {
     await env.DB.prepare("INSERT INTO filter_lists (id, name, url, source, enabled, created_at) VALUES ('plain', 'Plain', '', 'url', 1, 0)").run();
     expect((await api("/lists/plain", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(400);
     expect((await api("/lists/missing", json({ upstreams: ["https://backup.test/dns-query"] }, "PATCH"))).status).toBe(404);
+  });
+});
+
+describe("list update check", () => {
+  const flags = async () =>
+    Object.fromEntries((await (await api("/lists")).json<{ url: string; updateAvailable: boolean }[]>()).map((l) => [new URL(l.url || "inline:x").pathname, l.updateAvailable]));
+
+  it("flags lists whose source changed, using conditional requests", async () => {
+    await env.DB.exec("DELETE FROM filter_lists");
+    for (const path of ["versioned.txt", "static.txt", "plain.txt"]) {
+      expect((await api("/lists", json({ url: `https://lists.test/${path}` }))).status).toBe(201);
+    }
+    const first = await (await api("/lists/check-updates", { method: "POST" })).json();
+    expect(first).toEqual({ checked: 3, updates: 0, uncheckable: 1 });
+    expect(await flags()).toEqual({ "/versioned.txt": false, "/static.txt": false, "/plain.txt": false });
+
+    await fetch("https://lists.test/versioned/bump");
+    expect(await (await api("/lists/check-updates", { method: "POST" })).json()).toEqual({ checked: 3, updates: 1, uncheckable: 1 });
+    expect((await flags())["/versioned.txt"]).toBe(true);
+
+    // Flagged lists are skipped until refreshed; a refresh stores the new ETag and clears the flag
+    expect(await (await api("/lists/check-updates", { method: "POST" })).json()).toEqual({ checked: 2, updates: 0, uncheckable: 1 });
+    const versioned = (await (await api("/lists")).json<{ id: string; url: string }[]>()).find((l) => l.url.endsWith("/versioned.txt"))!;
+    const refreshed = await (await api(`/lists/${versioned.id}/refresh`, { method: "POST" })).json<{ updateAvailable: boolean }>();
+    expect(refreshed.updateAvailable).toBe(false);
+    expect(await (await api(`/lists/${versioned.id}/text`)).text()).toContain("v2.versioned.test");
+    expect(await (await api("/lists/check-updates", { method: "POST" })).json()).toEqual({ checked: 3, updates: 0, uncheckable: 1 });
+  });
+
+  it("runs from the six-hourly cron trigger only", async () => {
+    await env.DB.exec("UPDATE filter_lists SET checked_at = NULL");
+    await worker.scheduled(createScheduledController({ cron: "*/5 * * * *" }), env);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM filter_lists WHERE checked_at IS NOT NULL").first<{ n: number }>())?.n).toBe(0);
+    await worker.scheduled(createScheduledController({ cron: "17 */6 * * *" }), env);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM filter_lists WHERE checked_at IS NULL").first<{ n: number }>())?.n).toBe(0);
   });
 });

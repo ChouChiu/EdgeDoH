@@ -5,6 +5,7 @@ import {
   addInlineList,
   addList,
   CATALOG_URL,
+  checkListUpdates,
   type CompileReport,
   CUSTOM_LIST_ID,
   getList,
@@ -88,6 +89,9 @@ listsApi.post("/", async (c) => {
 
   throw new HttpError(400, "registryId or url is required");
 });
+
+/** Runs the scheduled update check now; refreshing the flagged lists stays a separate step */
+listsApi.post("/check-updates", async (c) => c.json(await checkListUpdates(c.env)));
 
 /** Compile results reported by the browser after uploading a snapshot */
 listsApi.post("/reports", async (c) => {

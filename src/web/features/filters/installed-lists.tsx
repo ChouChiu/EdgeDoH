@@ -1,6 +1,6 @@
 import { MAX_LIST_NAME } from "#contract";
 import { AnimateIcon } from "@animate-ui/react/icons";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink } from "@/shared/components/animate-ui/icons/external-link";
@@ -56,6 +56,7 @@ export function InstalledLists({
     batch(keys, t("filters.step.saving"), (id) => listsApi.update(id, { enabled }), t(enabled ? "filters.reason.enableMany" : "filters.reason.disableMany", { count: keys.length }));
   };
   const refresh = (keys: string[]) => batch(keys, t("filters.step.downloading"), listsApi.refresh, t("filters.reason.updateMany", { count: keys.length }));
+  const outdated = lists?.filter((l) => l.updateAvailable).map((l) => l.id) ?? [];
 
   return (
     <>
@@ -67,6 +68,14 @@ export function InstalledLists({
           </label>
         )}
         <div className="ml-auto flex gap-2">
+          {outdated.length > 0 ? (
+            <Button size="sm" disabled={actions.anyBusy} onClick={() => refresh(outdated)}>
+              <RefreshCw />
+              {t("filters.updateOutdated", { count: outdated.length })}
+            </Button>
+          ) : (
+            lists && lists.some((l) => l.source !== "inline") && <CheckUpdatesButton disabled={actions.anyBusy} />
+          )}
           {lists && lists.length > 0 && (
             <Button variant="outline" size="sm" disabled={actions.anyBusy} onClick={() => refresh(ids)}>
               <RefreshCw />
@@ -118,6 +127,28 @@ export function InstalledLists({
   );
 }
 
+/** Asks every source now instead of waiting for the scheduled check */
+function CheckUpdatesButton({ disabled }: { disabled: boolean }) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const check = useMutation({
+    mutationFn: listsApi.checkUpdates,
+    onSuccess: async ({ updates, uncheckable }) => {
+      await queryClient.invalidateQueries({ queryKey: LISTS_KEY });
+      if (updates === 0) {
+        toast.info(t("filters.upToDate"), uncheckable > 0 ? { description: t("filters.uncheckable", { count: uncheckable }) } : undefined);
+      }
+    },
+    onError: (err) => toast.error(t("filters.checkFailed"), { description: errorMessage(err, t) }),
+  });
+  return (
+    <Button variant="ghost" size="sm" disabled={disabled || check.isPending} onClick={() => check.mutate()}>
+      {check.isPending && <LoaderCircle animate />}
+      {t("filters.checkUpdates")}
+    </Button>
+  );
+}
+
 function InstalledCard({ list, actions, selection }: { list: FilterList; actions: ListActions; selection: Selection }) {
   const { t, fmt } = useI18n();
   const busy = actions.busy[list.id];
@@ -137,6 +168,7 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
           {list.name}
           {list.source === "url" && <Badge variant="outline">{t("filters.customSource")}</Badge>}
           {!list.enabled && <Badge variant="secondary">{t("filters.disabled")}</Badge>}
+          {list.updateAvailable && <Badge variant="info">{t("filters.updateAvailable")}</Badge>}
         </CardTitle>
         <CardDescription className="space-y-1 pl-6">
           {list.meta?.description && (

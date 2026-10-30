@@ -35,6 +35,18 @@ export async function fakeUpstream(request: Request): Promise<Response> {
   }
   if (url.hostname === "lists.test") {
     if (url.pathname === "/missing.txt") return new Response("gone", { status: 404 });
+    // A source with an ETag that answers conditional requests, and a bump endpoint that publishes a new version
+    if (url.pathname === "/versioned/bump") {
+      counters.set("versioned", (counters.get("versioned") ?? 1) + 1);
+      return new Response("ok");
+    }
+    if (url.pathname === "/versioned.txt") {
+      const etag = `"v${counters.get("versioned") ?? 1}"`;
+      if (request.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers: { etag } });
+      return new Response(`||${etag.slice(1, -1)}.versioned.test^\n`, { headers: { etag } });
+    }
+    // Ignores conditional headers but keeps one Last-Modified
+    if (url.pathname === "/static.txt") return new Response("||static.test^\n", { headers: { "last-modified": "Mon, 26 Oct 2026 00:00:00 GMT" } });
     if (url.pathname === "/titled.txt") return new Response(TITLED_LIST);
     // Longer than the header the Worker keeps, so the cut-off path is exercised
     if (url.pathname === "/long.txt") return new Response(`! Title: Long list\n${"! padding\n".repeat(3000)}||from-long.test^\n`);
