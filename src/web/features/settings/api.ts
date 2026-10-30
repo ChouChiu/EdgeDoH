@@ -34,3 +34,19 @@ export const settingsApi = {
 export function useSettings() {
   return useQuery({ queryKey: SETTINGS_KEY, queryFn: settingsApi.get });
 }
+
+export interface ImportResult {
+  devices: number;
+  /** Downloaded lists to fetch again before the rebuild */
+  pending: string[];
+}
+
+export const backupApi = {
+  /** The backup file exactly as the Worker serves it, ready to save */
+  export: async () => {
+    const res = await fetch("/api/backup", { redirect: "manual" });
+    if (!res.ok) await request("/backup");
+    return res.blob();
+  },
+  import: (text: string) => request<ImportResult>("/backup", { method: "PUT", headers: { "content-type": "application/json" }, body: text }),
+};

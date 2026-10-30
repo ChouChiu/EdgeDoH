@@ -1,4 +1,5 @@
 import { SnapshotError } from "#filter";
+import { backupApi } from "./features/backup/api.ts";
 import { devicesApi } from "./features/devices/api.ts";
 export { DeviceClients } from "./features/devices/client-guard.ts";
 import { ruleTestApi } from "./features/doh/api.ts";
@@ -27,6 +28,7 @@ api.route("/settings", settingsApi);
 api.route("/profiles", profilesApi);
 api.route("/services", servicesApi);
 api.route("/local-records", recordsApi);
+api.route("/backup", backupApi);
 api.all("*", (c) => c.json({ error: "not found" }, 404));
 api.onError((err, c) => {
   if (err instanceof HttpError) return c.json({ error: err.message }, err.status);

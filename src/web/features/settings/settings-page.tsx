@@ -22,6 +22,7 @@ import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 import { isDomain } from "#filter";
 import { MAX_ECH_FORCED_DOMAINS } from "#contract";
+import { BackupCard } from "./backup-card";
 import {
   BLOCKING_MODES,
   type BlockingMode,
@@ -42,7 +43,7 @@ type ListField = "upstreams" | "echForcedDomains";
 type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
 
 /** Page order; the index beside the form lists the same sections */
-const SECTIONS = ["appearance", "filtering", "upstream", "cache", "abuse", "ech", "queryLog"] as const;
+const SECTIONS = ["appearance", "backup", "filtering", "upstream", "cache", "abuse", "ech", "queryLog"] as const;
 type SectionKey = (typeof SECTIONS)[number];
 const sectionId = (key: SectionKey) => `settings-${key}`;
 
@@ -53,8 +54,9 @@ export function SettingsPage() {
       <SectionIndex />
       <div className="min-w-0 space-y-4">
         <PageHeader title={t("nav.settings")} />
-        {/* Appearance applies at once; the server form below ends in its own save bar, so nothing may follow that bar */}
+        {/* Appearance and backup apply at once; the server form below ends in its own save bar, so nothing may follow that bar */}
         <AppearanceCard />
+        <BackupCard id={sectionId("backup")} />
         <ServerSettings />
       </div>
     </div>

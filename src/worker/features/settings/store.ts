@@ -52,7 +52,7 @@ export async function getSettings(env: Env): Promise<Settings> {
   return settings;
 }
 
-function defaultSettings(env: Env): Settings {
+export function defaultSettings(env: Env): Settings {
   return {
     filteringEnabled: true,
     blockingMode: isOneOf(BLOCKING_MODES, env.BLOCKING_MODE) ? env.BLOCKING_MODE : "null_ip",

@@ -128,6 +128,8 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `PUT /api/local-records`: Replace all local DNS records.
 - `GET /api/settings`: Read global settings.
 - `PATCH /api/settings`: Update global settings.
+- `GET /api/backup`: Export a configuration backup (settings, profiles, devices, lists, custom rules, local records; device IDs and downloaded list contents are left out).
+- `PUT /api/backup`: Replace the whole configuration with a backup; devices get new IDs. Returns the downloaded lists to fetch again as `pending`.
 
 ### Query Analytics & Logs
 - `GET /api/stats/summary`: Aggregate metrics (totals, block rate, latency).

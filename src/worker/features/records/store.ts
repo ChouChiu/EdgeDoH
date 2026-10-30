@@ -34,7 +34,7 @@ export async function replaceRecords(env: Env, input: unknown): Promise<LocalRec
   return listRecords(env.DB);
 }
 
-function validateRecords(input: unknown): LocalRecord[] {
+export function validateRecords(input: unknown): LocalRecord[] {
   if (!Array.isArray(input) || input.length > MAX_RECORDS) throw new HttpError(400, `expected at most ${MAX_RECORDS} records`);
   const seen = new Set<string>();
   const out: LocalRecord[] = [];

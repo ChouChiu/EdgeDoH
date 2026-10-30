@@ -128,6 +128,8 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `PUT /api/local-records`：全量更新本機 DNS 記錄。
 - `GET /api/settings`：讀取全域設定。
 - `PATCH /api/settings`：更新全域設定。
+- `GET /api/backup`：匯出設定備份（設定、策略組、裝置、清單、自訂規則、本機記錄；不含裝置 ID 與遠端清單內容）。
+- `PUT /api/backup`：以備份全量覆寫設定，裝置取得新 ID；回傳需重新下載的遠端清單 `pending`。
 
 ### 查詢統計與日誌
 - `GET /api/stats/summary`：概覽指標（查詢總量、攔截率、平均耗時等）。
