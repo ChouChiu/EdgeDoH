@@ -1,7 +1,7 @@
 import { buildQuery, RRType } from "#dns";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fillBuckets, parseFilter, statsConfig, summarySql } from "./query.ts";
+import { alertSql, fillBuckets, parseFilter, statsConfig, summarySql, upstreamLatencySql } from "./query.ts";
 import { toDataPoint } from "./record.ts";
 import { HttpError } from "../../shared/http.ts";
 import { api, createDevice, json, postQuery, publishRules } from "../../test/helpers.ts";
@@ -34,6 +34,11 @@ describe("SQL builders", () => {
     expect(sql).toContain("SUM(_sample_interval) AS total");
     expect(sql).toContain("sumIf(_sample_interval, blob3 = 'block') AS blocked");
     expect(sql).toContain("WHERE timestamp > NOW() - INTERVAL '1' HOUR AND index1 = 'abcdefghij' AND blob1 LIKE '%ads%'");
+  });
+
+  it("counts a passed-on SERVFAIL as a failure, not as an answer", () => {
+    expect(alertSql("t", 15)).toContain("sumIf(_sample_interval, blob4 = 'error' OR (blob4 = 'upstream' AND blob5 = 'SERVFAIL')) AS failed");
+    expect(upstreamLatencySql("t", { range: "1h" })).toContain("blob5 != 'SERVFAIL'");
   });
 
   it("fills missing buckets", () => {

@@ -29,6 +29,13 @@ describe("activeAlerts", () => {
     expect(activeAlerts({ total: 10, failed: 10, blocked: 10, limited: 0 }, thresholds)).toEqual([]);
     expect(activeAlerts({ total: 200, failed: 200, blocked: 200, limited: 200 }, { alertFailurePercent: 0, alertBlockedPercent: 0, alertLimitedQueries: 0 })).toEqual([]);
   });
+
+  it("keeps firing rate alerts through a window too quiet to judge", () => {
+    const failures = { kind: "failures" as const, value: 40, threshold: 5 };
+    const limited = { kind: "limited" as const, value: 3, threshold: 2 };
+    expect(activeAlerts({ total: 5, failed: 5, blocked: 0, limited: 0 }, thresholds, [failures, limited])).toEqual([failures]);
+    expect(activeAlerts({ total: 5, failed: 5, blocked: 0, limited: 0 }, { ...thresholds, alertFailurePercent: 0 }, [failures])).toEqual([]);
+  });
 });
 
 describe("runAlerts", () => {

@@ -133,7 +133,7 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `PATCH /api/settings`：更新全域設定。
 - `GET /api/backup`：匯出設定備份（設定、策略組、裝置、清單、自訂規則、本機記錄；不含裝置 ID 與遠端清單內容）。
 - `PUT /api/backup`：以備份全量覆寫設定，裝置取得新 ID；回傳需重新下載的遠端清單 `pending`。
-- `POST /api/alerts/test`：向已儲存的告警 Webhook 傳送測試訊息。告警由 Cron 觸發器 `*/15 * * * *` 每 15 分鐘檢查最近 15 分鐘的統計（上游失敗率、攔截率、防濫用拒絕次數，門檻於設定中調整，查詢少於 20 次時不判斷比例），僅在告警開始與恢復時以 JSON POST 推送（`text` / `content` 為可讀文字，`alerts` 為結構化資料），狀態保存在 KV `alerts:state`。需要已設定查詢統計。
+- `POST /api/alerts/test`：向已儲存的告警 Webhook 傳送測試訊息。告警由 Cron 觸發器 `*/15 * * * *` 每 15 分鐘檢查最近 15 分鐘的統計（上游失敗率、攔截率、防濫用拒絕次數，門檻於設定中調整，失敗指沒有上游應答或所有上游都回傳 SERVFAIL；查詢少於 20 次時比例類告警維持原狀態），僅在告警開始與恢復時以 JSON POST 推送（`text` / `content` 為可讀文字，`alerts` 為結構化資料），狀態保存在 KV `alerts:state`。需要已設定查詢統計。
 
 ### 查詢統計與日誌
 - `GET /api/stats/summary`：概覽指標（查詢總量、攔截率、平均耗時等）。

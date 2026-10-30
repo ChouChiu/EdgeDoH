@@ -149,12 +149,15 @@ ORDER BY count DESC
 LIMIT ${limit}`;
 }
 
-/** Answers and latency per upstream host; rows from before the RTT field have 0 there and are left out */
+/**
+ * Answers and latency per upstream host; rows from before the RTT field have 0 there and are left out.
+ * A SERVFAIL passed on after every upstream said so is already counted as a failure of its host
+ */
 export function upstreamLatencySql(table: string, f: StatsFilter): string {
   return `SELECT ${C.upstream} AS host, SUM(${N}) AS answered,
   SUM(${N} * ${C.upstreamMs}) / SUM(${N}) AS avg_ms,
   quantileExactWeighted(0.95)(${C.upstreamMs}, ${N}) AS p95_ms
-FROM ${table} ${where(f, [`${C.source} != 'cache'`, `${C.upstream} != ''`, `${C.upstreamMs} > 0`])}
+FROM ${table} ${where(f, [`${C.source} != 'cache'`, `${C.upstream} != ''`, `${C.upstreamMs} > 0`, `${C.rcode} != 'SERVFAIL'`])}
 GROUP BY host
 ORDER BY answered DESC
 LIMIT 50`;
@@ -169,11 +172,14 @@ ORDER BY count DESC
 LIMIT 200`;
 }
 
-/** Totals for the alert check over the last `minutes` */
+/**
+ * Totals for the alert check over the last `minutes`. Failures are SERVFAILs from the upstream path:
+ * either no upstream answered, or every one said SERVFAIL and that answer was passed on
+ */
 export function alertSql(table: string, minutes: number): string {
   return `SELECT
   SUM(${N}) AS total,
-  sumIf(${N}, ${C.source} = 'error') AS failed,
+  sumIf(${N}, ${C.source} = 'error' OR (${C.source} = 'upstream' AND ${C.rcode} = 'SERVFAIL')) AS failed,
   sumIf(${N}, ${C.action} = 'block') AS blocked,
   sumIf(${N}, ${C.source} = 'limited') AS limited
 FROM ${table} WHERE timestamp > NOW() - INTERVAL '${Math.trunc(minutes)}' MINUTE`;

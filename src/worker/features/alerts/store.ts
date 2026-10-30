@@ -28,10 +28,21 @@ export interface Alert {
   threshold: number;
 }
 
-export function activeAlerts(t: Totals, s: Pick<Settings, "alertFailurePercent" | "alertBlockedPercent" | "alertLimitedQueries">): Alert[] {
+/**
+ * Alerts firing for this window. A window too quiet to judge a percentage keeps the rate alerts of
+ * `previous` as they were, so a lasting problem is not reported as resolved overnight
+ */
+export function activeAlerts(
+  t: Totals,
+  s: Pick<Settings, "alertFailurePercent" | "alertBlockedPercent" | "alertLimitedQueries">,
+  previous: Alert[] = [],
+): Alert[] {
   const out: Alert[] = [];
   const percent = (n: number) => Math.round((n / t.total) * 1000) / 10;
-  if (t.total >= MIN_QUERIES) {
+  if (t.total < MIN_QUERIES) {
+    const enabled = { failures: s.alertFailurePercent > 0, blocked: s.alertBlockedPercent > 0, limited: false };
+    out.push(...previous.filter((p) => enabled[p.kind]));
+  } else {
     if (s.alertFailurePercent > 0 && percent(t.failed) >= s.alertFailurePercent) {
       out.push({ kind: "failures", value: percent(t.failed), threshold: s.alertFailurePercent });
     }
@@ -103,9 +114,8 @@ export async function runAlerts(env: Env, now = Date.now()): Promise<{ firing: A
   }
   const [row] = await runSql<Record<string, number | string>>(config, alertSql(config.dataset, ALERT_WINDOW_MINUTES));
   const totals: Totals = { total: Number(row?.total ?? 0), failed: Number(row?.failed ?? 0), blocked: Number(row?.blocked ?? 0), limited: Number(row?.limited ?? 0) };
-  const active = activeAlerts(totals, settings);
-
   const previous = (await env.RULES.get<Alert[]>(STATE_KEY, "json")) ?? [];
+  const active = activeAlerts(totals, settings, previous);
   const firing = active.filter((a) => !previous.some((p) => p.kind === a.kind));
   const resolved = previous.filter((p) => !active.some((a) => a.kind === p.kind));
   if (firing.length === 0 && resolved.length === 0) return { firing: active.map((a) => a.kind), sent: false };
