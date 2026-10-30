@@ -1,4 +1,4 @@
-import { isDomain } from "#filter";
+import { type DeviceRule, isDomain } from "#filter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { type Device, type DeviceOverride, deviceRulesKey, devicesApi, MAX_DEVICE_RULES } from "./api";
+import { type Device, DEVICE_RULES_KEY, type DeviceOverride, devicesApi, MAX_DEVICE_RULES } from "./api";
 
 const normalise = (name: string) => name.trim().toLowerCase().replace(/\.$/, "");
 
@@ -24,7 +24,11 @@ export function DeviceRulesDialog({ device }: { device: Device }) {
   const queryClient = useQueryClient();
   const { rebuild } = useRebuild();
   const [open, setOpen] = useState(false);
-  const saved = useQuery({ queryKey: deviceRulesKey(device.id), queryFn: () => devicesApi.rules(device.id) });
+  const saved = useQuery({
+    queryKey: DEVICE_RULES_KEY,
+    queryFn: devicesApi.allRules,
+    select: (all) => all.filter((r) => r.deviceId === device.id).map(({ name, action }) => ({ name, action })),
+  });
   const [draft, setDraft] = useState<DeviceOverride[] | null>(null);
   const [name, setName] = useState("");
   const [action, setAction] = useState<DeviceOverride["action"]>("block");
@@ -33,7 +37,10 @@ export function DeviceRulesDialog({ device }: { device: Device }) {
   const save = useMutation({
     mutationFn: () => devicesApi.setRules(device.id, rules),
     onSuccess: async (stored) => {
-      queryClient.setQueryData(deviceRulesKey(device.id), stored);
+      queryClient.setQueryData(DEVICE_RULES_KEY, (all: DeviceRule[] | undefined) => [
+        ...(all ?? []).filter((r) => r.deviceId !== device.id),
+        ...stored.map((r) => ({ ...r, deviceId: device.id })),
+      ]);
       setOpen(false);
       await rebuild(t("devices.rulesReason", { name: device.name }));
     },
@@ -42,6 +49,8 @@ export function DeviceRulesDialog({ device }: { device: Device }) {
 
   const candidate = normalise(name);
   const invalid = candidate !== "" && !isDomain(candidate);
+  // Re-adding a listed name only changes its action, so the cap does not apply
+  const full = rules.length >= MAX_DEVICE_RULES && !rules.some((r) => r.name === candidate);
   const add = (e: FormEvent) => {
     e.preventDefault();
     if (!candidate || invalid) return;
@@ -88,7 +97,7 @@ export function DeviceRulesDialog({ device }: { device: Device }) {
               <SelectItem value="allow">{t("devices.rulesAllow")}</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="submit" variant="outline" size="icon" disabled={!candidate || invalid || rules.length >= MAX_DEVICE_RULES} aria-label={t("devices.rulesAdd")}>
+          <Button type="submit" variant="outline" size="icon" disabled={!candidate || invalid || full} aria-label={t("devices.rulesAdd")}>
             <Plus />
           </Button>
         </form>

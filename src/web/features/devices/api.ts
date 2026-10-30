@@ -38,13 +38,13 @@ export const devicesApi = {
   clients: (id: string) => request<DeviceClients>(`/devices/${id}/clients`),
   resetClients: (id: string) => request<void>(`/devices/${id}/clients`, { method: "DELETE" }),
   mobileconfigUrl: (id: string) => `/api/devices/${id}/mobileconfig`,
-  rules: (id: string) => request<DeviceOverride[]>(`/devices/${id}/rules`),
   setRules: (id: string, rules: DeviceOverride[]) => request<DeviceOverride[]>(`/devices/${id}/rules`, jsonBody("PUT", rules)),
-  /** Every device's overrides, for the snapshot compiler */
+  /** Every device's overrides, for the snapshot compiler and the device cards */
   allRules: () => request<DeviceRule[]>("/devices/rules"),
 };
 
-export const deviceRulesKey = (id: string) => ["devices", id, "rules"];
+/** One query for every card, instead of a request per device */
+export const DEVICE_RULES_KEY = ["devices", "rules"];
 
 export const DEVICES_KEY = ["devices"];
 
