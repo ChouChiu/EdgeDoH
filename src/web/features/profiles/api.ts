@@ -21,6 +21,8 @@ export interface ProfileConfig {
   lists: string[] | null;
   services: string[];
   scheduledServices: string[];
+  /** Profile used instead while the schedule runs */
+  scheduledProfile: string | null;
   schedule: Schedule | null;
   safeSearch: boolean;
   youtubeRestricted: boolean;

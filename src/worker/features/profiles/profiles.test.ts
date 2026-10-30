@@ -121,6 +121,25 @@ describe("per-profile filtering", () => {
     expect(await firstAddress(device, "tiktok.test")).toMatch(/^192\.0\.2\./);
   });
 
+  it("switches devices to the scheduled profile inside the window", async () => {
+    await publishAll();
+    const strict = await createProfile({ name: "Strict", services: ["tiktok"] });
+    const schedule = { timezone: "UTC", days: [0, 1, 2, 3, 4, 5, 6], start: 0, end: 1440 };
+    const { id } = await createProfile({ name: "Day", filtering: false, schedule, scheduledProfile: strict.id });
+    expect((await api(`/profiles/${id}`, json({ scheduledProfile: id }, "PATCH"))).status).toBe(400);
+    expect((await api(`/profiles/${id}`, json({ scheduledProfile: "missing1" }, "PATCH"))).status).toBe(400);
+    const device = await deviceWith(id);
+    expect(await firstAddress(device, "tiktok.test")).toBe("0.0.0.0");
+    const tested = await (await api("/rules/test", json({ name: "tiktok.test", deviceId: device }))).json<{ verdict: { action: string } }>();
+    expect(tested.verdict.action).toBe("block");
+
+    await api(`/profiles/${id}`, json({ schedule: { ...schedule, days: [] } }, "PATCH"));
+    expect(await firstAddress(device, "tiktok.test")).toMatch(/^192\.0\.2\./);
+    await api(`/profiles/${id}`, json({ schedule }, "PATCH"));
+    await api(`/profiles/${strict.id}`, { method: "DELETE" });
+    expect(await firstAddress(device, "tiktok.test")).toMatch(/^192\.0\.2\./);
+  });
+
   it("enforces safe search and YouTube restricted mode with CNAMEs", async () => {
     const { id } = await createProfile({ safeSearch: true, youtubeRestricted: true });
     const device = await deviceWith(id);

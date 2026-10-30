@@ -18,7 +18,7 @@ import { HttpError, readBody } from "../../shared/http.ts";
 import { getRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { admitClient } from "../devices/client-guard.ts";
 import { type Device, findDevice } from "../devices/store.ts";
-import { getProfile, type Profile, SERVICE_LIST_PREFIX } from "../profiles/store.ts";
+import { getProfile, type Profile, profileAt, SERVICE_LIST_PREFIX } from "../profiles/store.ts";
 import { getSettings, type Settings } from "../settings/store.ts";
 import { clientLabel } from "../stats/client.ts";
 import { recordQuery } from "../stats/record.ts";
@@ -55,7 +55,8 @@ export async function handleDoh(request: Request, env: Env, ctx: WaitUntil, devi
     return dnsResponse(buildResponse(query, raw, { rcode: Rcode.FORMERR }));
   }
 
-  const [settings, profile, runtime] = await Promise.all([getSettings(env), getProfile(env, device.profileId), getRuntimeConfig(env)]);
+  const [settings, assigned, runtime] = await Promise.all([getSettings(env), getProfile(env, device.profileId), getRuntimeConfig(env)]);
+  const profile = await profileAt(env, assigned, started);
   const question = query.questions[0]!;
   const name = question.name.toLowerCase();
   const ip = request.headers.get("cf-connecting-ip");

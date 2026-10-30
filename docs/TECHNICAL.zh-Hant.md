@@ -24,7 +24,7 @@ EdgeDoH 運行於 Cloudflare Workers 無伺服器環境中，結合邊緣儲存�
 
 Worker 處理 DoH 請求（`/dns-query/:deviceId`）遵循以下執行順序：
 
-1. **裝置識別與設定讀取**：從 URL 路徑取得裝置 ID。優先讀取 KV 中的執行階段設定快取（`config:v2`），未命中時回退查詢 D1 資料庫；裝置不存在時直接回應 HTTP 404。
+1. **裝置識別與設定讀取**：從 URL 路徑取得裝置 ID。優先讀取 KV 中的執行階段設定快取（`config:v2`），未命中時回退查詢 D1 資料庫；裝置不存在時直接回應 HTTP 404。若裝置的策略組設定了定時規則並指定「時段內改用策略組」，時段內整體改用目標策略組（只跟隨一層；目標被刪除時保持原策略組）。
 2. **來源網路頻控 (Client Guard)**：若策略啟用了網路數限制，提取用戶端 IP（`cf-connecting-ip`）。已驗證的網路在 Worker 記憶體中快取 5 分鐘；新網路由裝置對應的 Durable Object 驗證滑動區間內的活躍網路總數。超出上限回傳 `REFUSED`（標記 `source: limited`）。若 Durable Object 異常，預設放行以確保高可用性。
 3. **本機記錄與 IPv6 降級**：
    - 優先比對面板中維護的本機 A / AAAA / CNAME 記錄，命中即在邊緣合成 DNS 回應回傳。

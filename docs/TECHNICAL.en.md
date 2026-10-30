@@ -24,7 +24,7 @@ EdgeDoH runs in the Cloudflare Workers serverless runtime, utilizing edge storag
 
 The DoH handler (`/dns-query/:deviceId`) evaluates incoming DNS queries through the following pipeline:
 
-1. **Device Identification & Config Resolution**: Extracts the device ID from the URL path. Reads runtime configuration from the KV mirror (`config:v2`), falling back to D1. Returns HTTP 404 if the device does not exist.
+1. **Device Identification & Config Resolution**: Extracts the device ID from the URL path. Reads runtime configuration from the KV mirror (`config:v2`), falling back to D1. Returns HTTP 404 if the device does not exist. If the device's profile has a schedule with a scheduled profile, that profile applies as a whole during the window (one level only; a deleted target keeps the original profile).
 2. **Client Guard**: If network limits are active, checks the client IP (`cf-connecting-ip`). Admitted networks are cached in Worker isolate memory for 5 minutes. New networks query the device's Durable Object to verify total active networks within the sliding window. Exceeded networks receive `REFUSED` (`source: limited`). If the Durable Object encounters an error, queries are permitted by default to ensure DNS availability.
 3. **Local Records & IPv6 Degradation**:
    - Matches local A / AAAA / CNAME records maintained in the dashboard; answers immediately on hit.

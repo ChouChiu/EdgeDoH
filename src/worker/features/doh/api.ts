@@ -2,7 +2,7 @@ import { RRType } from "#dns";
 import { HttpError, readJsonObject, router } from "../../shared/http.ts";
 import { getRuntimeConfig } from "../../shared/runtime-config.ts";
 import { findDevice } from "../devices/store.ts";
-import { getProfile } from "../profiles/store.ts";
+import { getProfile, profileAt } from "../profiles/store.ts";
 import { getSettings } from "../settings/store.ts";
 import { decide } from "./decide.ts";
 
@@ -17,7 +17,9 @@ ruleTestApi.post("/", async (c) => {
   const type = RRType[typeName as keyof typeof RRType];
 
   const device = typeof body.deviceId === "string" ? await findDevice(c.env, body.deviceId) : null;
-  const [settings, profile, runtime] = await Promise.all([getSettings(c.env), getProfile(c.env, device?.profileId ?? null), getRuntimeConfig(c.env)]);
+  const [settings, assigned, runtime] = await Promise.all([getSettings(c.env), getProfile(c.env, device?.profileId ?? null), getRuntimeConfig(c.env)]);
+  const now = Date.now();
+  const profile = await profileAt(c.env, assigned, now);
   const name = body.name.trim().toLowerCase().replace(/\.$/, "");
   const { verdict } = await decide(c.env, {
     device: device ?? { id: "", name: "", pausedUntil: null },
@@ -27,7 +29,7 @@ ruleTestApi.post("/", async (c) => {
     name,
     type,
     ip: null,
-    now: Date.now(),
+    now,
   });
   return c.json({ name, type: typeName, verdict });
 });

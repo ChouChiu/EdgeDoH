@@ -29,6 +29,7 @@ import { ScheduleEditor } from "./schedule-editor";
 import { ServicePicker } from "./service-picker";
 
 const INHERIT = "inherit";
+const NO_SWITCH = "none";
 
 /** Form state: upstreams are edited one per line; empty means the global ones */
 type Draft = Omit<Profile, "id" | "upstreams"> & { upstreams: string };
@@ -50,6 +51,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const lists = useLists();
+  const profiles = useProfiles();
   const { rebuild } = useRebuild();
   const [draft, setDraft] = useState<Draft>(() => toDraft(profile));
   useEffect(() => setDraft(toDraft(profile)), [profile]);
@@ -92,6 +94,9 @@ function ProfileForm({ profile }: { profile: Profile }) {
     { id: CUSTOM_LIST_ID, name: t("rebuild.customList") },
   ];
   const chosen = new Set(draft.lists ?? []);
+  const otherProfiles = (profiles.data ?? []).filter((p) => p.id !== profile.id);
+  // A target deleted since it was chosen is ignored by the Worker, so it reads as no switch
+  const switchTarget = otherProfiles.some((p) => p.id === draft.scheduledProfile) ? draft.scheduledProfile : null;
 
   return (
     <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-4">
@@ -168,18 +173,36 @@ function ProfileForm({ profile }: { profile: Profile }) {
         </fieldset>
       </Section>
 
+      {/* A switch works even while this profile filters nothing: an open daytime profile can turn strict at night */}
       <Section title={t("profiles.schedule")} description={t("profiles.scheduleDescription")}>
-        <fieldset disabled={!draft.filtering} className="divide-y disabled:opacity-60">
+        <div className="divide-y">
           <Row label={t("profiles.scheduleEnabled")} htmlFor="schedule-on" inline>
             <Switch id="schedule-on" checked={draft.schedule !== null} onCheckedChange={(v) => set("schedule", v ? newSchedule() : null)} />
           </Row>
           {draft.schedule && (
             <>
               <ScheduleEditor value={draft.schedule} onChange={(v) => set("schedule", v)} />
-              <ServicePicker id="scheduled-services" value={draft.scheduledServices} onChange={(v) => set("scheduledServices", v)} />
+              <Row label={t("profiles.scheduleSwitch")} hint={t("profiles.scheduleSwitchHint")} htmlFor="schedule-profile">
+                <Select value={switchTarget ?? NO_SWITCH} onValueChange={(v) => set("scheduledProfile", v === NO_SWITCH ? null : v)}>
+                  <SelectTrigger id="schedule-profile" className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_SWITCH}>{t("profiles.scheduleNoSwitch")}</SelectItem>
+                    {otherProfiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {profileName(p, t)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Row>
+              <fieldset disabled={!draft.filtering || switchTarget !== null} className="disabled:opacity-60">
+                <ServicePicker id="scheduled-services" value={draft.scheduledServices} onChange={(v) => set("scheduledServices", v)} />
+              </fieldset>
             </>
           )}
-        </fieldset>
+        </div>
       </Section>
 
       <Section title={t("profiles.resolution")}>

@@ -4,6 +4,7 @@ import { getSettings } from "../settings/store.ts";
 import {
   createProfile,
   deleteProfile,
+  findProfile,
   listProfiles,
   MAX_PROFILE_NAME,
   PROFILE_DEFAULTS,
@@ -21,11 +22,13 @@ profilesApi.get("/", async (c) => c.json(await listProfiles(c.env.DB)));
 
 profilesApi.post("/", async (c) => {
   const { name, config } = await readProfile(c, true);
+  await checkScheduledProfile(c, config, undefined);
   return c.json(await createProfile(c.env, name!, config), 201);
 });
 
 profilesApi.patch("/:id", async (c) => {
   const { name, config } = await readProfile(c, false);
+  await checkScheduledProfile(c, config, c.req.param("id"));
   const profile = await updateProfile(c.env, c.req.param("id"), name, config);
   if (!profile) throw new HttpError(404, NOT_FOUND);
   return c.json(profile);
@@ -35,6 +38,14 @@ profilesApi.delete("/:id", async (c) => {
   if (!(await deleteProfile(c.env, c.req.param("id")))) throw new HttpError(404, NOT_FOUND);
   return c.body(null, 204);
 });
+
+/** The scheduled profile must exist and be another one */
+async function checkScheduledProfile(c: Context<AppEnv>, config: Partial<ProfileConfig>, self: string | undefined): Promise<void> {
+  const target = config.scheduledProfile;
+  if (target === undefined || target === null) return;
+  if (target === self) throw new HttpError(400, "a profile cannot switch to itself");
+  if (!(await findProfile(c.env.DB, target))) throw new HttpError(400, "scheduledProfile does not exist");
+}
 
 async function readProfile(c: Context<AppEnv>, create: boolean): Promise<{ name: string | undefined; config: Partial<ProfileConfig> }> {
   const { name, ...rest } = await readJsonObject(c);

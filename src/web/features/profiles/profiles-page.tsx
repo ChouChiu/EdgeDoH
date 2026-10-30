@@ -39,7 +39,7 @@ export function ProfilesPage() {
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </CardAction>
                 <div className="col-span-full flex flex-wrap gap-1 pt-1">
-                  {summary(p, t).map((label) => (
+                  {summary(p, t, profiles.data).map((label) => (
                     <Badge key={label} variant="secondary">
                       {label}
                     </Badge>
@@ -55,9 +55,11 @@ export function ProfilesPage() {
 }
 
 /** The features a profile turns on, as short badges */
-function summary(p: Profile, t: Translate): string[] {
-  if (!p.filtering) return [t("profiles.filteringOff")];
-  const out: string[] = [];
+function summary(p: Profile, t: Translate, all: Profile[]): string[] {
+  const target = p.schedule && all.find((x) => x.id === p.scheduledProfile);
+  const switching = target ? [t("profiles.switchesTo", { name: profileName(target, t) })] : [];
+  if (!p.filtering) return [t("profiles.filteringOff"), ...switching];
+  const out: string[] = [...switching];
   if (p.lists !== null) out.push(t("profiles.listsCount", { count: p.lists.length }));
   if (p.services.length > 0) out.push(t("profiles.servicesCount", { count: p.services.length }));
   if (p.schedule && p.scheduledServices.length > 0) out.push(t("profiles.schedule"));

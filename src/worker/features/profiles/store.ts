@@ -28,6 +28,8 @@ export interface ProfileConfig {
   services: string[];
   /** Blocked only while `schedule` is active */
   scheduledServices: string[];
+  /** Profile the devices use instead while `schedule` is active; that profile's own switch is not followed */
+  scheduledProfile: string | null;
   schedule: Schedule | null;
   safeSearch: boolean;
   youtubeRestricted: boolean;
@@ -57,6 +59,7 @@ export const PROFILE_DEFAULTS: ProfileConfig = {
   lists: null,
   services: [],
   scheduledServices: [],
+  scheduledProfile: null,
   schedule: null,
   safeSearch: false,
   youtubeRestricted: false,
@@ -81,13 +84,27 @@ let cached: { source: object; profiles: Map<string, Profile> } | undefined;
 
 /** The device's profile, or the default one when it has none or it was deleted */
 export async function getProfile(env: Env, id: string | null): Promise<Profile> {
+  const profiles = await runtimeProfiles(env);
+  return profiles.get(id ?? DEFAULT_PROFILE_ID) ?? profiles.get(DEFAULT_PROFILE_ID) ?? defaultProfile();
+}
+
+/**
+ * The profile in force at `now`: the scheduled profile while `profile`'s schedule runs, otherwise
+ * `profile` itself, which is also kept when the scheduled one was deleted
+ */
+export async function profileAt(env: Env, profile: Profile, now: number): Promise<Profile> {
+  if (profile.scheduledProfile === null || profile.schedule === null || !scheduleActive(profile.schedule, now)) return profile;
+  return (await runtimeProfiles(env)).get(profile.scheduledProfile) ?? profile;
+}
+
+async function runtimeProfiles(env: Env): Promise<Map<string, Profile>> {
   const config = await getRuntimeConfig(env);
   if (cached?.source !== config.profiles) {
     const profiles = new Map<string, Profile>();
     for (const [pid, raw] of Object.entries(config.profiles)) profiles.set(pid, fromStored(pid, raw));
     cached = { source: config.profiles, profiles };
   }
-  return cached.profiles.get(id ?? DEFAULT_PROFILE_ID) ?? cached.profiles.get(DEFAULT_PROFILE_ID) ?? defaultProfile();
+  return cached.profiles;
 }
 
 export async function listProfiles(db: D1Database): Promise<Profile[]> {
@@ -177,6 +194,10 @@ export function validateProfile(input: Record<string, unknown>): { valid: Partia
       case "blockingMode":
         if (value === null || isOneOf(BLOCKING_MODES, value)) valid[key] = value;
         else errors.push(`blockingMode must be null or one of ${BLOCKING_MODES.join(", ")}`);
+        break;
+      case "scheduledProfile":
+        if (value === null || (typeof value === "string" && ID_RE.test(value))) valid[key] = value;
+        else errors.push("scheduledProfile must be null or a profile ID");
         break;
       case "upstreams":
         if (value === null || isUpstreamList(value)) valid[key] = value;
