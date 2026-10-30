@@ -18,6 +18,7 @@ import { useI18n } from "@/shared/i18n";
 import { isStatsNotConfigured, parseRange, type Range, RANGES, statsApi, type TopKind } from "./api";
 import { StatsNotConfigured } from "./stats-not-configured";
 import { TopCard, TopList } from "./top-card";
+import { UpstreamHealth } from "./upstream-health";
 
 /** What most visits come for stays in view; the rest share one tabbed card and load only when picked */
 const PRIMARY_TOP: TopKind[] = ["domains", "blocked", "devices"];
@@ -187,7 +188,8 @@ function MoreRankings({ range, enabled }: { range: Range; enabled: boolean }) {
         </div>
         {MORE_TOP.map((k) => (
           <TabsContent key={k} value={k} className="space-y-0.5 px-(--card-spacing)">
-            <TopList kind={k} range={range} enabled={enabled} />
+            {/* Upstreams get their health table instead of a plain ranking */}
+            {k === "upstreams" ? <UpstreamHealth range={range} enabled={enabled} /> : <TopList kind={k} range={range} enabled={enabled} />}
           </TabsContent>
         ))}
       </Tabs>

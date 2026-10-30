@@ -71,6 +71,8 @@ interface Answer {
   source: AnswerSource;
   ttl?: number | undefined;
   upstream?: string | undefined;
+  upstreamMs?: number | undefined;
+  failed?: string[] | undefined;
 }
 
 interface Answered extends Answer {
@@ -149,7 +151,8 @@ function logQuery(env: Env, request: Request, q: { device: Device; name: string;
     source: result.source,
     response: result.response,
     ...("rule" in verdict && { rule: verdict.rule }),
-    ...(result.upstream && { upstream: result.upstream }),
+    ...(result.upstream && { upstream: result.upstream, upstreamMs: result.upstreamMs ?? 0 }),
+    ...(result.failed && result.failed.length > 0 && { failed: result.failed }),
     ...(cf?.colo && { colo: cf.colo }),
     client: clientLabel(request.headers.get("user-agent")),
     ...(service && { service }),

@@ -58,7 +58,19 @@ export interface LogEntry {
   sampleInterval: number;
 }
 
+export interface UpstreamHealth {
+  host: string;
+  answered: number;
+  /** Errors, timeouts and SERVFAIL answers */
+  failed: number;
+  failureRate: number;
+  /** null when no answer with a measured round trip was logged */
+  avgMs: number | null;
+  p95Ms: number | null;
+}
+
 export const statsApi = {
+  upstreams: (q: StatsQuery) => request<{ items: UpstreamHealth[] }>(`/stats/upstreams${queryString({ ...q })}`),
   summary: (q: StatsQuery) => request<Summary & { range: Range }>(`/stats/summary${queryString({ ...q })}`),
   timeseries: (q: StatsQuery) => request<{ points: TimeseriesPoint[] }>(`/stats/timeseries${queryString({ ...q })}`),
   top: (kind: TopKind, q: StatsQuery, limit = 10) => request<{ items: TopItem[] }>(`/stats/top/${kind}${queryString({ ...q, limit })}`),

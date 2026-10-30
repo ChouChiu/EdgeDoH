@@ -12,6 +12,10 @@ export interface QueryEvent {
   response: Uint8Array;
   rule?: MatchedRule;
   upstream?: string;
+  /** Round trip of the upstream that answered */
+  upstreamMs?: number;
+  /** Upstreams that failed before the answer, or all of them when none answered */
+  failed?: string[];
   colo?: string;
   client?: string;
   service?: string;
@@ -43,8 +47,9 @@ export function toDataPoint(event: QueryEvent): AnalyticsEngineDataPoint {
       event.client ?? "",
       event.service ?? "",
       event.network ?? "",
+      event.failed?.map((u) => new URL(u).host).join(",") ?? "",
     ].map((b) => b.slice(0, MAX_BLOB)),
-    doubles: [event.latencyMs, event.rule?.line ?? 0, event.asn ?? 0],
+    doubles: [event.latencyMs, event.rule?.line ?? 0, event.asn ?? 0, event.upstreamMs ?? 0],
   };
 }
 

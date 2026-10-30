@@ -98,6 +98,11 @@ export const zhHans = {
   "overview.top.rules": "高频命中规则",
   "overview.top.lists": "拦截最多的列表",
   "overview.top.upstreams": "上游解析分布",
+  "overview.upstream.host": "上游",
+  "overview.upstream.answered": "应答",
+  "overview.upstream.failureRate": "失败率",
+  "overview.upstream.avg": "平均耗时",
+  "overview.upstream.failedCount": "失败 {count} 次（错误、超时或 SERVFAIL）",
   "overview.viewLogs": "查看详细日志",
 
   "logs.description": "按时间倒序展示，记录保留 3 个月；高流量下 Analytics Engine 可能会进行采样统计",

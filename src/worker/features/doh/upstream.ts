@@ -42,6 +42,10 @@ export interface Resolution {
   source: "cache" | "upstream" | "error";
   /** Upstream that produced the answer, when it came from the network */
   upstream?: string;
+  /** Round trip of that upstream's answer */
+  upstreamMs?: number;
+  /** Upstreams asked before the answer that failed, timed out or said SERVFAIL; all of them on `error` */
+  failed?: string[];
   /** Seconds the response may be cached by the client, when cacheable */
   ttl?: number;
 }
@@ -65,9 +69,10 @@ export async function resolve(
   }
 
   const sent = subnet ? withClientSubnet(raw, query, subnet) : raw;
-  const result = config.mode === "parallel" ? await fetchParallel(sent, config) : await fetchUpstreams(sent, config);
+  const failed: string[] = [];
+  const result = config.mode === "parallel" ? await fetchParallel(sent, config, failed) : await fetchUpstreams(sent, config, failed);
   if (!result) {
-    return { response: buildResponse(query, raw, { rcode: Rcode.SERVFAIL }), source: "error" };
+    return { response: buildResponse(query, raw, { rcode: Rcode.SERVFAIL }), source: "error", failed };
   }
 
   let body = result.body;
@@ -76,39 +81,52 @@ export async function resolve(
     body = clampTtls(body, result.message, cache.minTtl, cache.maxTtl);
     ctx.waitUntil(writeCache(key, body, ttl));
   }
-  return { response: withId(body, query.header.id), source: "upstream", upstream: result.upstream, ttl };
+  return {
+    response: withId(body, query.header.id),
+    source: "upstream",
+    upstream: result.upstream,
+    upstreamMs: result.ms,
+    ...(failed.length > 0 && { failed }),
+    ttl,
+  };
 }
 
 interface UpstreamAnswer {
   body: Uint8Array;
   message: Message;
   upstream: string;
+  ms: number;
 }
 
-async function fetchUpstreams(raw: Uint8Array, config: UpstreamConfig): Promise<UpstreamAnswer | undefined> {
+/** `failed` collects the upstreams that gave no usable answer, in the order they were asked */
+async function fetchUpstreams(raw: Uint8Array, config: UpstreamConfig, failed: string[]): Promise<UpstreamAnswer | undefined> {
   // ID 0 is recommended for DoH so identical queries are byte-identical (RFC 8484 section 4.1)
   const body = withId(raw, 0);
   let fallback: UpstreamAnswer | undefined;
 
   for (const upstream of config.upstreams) {
     const answer = await fetchUpstream(upstream, body, config.timeoutMs);
-    if (!answer) continue;
-    if (rcodeOf(answer.message.header) !== Rcode.SERVFAIL) return answer;
-    fallback ??= answer;
+    if (answer && rcodeOf(answer.message.header) !== Rcode.SERVFAIL) return answer;
+    failed.push(upstream);
+    if (answer) fallback ??= answer;
   }
   return fallback;
 }
 
 /** Asks every upstream at once; the first answer that is not SERVFAIL wins and the rest are cancelled */
-async function fetchParallel(raw: Uint8Array, config: UpstreamConfig): Promise<UpstreamAnswer | undefined> {
+/** Upstreams cancelled after the winner answered are not counted as failed */
+async function fetchParallel(raw: Uint8Array, config: UpstreamConfig, failed: string[]): Promise<UpstreamAnswer | undefined> {
   const body = withId(raw, 0);
   const losers = new AbortController();
   const attempts = config.upstreams.map((upstream) => fetchUpstream(upstream, body, config.timeoutMs, losers.signal));
   try {
     const winner = await Promise.any(
-      attempts.map(async (attempt) => {
+      attempts.map(async (attempt, i) => {
         const answer = await attempt;
-        if (!answer || rcodeOf(answer.message.header) === Rcode.SERVFAIL) throw new Error("no usable answer");
+        if (!answer || rcodeOf(answer.message.header) === Rcode.SERVFAIL) {
+          if (!losers.signal.aborted) failed.push(config.upstreams[i]!);
+          throw new Error("no usable answer");
+        }
         return answer;
       }),
     );
@@ -122,6 +140,7 @@ async function fetchParallel(raw: Uint8Array, config: UpstreamConfig): Promise<U
 
 async function fetchUpstream(upstream: string, body: Uint8Array, timeoutMs: number, cancel?: AbortSignal): Promise<UpstreamAnswer | undefined> {
   try {
+    const started = Date.now();
     const timeout = AbortSignal.timeout(timeoutMs);
     const res = await fetch(upstream, {
       method: "POST",
@@ -139,7 +158,7 @@ async function fetchUpstream(upstream: string, body: Uint8Array, timeoutMs: numb
       console.warn("upstream returned a mismatched message", { upstream });
       return undefined;
     }
-    return { body: answer, message, upstream };
+    return { body: answer, message, upstream, ms: Date.now() - started };
   } catch (err) {
     if (!cancel?.aborted) console.warn("upstream failed", { upstream, error: String(err) });
     return undefined;

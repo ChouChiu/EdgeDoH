@@ -99,6 +99,11 @@ export const zhHant: Messages = {
   "overview.top.rules": "高頻命中規則",
   "overview.top.lists": "攔截最多的清單",
   "overview.top.upstreams": "上游解析分佈",
+  "overview.upstream.host": "上游",
+  "overview.upstream.answered": "應答",
+  "overview.upstream.failureRate": "失敗率",
+  "overview.upstream.avg": "平均耗時",
+  "overview.upstream.failedCount": "失敗 {count} 次（錯誤、逾時或 SERVFAIL）",
   "overview.viewLogs": "檢視詳細日誌",
 
   "logs.description": "依時間倒序呈現，記錄保留 3 個月；高流量時 Analytics Engine 可能進行取樣統計",

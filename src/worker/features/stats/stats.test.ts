@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fillBuckets, parseFilter, statsConfig, summarySql } from "./query.ts";
 import { toDataPoint } from "./record.ts";
 import { HttpError } from "../../shared/http.ts";
-import { api, createDevice, postQuery, publishRules } from "../../test/helpers.ts";
+import { api, createDevice, json, postQuery, publishRules } from "../../test/helpers.ts";
 
 describe("parseFilter", () => {
   const parse = (qs: string) => parseFilter(new URLSearchParams(qs));
@@ -100,6 +100,18 @@ describe("stats API", () => {
     });
   });
 
+  it("merges answers and failures per upstream host", async () => {
+    const res = await api("/stats/upstreams?range=7d");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      range: "7d",
+      items: [
+        { host: "dns.google", answered: 90, failed: 10, avgMs: 23.5, p95Ms: 80, failureRate: 0.1 },
+        { host: "down.test", answered: 0, failed: 7, avgMs: null, p95Ms: null, failureRate: 1 },
+      ],
+    });
+  });
+
   it("maps bad input and upstream failures to HTTP errors", async () => {
     expect((await api("/stats/summary?range=forever")).status).toBe(400);
     const failed = await api("/stats/summary?search=fail_please");
@@ -125,6 +137,8 @@ describe("query recording", () => {
         response,
         rule: { text: "||ads.example^", listId: "adguard", line: 9 },
         upstream: "https://dns.google/dns-query",
+        upstreamMs: 12,
+        failed: ["https://down.test/dns-query", "https://other.test:8443/dns-query"],
         colo: "HKG",
         client: "Firefox",
         service: "tiktok",
@@ -148,8 +162,9 @@ describe("query recording", () => {
         "Firefox",
         "tiktok",
         "Example ISP",
+        "down.test,other.test:8443",
       ],
-      doubles: [3, 9, 64500],
+      doubles: [3, 9, 64500, 12],
     });
   });
 
@@ -164,8 +179,20 @@ describe("query recording", () => {
 
     expect(write).toHaveBeenCalledTimes(2);
     const [blocked, clean] = write.mock.calls.map(([point]) => point!);
-    expect(blocked).toMatchObject({ indexes: [id], blobs: ["stats-blocked.example", "A", "block", "local", "NOERROR", "||stats-blocked.example^", "test", "", "", "Laptop", "", "", ""] });
+    expect(blocked).toMatchObject({ indexes: [id], blobs: ["stats-blocked.example", "A", "block", "local", "NOERROR", "||stats-blocked.example^", "test", "", "", "Laptop", "", "", "", ""] });
     expect(clean?.blobs?.slice(0, 4)).toEqual(["stats-clean.example", "A", "pass", "upstream"]);
     expect(clean?.blobs?.[7]).toBe("primary.test");
+    expect(clean?.doubles?.[3]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("records the upstreams that failed before the answer", async () => {
+    const write = vi.spyOn(env.QUERY_LOG, "writeDataPoint");
+    const profile = await (await api("/profiles", json({ name: "Flaky", upstreams: ["https://down.test/dns-query", "https://backup.test/dns-query"] }))).json<{ id: string }>();
+    const { id } = await createDevice("Flaky");
+    await api(`/devices/${id}`, json({ profileId: profile.id }, "PATCH"));
+    expect((await postQuery(id, buildQuery("stats-flaky.example", RRType.A))).status).toBe(200);
+    const point = write.mock.calls.at(-1)![0]!;
+    expect(point.blobs?.[7]).toBe("backup.test");
+    expect(point.blobs?.[13]).toBe("down.test");
   });
 });

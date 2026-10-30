@@ -11,6 +11,8 @@ import {
   TOP_KINDS,
   type TopKind,
   topSql,
+  upstreamFailuresSql,
+  upstreamLatencySql,
 } from "./query.ts";
 
 export const statsApi = router();
@@ -64,6 +66,28 @@ statsApi.get("/top/:kind", async (c) => {
   });
 });
 
+/** Per upstream host: answers, failures (errors, timeouts and SERVFAIL) and answer round trip */
+statsApi.get("/upstreams", async (c) => {
+  const config = statsConfig(c.env);
+  const filter = parseFilter(new URL(c.req.url).searchParams);
+  const [latency, failures] = await Promise.all([
+    runSql<{ host: string; answered: Numeric; avg_ms: Numeric; p95_ms: Numeric }>(config, upstreamLatencySql(config.dataset, filter)),
+    runSql<{ failed: string; count: Numeric }>(config, upstreamFailuresSql(config.dataset, filter)),
+  ]);
+  const hosts = new Map<string, { host: string; answered: number; failed: number; avgMs: number | null; p95Ms: number | null }>();
+  const entry = (host: string) => {
+    let e = hosts.get(host);
+    if (!e) hosts.set(host, (e = { host, answered: 0, failed: 0, avgMs: null, p95Ms: null }));
+    return e;
+  };
+  for (const r of latency) Object.assign(entry(r.host), { answered: num(r.answered), avgMs: round(num(r.avg_ms)), p95Ms: round(num(r.p95_ms)) });
+  for (const r of failures) for (const host of new Set(r.failed.split(",").filter(Boolean))) entry(host).failed += num(r.count);
+  const items = [...hosts.values()]
+    .map((e) => ({ ...e, failureRate: e.answered + e.failed > 0 ? e.failed / (e.answered + e.failed) : 0 }))
+    .sort((a, b) => b.answered + b.failed - (a.answered + a.failed));
+  return c.json({ range: filter.range, items });
+});
+
 statsApi.get("/logs", async (c) => {
   const config = statsConfig(c.env);
   const params = new URL(c.req.url).searchParams;
@@ -94,6 +118,8 @@ statsApi.get("/logs", async (c) => {
     })),
   });
 });
+
+const round = (v: number) => Math.round(v * 10) / 10;
 
 function clampInt(value: string | null, fallback: number, min: number, max: number): number {
   const n = Number(value);

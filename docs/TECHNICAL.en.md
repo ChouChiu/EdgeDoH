@@ -43,7 +43,7 @@ The DoH handler (`/dns-query/:deviceId`) evaluates incoming DNS queries through 
    - Clamps valid responses (NOERROR and NXDOMAIN) to configured Min/Max TTL limits per RFC 2308, writes them to edge Cache API, and responds to the client.
    - If profile enables DNS rebinding protection, A / AAAA answers (cache hits included) holding a loopback, RFC 1918, link-local or IPv6 ULA address get the blocking response and are logged as blocked (list `rebinding`). Split-DNS queries and allowlisted names are not checked; carrier-grade NAT (`100.64.0.0/10`) is out of scope.
    - If profile enables ECH or HTTP/3 injection, injects `alpn=h3` and public Cloudflare ECH parameters into HTTPS records of Cloudflare-proxied sites (skipped for queries with DO bit).
-8. **Async Telemetry Ingestion**: If logging is enabled, writes a structured telemetry point to Analytics Engine via `ctx.waitUntil` (device, domain, type, action, latency, upstream, data center, client type, source network). Client IP addresses are not stored, and response time is not delayed.
+8. **Async Telemetry Ingestion**: If logging is enabled, writes a structured telemetry point to Analytics Engine via `ctx.waitUntil` (device, domain, type, action, latency, upstream and its round trip, failed upstreams, data center, client type, source network). Client IP addresses are not stored, and response time is not delayed.
 
 ## Rule Engine & Snapshot Sharding
 
@@ -138,6 +138,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `GET /api/stats/timeseries`: Time-series query volume and block counts.
 - `GET /api/stats/top/:kind`: Top ranking stats (`domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`, `services`, `clients`, `networks`).
 - `GET /api/stats/logs`: Paginated query log with filters (`limit`, `offset`, `search`, `range`, `device`, `action`, `source`).
+- `GET /api/stats/upstreams`: Per upstream: answers, failures and failure rate (errors, timeouts or SERVFAIL), average and P95 round trip; takes `range`.
 
 ## CLI Tool
 

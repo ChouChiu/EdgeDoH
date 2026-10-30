@@ -149,6 +149,26 @@ ORDER BY count DESC
 LIMIT ${limit}`;
 }
 
+/** Answers and latency per upstream host; rows from before the RTT field have 0 there and are left out */
+export function upstreamLatencySql(table: string, f: StatsFilter): string {
+  return `SELECT ${C.upstream} AS host, SUM(${N}) AS answered,
+  SUM(${N} * ${C.upstreamMs}) / SUM(${N}) AS avg_ms,
+  quantileExactWeighted(0.95)(${C.upstreamMs}, ${N}) AS p95_ms
+FROM ${table} ${where(f, [`${C.source} != 'cache'`, `${C.upstream} != ''`, `${C.upstreamMs} > 0`])}
+GROUP BY host
+ORDER BY answered DESC
+LIMIT 50`;
+}
+
+/** Failure counts per combination of failed hosts; the API splits the combinations */
+export function upstreamFailuresSql(table: string, f: StatsFilter): string {
+  return `SELECT ${C.failedUpstreams} AS failed, SUM(${N}) AS count
+FROM ${table} ${where(f, [`${C.failedUpstreams} != ''`])}
+GROUP BY failed
+ORDER BY count DESC
+LIMIT 200`;
+}
+
 export function logsSql(table: string, f: StatsFilter, limit: number, offset: number): string {
   return `SELECT timestamp, ${C.device} AS device, ${C.deviceName} AS device_name, ${C.name} AS name, ${C.type} AS type,
   ${C.action} AS action, ${C.source} AS source, ${C.rcode} AS rcode, ${C.rule} AS rule, ${C.list} AS list,

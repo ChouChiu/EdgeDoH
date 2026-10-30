@@ -43,7 +43,7 @@ Worker 处理 DoH 请求（`/dns-query/:deviceId`）遵循以下执行顺序：
    - 对有效响应（NOERROR 与 NXDOMAIN）根据 RFC 2308 及配置的 Min/Max TTL 范围进行收紧，写入边缘 Cache API 并响应客户端。
    - 若策略组启用了「DNS 重绑定防护」，A / AAAA 应答（含缓存命中）中出现本机、RFC 1918、链路本地或 IPv6 ULA 地址时，按拦截响应模式回应，日志记为拦截（列表 `rebinding`）。分流查询与白名单规则命中的域名不检查；运营商级 NAT 段 `100.64.0.0/10` 不在范围内。
    - 若策略组启用了 ECH 或 HTTP/3 注入，且目标域名解析至 Cloudflare 代理节点，向 HTTPS 记录注入 `alpn=h3` 与公共 ECH 参数（带 DO 位的 DNSSEC 查询不注入）。
-8. **异步指标上报**：若启用日志，通过 `ctx.waitUntil` 向 Analytics Engine 写入结构化查询数据点（设备、域名、类型、动作、延迟、上游、数据中心、客户端类型、来源网络），不包含客户端具体 IP，不增加响应延迟。
+8. **异步指标上报**：若启用日志，通过 `ctx.waitUntil` 向 Analytics Engine 写入结构化查询数据点（设备、域名、类型、动作、延迟、上游及其往返耗时、失败的上游、数据中心、客户端类型、来源网络），不包含客户端具体 IP，不增加响应延迟。
 
 ## 规则引擎与快照分片
 
@@ -138,6 +138,7 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免�
 - `GET /api/stats/timeseries`：时序趋势数据。
 - `GET /api/stats/top/:kind`：排行榜数据（支持 `domains`, `blocked`, `devices`, `rules`, `lists`, `upstreams`, `services`, `clients`, `networks`）。
 - `GET /api/stats/logs`：分页查询日志记录，支持 `limit`, `offset`, `search`, `range`, `device`, `action`, `source` 等过滤参数。
+- `GET /api/stats/upstreams`：各上游的应答数、失败次数与失败率（错误、超时或 SERVFAIL）、平均与 P95 往返耗时，支持 `range`。
 
 ## CLI 命令行工具
 

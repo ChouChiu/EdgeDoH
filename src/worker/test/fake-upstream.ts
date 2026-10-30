@@ -135,6 +135,14 @@ async function fakeSqlApi(request: Request): Promise<Response> {
     const hour = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
     return data([{ bucket: hour, total: "7", blocked: "2" }]);
   }
+  if (sql.includes("AS p95_ms")) return data([{ host: "dns.google", answered: "90", avg_ms: 23.456, p95_ms: 80 }]);
+  if (sql.includes("GROUP BY failed")) {
+    return data([
+      { failed: "down.test", count: "4" },
+      { failed: "down.test,dns.google", count: "3" },
+      { failed: "dns.google", count: "7" },
+    ]);
+  }
   if (sql.includes("GROUP BY key")) {
     const label = sql.includes("argMax") ? { label: "Phone" } : {};
     return data([{ key: "doubleclick.net", ...label, count: "42" }]);

@@ -103,6 +103,11 @@ export const enUS: Messages = {
   "overview.top.rules": "Top triggered rules",
   "overview.top.lists": "Top blocking lists",
   "overview.top.upstreams": "Upstream distribution",
+  "overview.upstream.host": "Upstream",
+  "overview.upstream.answered": "Answers",
+  "overview.upstream.failureRate": "Failure rate",
+  "overview.upstream.avg": "Average",
+  "overview.upstream.failedCount": { one: "{count} failure (error, timeout or SERVFAIL)", other: "{count} failures (errors, timeouts or SERVFAIL)" },
   "overview.viewLogs": "View detailed log",
 
   "logs.description": "Sorted by time descending, retained for 3 months; sampled by Analytics Engine under high load",
