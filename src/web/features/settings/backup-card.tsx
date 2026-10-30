@@ -32,7 +32,8 @@ export function BackupCard({ id }: { id: string }) {
       link.href = URL.createObjectURL(blob);
       link.download = `edgedoh-backup-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
-      URL.revokeObjectURL(link.href);
+      // Firefox and Safari start the download after this tick and fail if the URL is already gone
+      setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
     } catch (err) {
       toast.error(t("backup.exportFailed"), { description: errorMessage(err, t) });
     } finally {
