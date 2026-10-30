@@ -1,4 +1,5 @@
-import { type FilterSource, publishSnapshot } from "#filter";
+import { deviceRulesText, type FilterSource, publishSnapshot } from "#filter";
+import { DEVICE_RULES_LIST_ID, devicesApi } from "@/features/devices/api";
 import { listsApi } from "@/features/filters/api";
 import { servicesApi, SERVICE_LIST_PREFIX } from "@/features/profiles/api";
 import { CUSTOM_LIST_ID, rulesApi } from "@/features/rules/api";
@@ -21,6 +22,8 @@ export interface RebuildResult {
 export interface RebuildOptions {
   /** Display name of the custom rules source inside the snapshot */
   customListName: string;
+  /** Display name of the per-device overrides source */
+  deviceRulesName: string;
   onStage?: (stage: RebuildStage) => void;
 }
 
@@ -38,14 +41,20 @@ export function rebuildSnapshot(options: RebuildOptions): Promise<RebuildResult>
   return run;
 }
 
-async function doRebuild({ customListName, onStage }: RebuildOptions): Promise<RebuildResult> {
+async function doRebuild({ customListName, deviceRulesName, onStage }: RebuildOptions): Promise<RebuildResult> {
   onStage?.("download");
   // The catalog lives on GitHub Pages, which is not always reachable; filter lists must still compile without it
-  const [lists, custom, services] = await Promise.all([listsApi.list(), rulesApi.get(), servicesApi.list({ fresh: true }).catch(() => null)]);
+  const [lists, custom, deviceRules, services] = await Promise.all([
+    listsApi.list(),
+    rulesApi.get(),
+    devicesApi.allRules(),
+    servicesApi.list({ fresh: true }).catch(() => null),
+  ]);
   const enabled = lists.filter((l) => l.enabled);
   const texts = await Promise.all(enabled.map((l) => listsApi.text(l.id)));
   const sources: FilterSource[] = enabled.map((l, i) => ({ id: l.id, name: l.name, text: texts[i]!, kind: l.kind }));
   if (custom.trim()) sources.push({ id: CUSTOM_LIST_ID, name: customListName, text: custom });
+  if (deviceRules.length > 0) sources.push({ id: DEVICE_RULES_LIST_ID, name: deviceRulesName, text: deviceRulesText(deviceRules) });
   for (const s of services ?? []) sources.push({ id: SERVICE_LIST_PREFIX + s.id, name: s.name, text: s.rules.join("\n"), kind: "service" });
 
   if (sources.length === 0) {

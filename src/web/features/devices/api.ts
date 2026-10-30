@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import type { DeviceRuleAction } from "#contract";
+import type { DeviceRule } from "#filter";
 import { jsonBody, request } from "@/shared/lib/http";
 
 export interface Device {
@@ -19,7 +21,12 @@ export interface DeviceClients {
   clients: { client: string; lastSeen: number }[];
 }
 
-export { MAX_DEVICE_NAME } from "#contract";
+export { DEVICE_RULES_LIST_ID, MAX_DEVICE_NAME, MAX_DEVICE_RULES } from "#contract";
+
+export interface DeviceOverride {
+  name: string;
+  action: DeviceRuleAction;
+}
 
 export const devicesApi = {
   list: () => request<Device[]>("/devices"),
@@ -31,7 +38,13 @@ export const devicesApi = {
   clients: (id: string) => request<DeviceClients>(`/devices/${id}/clients`),
   resetClients: (id: string) => request<void>(`/devices/${id}/clients`, { method: "DELETE" }),
   mobileconfigUrl: (id: string) => `/api/devices/${id}/mobileconfig`,
+  rules: (id: string) => request<DeviceOverride[]>(`/devices/${id}/rules`),
+  setRules: (id: string, rules: DeviceOverride[]) => request<DeviceOverride[]>(`/devices/${id}/rules`, jsonBody("PUT", rules)),
+  /** Every device's overrides, for the snapshot compiler */
+  allRules: () => request<DeviceRule[]>("/devices/rules"),
 };
+
+export const deviceRulesKey = (id: string) => ["devices", id, "rules"];
 
 export const DEVICES_KEY = ["devices"];
 

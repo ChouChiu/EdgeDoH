@@ -1,3 +1,6 @@
+import { DEVICE_RULE_ACTIONS, type DeviceRuleAction, MAX_DEVICE_RULES } from "#contract";
+import { type DeviceRule, isDomain } from "#filter";
+import { HttpError } from "../../shared/http.ts";
 import { getRuntimeConfig } from "../../shared/runtime-config.ts";
 
 export interface Device {
@@ -116,4 +119,38 @@ export async function deleteDevice(db: D1Database, id: string): Promise<boolean>
 
 function fromRow(row: DeviceRow): Device {
   return { id: row.id, name: row.name, createdAt: row.created_at, profileId: row.profile_id, pausedUntil: row.paused_until };
+}
+
+export interface StoredDeviceRule {
+  name: string;
+  action: DeviceRuleAction;
+}
+
+/** Every device's overrides, for the snapshot compiler; one device's when `deviceId` is given */
+export async function listDeviceRules(db: D1Database, deviceId?: string): Promise<DeviceRule[]> {
+  const sql = "SELECT device_id AS deviceId, name, action FROM device_rules";
+  const stmt = deviceId ? db.prepare(`${sql} WHERE device_id = ? ORDER BY name`).bind(deviceId) : db.prepare(`${sql} ORDER BY device_id, name`);
+  return (await stmt.all<DeviceRule>()).results;
+}
+
+/** Replaces the device's whole set: the dashboard edits it as one table */
+export async function replaceDeviceRules(db: D1Database, deviceId: string, rules: StoredDeviceRule[]): Promise<void> {
+  await db.batch([
+    db.prepare("DELETE FROM device_rules WHERE device_id = ?").bind(deviceId),
+    ...rules.map((r) => db.prepare("INSERT INTO device_rules (device_id, name, action) VALUES (?, ?, ?)").bind(deviceId, r.name, r.action)),
+  ]);
+}
+
+/** Lowercase, deduplicated by name (the last action wins); throws a message naming the first bad entry */
+export function validateDeviceRules(input: unknown): StoredDeviceRule[] {
+  if (!Array.isArray(input) || input.length > MAX_DEVICE_RULES) throw new HttpError(400, `expected at most ${MAX_DEVICE_RULES} rules`);
+  const byName = new Map<string, DeviceRuleAction>();
+  input.forEach((item: unknown, i) => {
+    const r = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+    const name = typeof r.name === "string" ? r.name.trim().toLowerCase().replace(/\.$/, "") : "";
+    if (!isDomain(name)) throw new HttpError(400, `rule ${i + 1}: invalid domain`);
+    if (!(DEVICE_RULE_ACTIONS as readonly unknown[]).includes(r.action)) throw new HttpError(400, `rule ${i + 1}: action must be allow or block`);
+    byName.set(name, r.action as DeviceRuleAction);
+  });
+  return [...byName].map(([name, action]) => ({ name, action }));
 }

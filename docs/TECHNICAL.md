@@ -96,6 +96,8 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免�
 - `GET /api/devices/:id/clients`：获取设备当前活跃来源网络。
 - `DELETE /api/devices/:id/clients`：重置设备来源网络记录。
 - `POST /api/devices/:id/pause`：暂停设备过滤，参数 `{ minutes }`（0 表示恢复）。
+- `GET /api/devices/:id/rules` / `PUT /api/devices/:id/rules`：读取或全量替换设备规则 `[{ name, action }]`（`allow` / `block`，含子域名）。规则编译为始终生效的 `device-rules` 列表（`$client=<设备ID>,important`），不受策略组列表选择影响，保存后需重建快照。
+- `GET /api/devices/rules`：全部设备规则，供快照编译使用。
 
 ### 规则快照与测试
 - `GET /api/rules`：获取当前生效快照元数据。

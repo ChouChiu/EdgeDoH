@@ -1,5 +1,6 @@
 /**
- * Whole-configuration backup: settings, profiles, devices, lists, custom rules and local records.
+ * Whole-configuration backup: settings, profiles, devices with their overrides, lists, custom rules
+ * and local records.
  * Device IDs are left out because they are the DoH endpoints themselves; an import gives every
  * device a new one. Downloaded lists travel as URLs only and are fetched again after an import
  */
@@ -7,7 +8,7 @@ import { isHttpUrl, MAX_DEVICE_NAME, MAX_PROFILE_NAME } from "#contract";
 import { HttpError } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
 import { isUpstreamList } from "../../shared/validate.ts";
-import { newDeviceId } from "../devices/store.ts";
+import { newDeviceId, type StoredDeviceRule, validateDeviceRules } from "../devices/store.ts";
 import {
   CUSTOM_LIST_ID,
   getLists,
@@ -52,7 +53,8 @@ export interface Backup {
   settings: Record<string, unknown>;
   /** `config` holds only the fields changed from the defaults, as stored */
   profiles: { id: string; name: string; config: Record<string, unknown> }[];
-  devices: { name: string; profileId: string | null }[];
+  /** `rules` are the device's overrides, which follow it to its new ID */
+  devices: { name: string; profileId: string | null; rules: StoredDeviceRule[] }[];
   lists: BackupList[];
   customRules: string;
   records: LocalRecord[];
@@ -67,11 +69,18 @@ export interface ImportResult {
 type Row = Record<string, string | number | null>;
 
 export async function exportBackup(env: Env): Promise<Backup> {
-  const [settings, profiles, devices] = await env.DB.batch<Row>([
+  const [settings, profiles, devices, deviceRules] = await env.DB.batch<Row>([
     env.DB.prepare("SELECT key, value FROM settings ORDER BY key"),
     env.DB.prepare("SELECT id, name, config FROM profiles ORDER BY created_at, name"),
-    env.DB.prepare("SELECT name, profile_id FROM devices ORDER BY created_at"),
+    env.DB.prepare("SELECT id, name, profile_id FROM devices ORDER BY created_at"),
+    env.DB.prepare("SELECT device_id, name, action FROM device_rules ORDER BY name"),
   ]);
+  const rules = new Map<string, StoredDeviceRule[]>();
+  for (const r of deviceRules!.results) {
+    const list = rules.get(String(r.device_id)) ?? [];
+    list.push({ name: String(r.name), action: r.action as StoredDeviceRule["action"] });
+    rules.set(String(r.device_id), list);
+  }
   const [lists, records, customRules] = await Promise.all([getLists(env.DB), listRecords(env.DB), env.RULES.get(textKey(CUSTOM_LIST_ID))]);
   const inline = await Promise.all(lists.map((l) => (l.source === "inline" ? env.RULES.get(textKey(l.id)) : null)));
   return {
@@ -80,7 +89,11 @@ export async function exportBackup(env: Env): Promise<Backup> {
     exportedAt: Date.now(),
     settings: Object.fromEntries(settings!.results.map((r) => [String(r.key), JSON.parse(String(r.value)) as unknown])),
     profiles: profiles!.results.map((r) => ({ id: String(r.id), name: String(r.name), config: JSON.parse(String(r.config)) as Record<string, unknown> })),
-    devices: devices!.results.map((r) => ({ name: String(r.name), profileId: r.profile_id === null ? null : String(r.profile_id) })),
+    devices: devices!.results.map((r) => ({
+      name: String(r.name),
+      profileId: r.profile_id === null ? null : String(r.profile_id),
+      rules: rules.get(String(r.id)) ?? [],
+    })),
     lists: lists.map((l, i) => ({
       id: l.id,
       name: l.name,
@@ -116,9 +129,13 @@ export async function importBackup(env: Env, input: unknown): Promise<ImportResu
     ...profiles.map((p, i) =>
       DB.prepare("INSERT INTO profiles (id, name, config, created_at) VALUES (?, ?, ?, ?)").bind(p.id, p.name, JSON.stringify(p.config), now + i),
     ),
-    ...backup.devices.map((d, i) =>
-      DB.prepare("INSERT INTO devices (id, name, created_at, profile_id) VALUES (?, ?, ?, ?)").bind(newDeviceId(), d.name, now + i, d.profileId),
-    ),
+    ...backup.devices.flatMap((d, i) => {
+      const id = newDeviceId();
+      return [
+        DB.prepare("INSERT INTO devices (id, name, created_at, profile_id) VALUES (?, ?, ?, ?)").bind(id, d.name, now + i, d.profileId),
+        ...d.rules.map((r) => DB.prepare("INSERT INTO device_rules (device_id, name, action) VALUES (?, ?, ?)").bind(id, r.name, r.action)),
+      ];
+    }),
     ...backup.lists.map((l, i) =>
       DB.prepare(
         "INSERT INTO filter_lists (id, name, url, source, kind, upstreams, registry_id, enabled, fetched_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -178,7 +195,13 @@ function validateBackup(env: Env, input: unknown): Backup {
     const name = trimmedName(d.name, MAX_DEVICE_NAME) ?? (errors.push(`device ${i + 1}: name must be 1-${MAX_DEVICE_NAME} characters`), "");
     const profileId = d.profileId === null || d.profileId === DEFAULT_PROFILE_ID ? null : d.profileId;
     if (profileId !== null && (typeof profileId !== "string" || !profileIds.has(profileId))) errors.push(`device ${name}: unknown profile`);
-    return { name, profileId: profileId as string | null };
+    let rules: StoredDeviceRule[] = [];
+    try {
+      rules = validateDeviceRules(d.rules ?? []);
+    } catch (err) {
+      errors.push(`device ${name}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    return { name, profileId: profileId as string | null, rules };
   });
 
   const lists = array(b.lists, "lists", MAX_LISTS).map((item, i) => validateList(object(item, `list ${i + 1}`), i, errors));

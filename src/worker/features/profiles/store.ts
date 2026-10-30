@@ -4,7 +4,7 @@ import { getRuntimeConfig, publishRuntimeConfig } from "../../shared/runtime-con
 import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 import { BLOCKING_MODES, type BlockingMode } from "../settings/store.ts";
 
-import { DEFAULT_PROFILE_ID, SERVICE_LIST_PREFIX } from "#contract";
+import { DEFAULT_PROFILE_ID, DEVICE_RULES_LIST_ID, SERVICE_LIST_PREFIX } from "#contract";
 
 export { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, SERVICE_LIST_PREFIX } from "#contract";
 const MAX_IDS = 1000;
@@ -272,7 +272,8 @@ export function activeLists(snapshot: Snapshot, profile: Profile, scheduled: boo
   const mask = new Uint8Array(snapshot.meta.lists.length);
   snapshot.meta.lists.forEach((list, i) => {
     const kind = list.kind ?? "filter";
-    if (kind === "filter") mask[i] = !lists || lists.has(list.id) ? 1 : 0;
+    // Device overrides target single devices through `$client`, so no profile can switch them off
+    if (kind === "filter") mask[i] = !lists || lists.has(list.id) || list.id === DEVICE_RULES_LIST_ID ? 1 : 0;
     else if (kind === "service") mask[i] = services.has(list.id) ? 1 : 0;
   });
   slots[slot] = mask;

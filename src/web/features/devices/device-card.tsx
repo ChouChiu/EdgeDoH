@@ -22,6 +22,7 @@ import { copyText } from "@/shared/lib/clipboard";
 import { errorMessage } from "@/shared/lib/http";
 import { DEVICES_KEY, type Device, devicesApi } from "./api";
 import { DeviceNameDialog } from "./device-name-dialog";
+import { DeviceRulesDialog } from "./device-rules-dialog";
 
 export function DeviceCard({ device }: { device: Device }) {
   const { t, fmt } = useI18n();
@@ -77,6 +78,7 @@ export function DeviceCard({ device }: { device: Device }) {
         <div className="flex flex-wrap items-center gap-2">
           <ProfileSelect device={device} />
           <PauseButton device={device} />
+          <DeviceRulesDialog device={device} />
           <Button variant="outline" size="sm" asChild>
             <a href={devicesApi.mobileconfigUrl(device.id)} download>
               <Download />

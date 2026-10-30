@@ -96,6 +96,8 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `GET /api/devices/:id/clients`：取得裝置目前活躍來源網路。
 - `DELETE /api/devices/:id/clients`：重設裝置來源網路記錄。
 - `POST /api/devices/:id/pause`：暫停裝置過濾，參數 `{ minutes }`（0 表示恢復）。
+- `GET /api/devices/:id/rules` / `PUT /api/devices/:id/rules`：讀取或全量取代裝置規則 `[{ name, action }]`（`allow` / `block`，含子網域）。規則編譯為始終生效的 `device-rules` 清單（`$client=<裝置ID>,important`），不受策略組清單選擇影響，儲存後需重建快照。
+- `GET /api/devices/rules`：全部裝置規則，供快照編譯使用。
 
 ### 規則快照與測試
 - `GET /api/rules`：取得目前生效快照元資料。

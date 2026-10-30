@@ -20,6 +20,7 @@ export function RebuildProvider({ children }: { children: ReactNode }) {
       try {
         const result = await rebuildSnapshot({
           customListName: t("rebuild.customList"),
+          deviceRulesName: t("devices.rules"),
           onStage: (s) => {
             setStage(s);
             toast.loading(progress(s), { id });

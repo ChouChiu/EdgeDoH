@@ -7,3 +7,4 @@ export * from "./compile.ts";
 export * from "./match.ts";
 export * from "./publish.ts";
 export * from "./header.ts";
+export * from "./device-rules.ts";

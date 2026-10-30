@@ -17,6 +17,7 @@ describe("backup", () => {
     const profile = await (await api("/profiles", json({ name: "Kids", safeSearch: true }))).json<{ id: string }>();
     const phone = await createDevice("Phone");
     await api(`/devices/${phone.id}`, json({ profileId: profile.id }, "PATCH"));
+    await api(`/devices/${phone.id}/rules`, json([{ name: "Ads.Example.", action: "allow" }], "PUT"));
     await createDevice("Laptop");
     await api("/lists", json({ url: "https://lists.test/mine.txt", name: "Mine" }));
     await api("/lists", json({ text: "||inline.test^\n", name: "Inline" }));
@@ -27,8 +28,8 @@ describe("backup", () => {
     const backup = await exported();
     expect(JSON.stringify(backup)).not.toContain(phone.id);
     expect(backup.devices).toEqual([
-      { name: "Phone", profileId: profile.id },
-      { name: "Laptop", profileId: null },
+      { name: "Phone", profileId: profile.id, rules: [{ name: "ads.example", action: "allow" }] },
+      { name: "Laptop", profileId: null, rules: [] },
     ]);
     expect(backup.settings).toMatchObject({ blockedTtl: 42 });
     expect(backup.profiles.find((p) => p.id === profile.id)).toEqual({ id: profile.id, name: "Kids", config: { safeSearch: true } });
@@ -50,6 +51,7 @@ describe("backup", () => {
       ["Laptop", null],
     ]);
     expect(devices.map((d) => d.id)).not.toContain(phone.id);
+    expect(await (await api(`/devices/${devices[0]!.id}/rules`)).json()).toEqual([{ name: "ads.example", action: "allow" }]);
     expect((await (await api("/settings")).json<{ blockedTtl: number }>()).blockedTtl).toBe(42);
     expect(await (await api(`/lists/${inline.id}/text`)).text()).toBe("||inline.test^\n");
     expect(await (await api("/custom-rules")).text()).toBe("||custom.test^\n");

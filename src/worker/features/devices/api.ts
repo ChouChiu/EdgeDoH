@@ -1,12 +1,24 @@
 import { MAX_DEVICE_NAME } from "#contract";
 import type { Context } from "hono";
-import { type AppEnv, HttpError, readJsonObject, router } from "../../shared/http.ts";
+import { type AppEnv, HttpError, readJson, readJsonObject, router } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
 import { getSettings } from "../settings/store.ts";
 import { resetClients, seenClients } from "./client-guard.ts";
 import { mobileconfig } from "./mobileconfig.ts";
 import { findProfile } from "../profiles/store.ts";
-import { createDevice, deleteDevice, type Device, type DevicePatch, findDevice, isDeviceId, listDevices, updateDevice } from "./store.ts";
+import {
+  createDevice,
+  deleteDevice,
+  type Device,
+  type DevicePatch,
+  findDevice,
+  isDeviceId,
+  listDeviceRules,
+  listDevices,
+  replaceDeviceRules,
+  updateDevice,
+  validateDeviceRules,
+} from "./store.ts";
 
 /** A day; longer breaks are better expressed by switching the device's profile */
 const MAX_PAUSE_MINUTES = 24 * 60;
@@ -17,6 +29,24 @@ export const devicesApi = router();
 devicesApi.get("/", async (c) => {
   const devices = await listDevices(c.env.DB);
   return c.json(devices.map((d) => present(d, c.req.url)));
+});
+
+/** Every device's overrides, read by the dashboard's snapshot compiler */
+devicesApi.get("/rules", async (c) => c.json(await listDeviceRules(c.env.DB)));
+
+devicesApi.get("/:id/rules", async (c) => {
+  const id = c.req.param("id");
+  if (!isDeviceId(id) || !(await findDevice(c.env, id))) throw new HttpError(404, NOT_FOUND);
+  return c.json((await listDeviceRules(c.env.DB, id)).map(({ name, action }) => ({ name, action })));
+});
+
+/** Replaces the device's overrides; they take effect after the dashboard rebuilds the snapshot */
+devicesApi.put("/:id/rules", async (c) => {
+  const id = c.req.param("id");
+  if (!isDeviceId(id) || !(await findDevice(c.env, id))) throw new HttpError(404, NOT_FOUND);
+  const rules = validateDeviceRules(await readJson(c));
+  await replaceDeviceRules(c.env.DB, id, rules);
+  return c.json(rules);
 });
 
 devicesApi.post("/", async (c) => {

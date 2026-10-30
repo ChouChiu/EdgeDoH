@@ -13,6 +13,12 @@ export const MAX_ECH_FORCED_DOMAINS = 500;
 export const DEFAULT_PROFILE_ID = "default";
 /** Custom rules are stored and compiled as a list with this ID */
 export const CUSTOM_LIST_ID = "custom";
+/** Per-device overrides are compiled as a list with this ID, applied whatever the profile's lists */
+export const DEVICE_RULES_LIST_ID = "device-rules";
+export const MAX_DEVICE_RULES = 500;
+export const DEVICE_RULE_ACTIONS = ["allow", "block"] as const;
+export type DeviceRuleAction = (typeof DEVICE_RULE_ACTIONS)[number];
+
 /** Snapshot list ID prefix of a compiled blocked service */
 export const SERVICE_LIST_PREFIX = "service:";
 

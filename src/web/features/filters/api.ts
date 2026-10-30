@@ -1,3 +1,4 @@
+import { DEVICE_RULES_LIST_ID } from "#contract";
 import type { ListMeta } from "#filter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -94,6 +95,7 @@ export function useListName(): (id: string) => string {
     if (id === "safesearch") return t("profiles.safeSearch");
     if (id === "local") return t("dns.records");
     if (id === "rebinding") return t("profiles.rebinding");
+    if (id === DEVICE_RULES_LIST_ID) return t("devices.rules");
     return lists.data?.find((l) => l.id === id)?.name ?? id;
   };
 }

@@ -96,6 +96,8 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `GET /api/devices/:id/clients`: List active source networks for a device.
 - `DELETE /api/devices/:id/clients`: Reset active source networks for a device.
 - `POST /api/devices/:id/pause`: Pause device filtering (`{ minutes }`, 0 resumes).
+- `GET /api/devices/:id/rules` / `PUT /api/devices/:id/rules`: Read or replace a device's rules `[{ name, action }]` (`allow` / `block`, subdomains included). They compile into the always-applied `device-rules` list (`$client=<device ID>,important`), whatever the profile's lists; a rebuild applies them.
+- `GET /api/devices/rules`: Every device's rules, for the snapshot compiler.
 
 ### Rule Snapshots & Testing
 - `GET /api/rules`: Get current snapshot metadata.
