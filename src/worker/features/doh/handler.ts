@@ -118,7 +118,8 @@ async function answer(q: QueryContext): Promise<Answered> {
     const hit = privateAnswer(parseMessage(result.response));
     if (hit) {
       const blocked: Verdict = { action: "block", rule: { text: hit, listId: REBINDING_LIST_ID, line: 0 } };
-      return { response: blockedResponse(query, raw, config), source: "local", ttl: config.ttl, verdict: blocked, inspection };
+      // The upstream fields stay, so the round trip still counts in upstream health
+      return { ...result, response: blockedResponse(query, raw, config), source: "local", ttl: config.ttl, verdict: blocked, inspection };
     }
   }
   if (q.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && result.source !== "error") {

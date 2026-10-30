@@ -200,4 +200,16 @@ describe("query recording", () => {
     expect(point.blobs?.[7]).toBe("backup.test");
     expect(point.blobs?.[13]).toBe("down.test");
   });
+
+  it("keeps the upstream of an answer the rebinding protection blocked", async () => {
+    const write = vi.spyOn(env.QUERY_LOG, "writeDataPoint");
+    const profile = await (await api("/profiles", json({ name: "Guarded", rebinding: true }))).json<{ id: string }>();
+    const { id } = await createDevice("Guarded");
+    await api(`/devices/${id}`, json({ profileId: profile.id }, "PATCH"));
+    expect((await postQuery(id, buildQuery("lan.rebind.test", RRType.A))).status).toBe(200);
+    const point = write.mock.calls.at(-1)![0]!;
+    expect(point.blobs?.slice(2, 4)).toEqual(["block", "local"]);
+    expect(point.blobs?.[6]).toBe("rebinding");
+    expect(point.blobs?.[7]).toBe("primary.test");
+  });
 });
