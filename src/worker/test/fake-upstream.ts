@@ -1,4 +1,4 @@
-import { type AnswerRecord, buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeName, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
+import { type AnswerRecord, buildResponse, ECS_OPTION, encodeAlpn, encodeIPv4, encodeIPv6, encodeName, encodeSvcb, findOpt, parseMessage, Rcode, RRType, SvcParam, viewOf } from "#dns";
 
 /**
  * Stand-in for real DoH resolvers, wired in as Miniflare's outbound service.
@@ -95,6 +95,14 @@ export async function fakeUpstream(request: Request): Promise<Response> {
     return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR }));
   }
   if (type === RRType.HTTPS) return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR }));
+  // Public names answering with private addresses, for the rebinding protection
+  if (name.endsWith(".rebind.test")) {
+    const address = name.startsWith("lan.") ? encodeIPv4("192.168.1.10") : name.startsWith("v6.") ? encodeIPv6("fd00::1") : encodeIPv4("8.8.8.8");
+    const answers: AnswerRecord[] = [];
+    if (name.startsWith("cname.")) answers.push({ type: RRType.CNAME, ttl: 60, data: encodeName("lan.rebind.test") }, { name: encodeName("lan.rebind.test"), type: RRType.A, ttl: 60, data: encodeIPv4("10.0.0.5") });
+    else if ((address.length === 4) === (type === RRType.A)) answers.push({ type, ttl: 60, data: address });
+    return reply(buildResponse(query, raw, { rcode: Rcode.NOERROR, answers }));
+  }
   // The primary answers late, so parallel mode is expected to take the backup's answer
   if (name.startsWith("slow.") && url.hostname === "primary.test") await new Promise((r) => setTimeout(r, 300));
 

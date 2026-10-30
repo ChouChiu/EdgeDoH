@@ -93,6 +93,7 @@ export function useListName(): (id: string) => string {
     if (id === CUSTOM_LIST_ID) return t("rebuild.customList");
     if (id === "safesearch") return t("profiles.safeSearch");
     if (id === "local") return t("dns.records");
+    if (id === "rebinding") return t("profiles.rebinding");
     return lists.data?.find((l) => l.id === id)?.name ?? id;
   };
 }

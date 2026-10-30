@@ -24,8 +24,9 @@ import { clientLabel } from "../stats/client.ts";
 import { recordQuery } from "../stats/record.ts";
 import type { AnswerSource } from "../stats/schema.ts";
 import { type AnswerConfig, blockedResponse, rewriteResponse } from "./answers.ts";
-import { decide } from "./decide.ts";
+import { decide, filteringActive } from "./decide.ts";
 import { forcedDomains, injectHttps } from "./https-inject.ts";
+import { privateAnswer, REBINDING_LIST_ID } from "./rebinding.ts";
 import { DNS_MESSAGE, resolve } from "./upstream.ts";
 
 type WaitUntil = Pick<ExecutionContext, "waitUntil">;
@@ -108,6 +109,15 @@ async function answer(q: QueryContext): Promise<Answered> {
   const routed = profile.splitDns && inspection?.route ? runtime.routes[inspection.route] : undefined;
   const config = answerConfig(settings, profile, routed, ip);
   let result = await answerQuery(query, raw, verdict, config, ctx);
+  if (verdict.action === "pass" && !routed && guardsRebinding(q) && (result.source === "upstream" || result.source === "cache")) {
+    // Checked after the cache, whose entries are shared by profiles with and without the protection.
+    // Split-DNS routes are exempt: an internal resolver answering with private addresses is their purpose
+    const hit = privateAnswer(parseMessage(result.response));
+    if (hit) {
+      const blocked: Verdict = { action: "block", rule: { text: hit, listId: REBINDING_LIST_ID, line: 0 } };
+      return { response: blockedResponse(query, raw, config), source: "local", ttl: config.ttl, verdict: blocked, inspection };
+    }
+  }
   if (q.type === RRType.HTTPS && (profile.ech || profile.h3) && verdict.action === "pass" && result.source !== "error") {
     const opts = { ech: profile.ech, h3: profile.h3, forced: forcedDomains(settings) };
     const injected = await injectHttps(query, raw, result.response, opts, config.upstream, env.RULES, ctx).catch((err: unknown) => {
@@ -118,6 +128,11 @@ async function answer(q: QueryContext): Promise<Answered> {
     if (injected) result = { ...result, response: injected.response, ttl: Math.min(result.ttl ?? injected.ttl, injected.ttl) };
   }
   return { ...result, verdict, inspection };
+}
+
+/** Address queries of a profile with rebinding protection on, while its filtering applies */
+function guardsRebinding({ profile, settings, device, type, now }: QueryContext): boolean {
+  return profile.rebinding && (type === RRType.A || type === RRType.AAAA) && filteringActive(settings, profile, device, now);
 }
 
 function logQuery(env: Env, request: Request, q: { device: Device; name: string; type: number; started: number }, result: Answered): void {

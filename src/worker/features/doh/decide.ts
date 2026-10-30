@@ -33,8 +33,8 @@ export interface Decision {
  * local records, then the disabled-IPv6 shortcut, then the profile's lists and services, then safe search
  */
 export async function decide(env: Env, input: DecideInput): Promise<Decision> {
-  const { device, profile, settings, name, type, ip, now } = input;
-  const filtering = settings.filteringEnabled && profile.filtering && !(device.pausedUntil !== null && device.pausedUntil > now);
+  const { device, profile, settings, name, type, now } = input;
+  const filtering = filteringActive(settings, profile, device, now);
   const local = localVerdict(input.records, name, type);
   if (!local && settings.disableIpv6 && type === RRType.AAAA) return { verdict: { action: "pass" }, ipv6Off: true };
 
@@ -42,6 +42,11 @@ export async function decide(env: Env, input: DecideInput): Promise<Decision> {
   let verdict = local ?? (filtering ? inspection.verdict : { action: "pass" });
   if (verdict.action === "pass" && filtering) verdict = safeSearchVerdict(name, profile) ?? verdict;
   return { verdict, inspection };
+}
+
+/** The global switch, the profile and the device's pause all let filtering apply */
+export function filteringActive(settings: Settings, profile: Profile, device: Pick<Device, "pausedUntil">, now: number): boolean {
+  return settings.filteringEnabled && profile.filtering && !(device.pausedUntil !== null && device.pausedUntil > now);
 }
 
 /**

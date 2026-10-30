@@ -24,6 +24,7 @@ export interface ProfileConfig {
   schedule: Schedule | null;
   safeSearch: boolean;
   youtubeRestricted: boolean;
+  rebinding: boolean;
   blockingMode: BlockingMode | null;
   upstreams: string[] | null;
   splitDns: boolean;

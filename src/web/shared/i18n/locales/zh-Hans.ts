@@ -337,6 +337,8 @@ export const zhHans = {
   "profiles.safeSearch": "强制安全搜索",
   "profiles.safeSearchHint": "Google、Bing 与 DuckDuckGo",
   "profiles.youtube": "YouTube 受限模式",
+  "profiles.rebinding": "DNS 重绑定防护",
+  "profiles.rebindingHint": "拦截解析到本机、内网或链路本地地址的公共域名；分流域名与白名单规则不受影响",
   "profiles.services": "屏蔽服务",
   "profiles.servicesDescription": "一直屏蔽所选服务的全部域名",
   "profiles.searchServices": "搜索服务",

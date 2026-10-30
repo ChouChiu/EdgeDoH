@@ -160,6 +160,54 @@ describe("per-profile filtering", () => {
   });
 });
 
+describe("DNS rebinding protection", () => {
+  const address = async (deviceId: string, name: string, type: number = RRType.A) => {
+    const { msg } = await query(deviceId, name, type);
+    const rr = msg.answers.find((r) => r.type === type);
+    return rr ? [...rr.data].map((b) => (type === RRType.A ? String(b) : b.toString(16))).join(type === RRType.A ? "." : ":") : "";
+  };
+
+  it("blocks private answers only for profiles that turn it on, after the shared cache", async () => {
+    const plain = await deviceWith(null);
+    expect(await address(plain, "lan.rebind.test")).toBe("192.168.1.10");
+
+    const { id } = await createProfile({ rebinding: true });
+    const guarded = await deviceWith(id);
+    expect(await address(guarded, "lan.rebind.test")).toBe("0.0.0.0");
+    expect(await address(guarded, "v6.rebind.test", RRType.AAAA)).toBe("0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0");
+    expect(await address(guarded, "cname.rebind.test")).toBe("0.0.0.0");
+    expect(await address(guarded, "pub.rebind.test")).toBe("8.8.8.8");
+    expect(await address(plain, "lan.rebind.test")).toBe("192.168.1.10");
+  });
+
+  it("uses the profile's blocking mode", async () => {
+    const { id } = await createProfile({ rebinding: true, blockingMode: "nxdomain" });
+    const { msg } = await query(await deviceWith(id), "lan.rebind.test");
+    expect(msg.header.flags & 0x0f).toBe(3);
+  });
+
+  it("lets allowlisted names, split-DNS routes and unfiltered profiles through", async () => {
+    await publish(
+      compile([
+        { id: "allow", name: "Allow", text: "@@||lan.rebind.test^" },
+        { id: "route-lan", name: "LAN", text: "server=/cname.rebind.test/10.0.0.1", kind: "route" },
+      ]).snapshot,
+    );
+    await env.DB.prepare(
+      "INSERT INTO filter_lists (id, name, url, source, kind, upstreams, enabled, created_at) VALUES ('route-lan', 'LAN', '', 'inline', 'route', ?, 1, 0)",
+    )
+      .bind(JSON.stringify(["https://route.test/dns-query"]))
+      .run();
+    const { id } = await createProfile({ rebinding: true, splitDns: true });
+    const device = await deviceWith(id);
+    expect(await address(device, "lan.rebind.test")).toBe("192.168.1.10");
+    expect(await address(device, "cname.rebind.test")).toBe("10.0.0.5");
+
+    const off = await createProfile({ rebinding: true, filtering: false });
+    expect(await address(await deviceWith(off.id), "v6.rebind.test", RRType.AAAA)).toBe("fd:0:0:0:0:0:0:0:0:0:0:0:0:0:0:1");
+  });
+});
+
 describe("ECS and HTTPS injection", () => {
   it("forwards the client subnet only when the profile asks for it", async () => {
     const device = await deviceWith(null);

@@ -31,6 +31,8 @@ export interface ProfileConfig {
   schedule: Schedule | null;
   safeSearch: boolean;
   youtubeRestricted: boolean;
+  /** Block public answers that point at loopback, private or link-local addresses */
+  rebinding: boolean;
   /** null uses the global setting */
   blockingMode: BlockingMode | null;
   /** null uses the global upstreams */
@@ -58,6 +60,7 @@ export const PROFILE_DEFAULTS: ProfileConfig = {
   schedule: null,
   safeSearch: false,
   youtubeRestricted: false,
+  rebinding: false,
   blockingMode: null,
   upstreams: null,
   splitDns: true,
@@ -155,6 +158,7 @@ export function validateProfile(input: Record<string, unknown>): { valid: Partia
       case "filtering":
       case "safeSearch":
       case "youtubeRestricted":
+      case "rebinding":
       case "splitDns":
       case "ecs":
       case "ech":

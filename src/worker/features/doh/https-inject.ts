@@ -7,8 +7,6 @@ import {
   dnssecOk,
   encodeAlpn,
   encodeBase64Url,
-  encodeIPv4,
-  encodeIPv6,
   encodeName,
   encodeSvcb,
   type Message,
@@ -25,6 +23,7 @@ import {
 } from "#dns";
 import type { Settings } from "../settings/store.ts";
 import { copyAnswers } from "./answers.ts";
+import { inRanges, parseRanges } from "./ranges.ts";
 import { resolve, type UpstreamConfig } from "./upstream.ts";
 
 /** Cloudflare's client-facing ECH server; its HTTPS record carries the ECH config every proxied zone shares */
@@ -39,7 +38,7 @@ const ECH_RETRY_MS = 60_000;
 const MAX_CHAIN = 8;
 
 /** https://www.cloudflare.com/ips/ */
-const CLOUDFLARE_RANGES = [
+const CLOUDFLARE_RANGES = parseRanges([
   "173.245.48.0/20",
   "103.21.244.0/22",
   "103.22.200.0/22",
@@ -62,21 +61,10 @@ const CLOUDFLARE_RANGES = [
   "2405:8100::/32",
   "2a06:98c0::/29",
   "2c0f:f248::/32",
-].map((cidr) => {
-  const [address, bits] = cidr.split("/") as [string, string];
-  return { bytes: address.includes(":") ? encodeIPv6(address) : encodeIPv4(address), bits: Number(bits) };
-});
+]);
 
 export function isCloudflareAddress(address: Uint8Array): boolean {
-  return CLOUDFLARE_RANGES.some(({ bytes, bits }) => {
-    if (bytes.length !== address.length) return false;
-    for (let i = 0; i * 8 < bits; i++) {
-      const remaining = bits - i * 8;
-      const mask = remaining >= 8 ? 0xff : (0xff << (8 - remaining)) & 0xff;
-      if ((bytes[i]! & mask) !== (address[i]! & mask)) return false;
-    }
-    return true;
-  });
+  return inRanges(address, CLOUDFLARE_RANGES);
 }
 
 const forcedSets = new WeakMap<Settings, Set<string>>();

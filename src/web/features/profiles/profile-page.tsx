@@ -156,6 +156,9 @@ function ProfileForm({ profile }: { profile: Profile }) {
           <Row label={t("profiles.youtube")} htmlFor="youtube" inline>
             <Switch id="youtube" checked={draft.youtubeRestricted} onCheckedChange={(v) => set("youtubeRestricted", v)} />
           </Row>
+          <Row label={t("profiles.rebinding")} hint={t("profiles.rebindingHint")} htmlFor="rebinding" inline>
+            <Switch id="rebinding" checked={draft.rebinding} onCheckedChange={(v) => set("rebinding", v)} />
+          </Row>
         </fieldset>
       </Section>
 

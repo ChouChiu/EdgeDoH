@@ -338,6 +338,8 @@ export const zhHant: Messages = {
   "profiles.safeSearch": "強制安全搜尋",
   "profiles.safeSearchHint": "Google、Bing 與 DuckDuckGo",
   "profiles.youtube": "YouTube 嚴格篩選模式",
+  "profiles.rebinding": "DNS 重新綁定防護",
+  "profiles.rebindingHint": "攔截解析至本機、內網或鏈路本機位址的公用網域；分流網域與白名單規則不受影響",
   "profiles.services": "封鎖服務",
   "profiles.servicesDescription": "一律封鎖所選服務的全部網域",
   "profiles.searchServices": "搜尋服務",

@@ -342,6 +342,8 @@ export const enUS: Messages = {
   "profiles.safeSearch": "Safe Search",
   "profiles.safeSearchHint": "Google, Bing and DuckDuckGo",
   "profiles.youtube": "YouTube Restricted Mode",
+  "profiles.rebinding": "DNS rebinding protection",
+  "profiles.rebindingHint": "Block public names that resolve to loopback, private or link-local addresses; split-DNS names and allowlist rules are exempt",
   "profiles.services": "Blocked Services",
   "profiles.servicesDescription": "Every domain of the selected services is always blocked",
   "profiles.searchServices": "Search services",

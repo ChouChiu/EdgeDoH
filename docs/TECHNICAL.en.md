@@ -41,6 +41,7 @@ The DoH handler (`/dns-query/:deviceId`) evaluates incoming DNS queries through 
    - Returns `SERVFAIL` if all upstreams fail.
 7. **Cache Store & TTL Clamping**:
    - Clamps valid responses (NOERROR and NXDOMAIN) to configured Min/Max TTL limits per RFC 2308, writes them to edge Cache API, and responds to the client.
+   - If profile enables DNS rebinding protection, A / AAAA answers (cache hits included) holding a loopback, RFC 1918, link-local or IPv6 ULA address get the blocking response and are logged as blocked (list `rebinding`). Split-DNS queries and allowlisted names are not checked; carrier-grade NAT (`100.64.0.0/10`) is out of scope.
    - If profile enables ECH or HTTP/3 injection, injects `alpn=h3` and public Cloudflare ECH parameters into HTTPS records of Cloudflare-proxied sites (skipped for queries with DO bit).
 8. **Async Telemetry Ingestion**: If logging is enabled, writes a structured telemetry point to Analytics Engine via `ctx.waitUntil` (device, domain, type, action, latency, upstream, data center, client type, source network). Client IP addresses are not stored, and response time is not delayed.
 

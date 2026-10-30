@@ -41,6 +41,7 @@ Worker 處理 DoH 請求（`/dns-query/:deviceId`）遵循以下執行順序：
    - 全部上游失敗時回傳 `SERVFAIL`。
 7. **快取寫入與 TTL 收緊**：
    - 對有效回應（NOERROR 與 NXDOMAIN）根據 RFC 2308 及設定的 Min/Max TTL 範圍進行收緊，寫入邊緣 Cache API 並回應用戶端。
+   - 若策略組啟用了「DNS 重新綁定防護」，A / AAAA 應答（含快取命中）中出現本機、RFC 1918、鏈路本機或 IPv6 ULA 位址時，依攔截回應模式回應，日誌記為攔截（清單 `rebinding`）。分流查詢與白名單規則命中的網域不檢查；電信級 NAT 區段 `100.64.0.0/10` 不在範圍內。
    - 若策略組啟用了 ECH 或 HTTP/3 注入，且目標網域解析至 Cloudflare 代理節點，向 HTTPS 記錄注入 `alpn=h3` 與公用 ECH 參數（帶 DO 位元的 DNSSEC 查詢不注入）。
 8. **非同步指標回報**：若啟用記錄，透過 `ctx.waitUntil` 向 Analytics Engine 寫入結構化查詢資料點（裝置、網域、類型、動作、延遲、上游、資料中心、用戶端類型、來源網路），不包含用戶端具體 IP，不增加回應延遲。
 

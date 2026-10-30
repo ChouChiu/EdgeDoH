@@ -63,6 +63,7 @@ function summary(p: Profile, t: Translate): string[] {
   if (p.schedule && p.scheduledServices.length > 0) out.push(t("profiles.schedule"));
   if (p.safeSearch) out.push(t("profiles.safeSearch"));
   if (p.youtubeRestricted) out.push(t("profiles.youtube"));
+  if (p.rebinding) out.push(t("profiles.rebinding"));
   if (p.upstreams) out.push(t("profiles.customUpstreams"));
   if (p.ecs) out.push("ECS");
   if (p.ech) out.push("ECH");
