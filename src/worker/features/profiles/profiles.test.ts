@@ -75,6 +75,16 @@ describe("profiles API", () => {
     expect(devices.find((d) => d.id === device)?.profileId).toBeNull();
     expect((await api(`/devices/${device}`, json({ profileId: "nope" }, "PATCH"))).status).toBe(400);
   });
+
+  it("stops scheduled switches to a deleted profile", async () => {
+    const { id: night } = await createProfile({ name: "Night" });
+    const schedule = { timezone: "UTC", days: [1], start: 0, end: 60 };
+    const { id: day } = await createProfile({ name: "Day", schedule, scheduledProfile: night, safeSearch: true });
+    expect((await api(`/profiles/${night}`, { method: "DELETE" })).status).toBe(204);
+    const profiles = await (await api("/profiles")).json<{ id: string; scheduledProfile: string | null; safeSearch: boolean }[]>();
+    expect(profiles.find((p) => p.id === day)).toMatchObject({ scheduledProfile: null, safeSearch: true });
+    expect((await api(`/profiles/${day}`, json({ name: "Day 2" }, "PATCH"))).status).toBe(200);
+  });
 });
 
 describe("per-profile filtering", () => {

@@ -189,6 +189,13 @@ function validateBackup(env: Env, input: unknown): Backup {
   });
   const profileIds = new Set(profiles.map((p) => p.id));
   if (profileIds.size !== profiles.length) errors.push("profiles: duplicate id");
+  // Same rule as the profiles API: the scheduled profile exists and is another one
+  for (const p of profiles) {
+    const target = p.config.scheduledProfile;
+    if (typeof target !== "string") continue;
+    if (target === p.id) errors.push(`profile ${p.name}: a profile cannot switch to itself`);
+    else if (!profileIds.has(target) && target !== DEFAULT_PROFILE_ID) errors.push(`profile ${p.name}: scheduledProfile does not exist`);
+  }
 
   const devices = array(b.devices, "devices", MAX_DEVICES).map((item, i) => {
     const d = object(item, `device ${i + 1}`);

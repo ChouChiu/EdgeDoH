@@ -139,8 +139,10 @@ export async function updateProfile(env: Env, id: string, name: string | undefin
 
 export async function deleteProfile(env: Env, id: string): Promise<boolean> {
   if (id === DEFAULT_PROFILE_ID) throw new HttpError(400, "the default profile cannot be deleted");
-  const [, result] = await env.DB.batch([
+  const [, , result] = await env.DB.batch([
     env.DB.prepare("UPDATE devices SET profile_id = NULL WHERE profile_id = ?").bind(id),
+    // Profiles that switched to this one on a schedule stop switching
+    env.DB.prepare("UPDATE profiles SET config = json_remove(config, '$.scheduledProfile') WHERE json_extract(config, '$.scheduledProfile') = ?").bind(id),
     env.DB.prepare("DELETE FROM profiles WHERE id = ?").bind(id),
   ]);
   if (result!.meta.changes === 0) return false;

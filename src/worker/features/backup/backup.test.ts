@@ -67,6 +67,11 @@ describe("backup", () => {
     expect(bad.status).toBe(400);
     expect((await bad.json<{ error: string }>()).error).toMatch(/blockedTtl.*unknown profile|unknown profile.*blockedTtl/s);
     expect((await api("/backup", { method: "PUT", body: "{" })).status).toBe(400);
+    const selfSwitch = { id: "loop", name: "Loop", config: { scheduledProfile: "loop" } };
+    const dangling = { id: "lost", name: "Lost", config: { scheduledProfile: "gone" } };
+    const refs = await put({ ...before, profiles: [...before.profiles, selfSwitch, dangling] });
+    expect(refs.status).toBe(400);
+    expect((await refs.json<{ error: string }>()).error).toMatch(/Loop: a profile cannot switch to itself.*Lost: scheduledProfile does not exist/s);
     const after = await exported();
     expect({ ...after, exportedAt: 0 }).toEqual({ ...before, exportedAt: 0 });
     expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM devices WHERE name = 'Keep'").first<{ n: number }>())?.n).toBeGreaterThan(0);
