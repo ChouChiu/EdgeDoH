@@ -306,6 +306,7 @@ export const enUS: Messages = {
   "backup.imported": { one: "Imported {count} device", other: "Imported {count} devices" },
   "backup.newEndpoints": "Device endpoints changed; set each device up again",
   "backup.listsFailed": { one: "{count} downloaded list failed; refresh it later under Filter lists", other: "{count} downloaded lists failed; refresh them later under Filter lists" },
+  "backup.textsFailed": { one: "{count} inline list or custom rule text was not saved; import again", other: "{count} inline list or custom rule texts were not saved; import again" },
   "backup.rebuildReason": "Import configuration",
   "backup.importFailed": "Import failed",
   "settings.theme": "Theme Mode",

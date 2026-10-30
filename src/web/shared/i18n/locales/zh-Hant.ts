@@ -302,6 +302,7 @@ export const zhHant: Messages = {
   "backup.imported": "已匯入，共 {count} 台裝置",
   "backup.newEndpoints": "裝置接入位址已更新，請在各裝置上重新設定",
   "backup.listsFailed": "{count} 個遠端清單下載失敗，可稍後在過濾清單中重新整理",
+  "backup.textsFailed": "{count} 份內聯清單或自訂規則未能寫入，請重新匯入",
   "backup.rebuildReason": "匯入設定",
   "backup.importFailed": "匯入失敗",
   "settings.theme": "主題模式",

@@ -25,7 +25,11 @@ import { crossFieldErrors, defaultSettings, validateSettings } from "../settings
 
 export const BACKUP_FORMAT = "edgedoh-backup";
 export const BACKUP_VERSION = 1;
-/** Inline lists and custom rules are each capped at 1 MiB, so this leaves room for a few of both */
+/**
+ * Inline lists and custom rules are each capped at 1 MiB, so this leaves room for a few of both.
+ * Parsing that much would not fit the free plan's CPU budget, so the dashboard sends the texts
+ * separately (see `importBackup`) and this request stays small
+ */
 export const MAX_BACKUP_BYTES = 8 * 1024 * 1024;
 const MAX_DEVICES = 1000;
 const MAX_PROFILES = 100;
@@ -41,7 +45,7 @@ export interface BackupList {
   upstreams: string[] | null;
   registryId: number | null;
   enabled: boolean;
-  /** Inline lists only */
+  /** Inline lists only; an import may leave it out and upload the text afterwards */
   text?: string;
 }
 
@@ -110,7 +114,11 @@ export async function exportBackup(env: Env): Promise<Backup> {
   };
 }
 
-/** Replaces the whole configuration with the backup's; nothing is written unless all of it is valid */
+/**
+ * Replaces the whole configuration with the backup's; nothing is written unless all of it is valid.
+ * Inline list texts and `customRules` may be left out, which stores them empty: the dashboard then
+ * uploads each one in its own request, keeping every request inside its CPU budget
+ */
 export async function importBackup(env: Env, input: unknown): Promise<ImportResult> {
   const backup = validateBackup(env, input);
   const previous = await getLists(env.DB);
@@ -214,8 +222,8 @@ function validateBackup(env: Env, input: unknown): Backup {
   const lists = array(b.lists, "lists", MAX_LISTS).map((item, i) => validateList(object(item, `list ${i + 1}`), i, errors));
   if (new Set(lists.map((l) => l.id)).size !== lists.length) errors.push("lists: duplicate id");
 
-  if (typeof b.customRules !== "string") errors.push("customRules must be text");
-  else if (new TextEncoder().encode(b.customRules).length > MAX_CUSTOM_RULES_BYTES) errors.push(`customRules exceed ${MAX_CUSTOM_RULES_BYTES} bytes`);
+  if (b.customRules !== undefined && typeof b.customRules !== "string") errors.push("customRules must be text");
+  else if (typeof b.customRules === "string" && new TextEncoder().encode(b.customRules).length > MAX_CUSTOM_RULES_BYTES) errors.push(`customRules exceed ${MAX_CUSTOM_RULES_BYTES} bytes`);
 
   let records: LocalRecord[] = [];
   try {
@@ -225,7 +233,8 @@ function validateBackup(env: Env, input: unknown): Backup {
   }
 
   if (errors.length > 0) throw new HttpError(400, errors.slice(0, 10).join("; "));
-  return { ...(b as unknown as Backup), settings: settings.valid, profiles, devices, lists, records };
+  const customRules = typeof b.customRules === "string" ? b.customRules : "";
+  return { ...(b as unknown as Backup), settings: settings.valid, profiles, devices, lists, customRules, records };
 }
 
 function validateList(l: Record<string, unknown>, i: number, errors: string[]): BackupList {
@@ -242,9 +251,9 @@ function validateList(l: Record<string, unknown>, i: number, errors: string[]): 
   if (typeof l.enabled !== "boolean") fail("enabled must be true or false");
   let text: string | undefined;
   if (source === "inline") {
-    if (typeof l.text !== "string") fail("inline lists need their text");
-    else if (new TextEncoder().encode(l.text).length > MAX_INLINE_BYTES) fail(`text exceeds ${MAX_INLINE_BYTES} bytes`);
-    else text = l.text;
+    if (l.text !== undefined && typeof l.text !== "string") fail("text must be text");
+    else if (typeof l.text === "string" && new TextEncoder().encode(l.text).length > MAX_INLINE_BYTES) fail(`text exceeds ${MAX_INLINE_BYTES} bytes`);
+    else text = l.text as string | undefined;
   }
   return { id, name, url: source === "inline" ? "" : url, source, kind, upstreams, registryId, enabled: l.enabled === true, ...(text !== undefined && { text }) };
 }

@@ -59,6 +59,18 @@ describe("backup", () => {
     expect((await api(`/lists/${result.pending[0]}/refresh`, { method: "POST" })).status).toBe(200);
   });
 
+  it("stores left-out texts empty, for the dashboard to upload afterwards", async () => {
+    await api("/lists", json({ text: "||old.test^\n", name: "Inline" }));
+    await api("/custom-rules", { method: "PUT", headers: { "content-type": "text/plain" }, body: "||old-custom.test^\n" });
+    const backup = await exported();
+    const inline = backup.lists.find((l) => l.source === "inline")!;
+    const { customRules: _, ...rest } = backup;
+    const res = await put({ ...rest, lists: backup.lists.map(({ text: _text, ...l }) => l) });
+    expect(res.status).toBe(200);
+    expect(await (await api(`/lists/${inline.id}/text`)).text()).toBe("");
+    expect(await (await api("/custom-rules")).text()).toBe("");
+  });
+
   it("rejects invalid backups without changing anything", async () => {
     await createDevice("Keep");
     const before = await exported();

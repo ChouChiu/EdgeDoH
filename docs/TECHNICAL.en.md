@@ -132,7 +132,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `GET /api/settings`: Read global settings.
 - `PATCH /api/settings`: Update global settings.
 - `GET /api/backup`: Export a configuration backup (settings, profiles, devices, lists, custom rules, local records; device IDs and downloaded list contents are left out).
-- `PUT /api/backup`: Replace the whole configuration with a backup; devices get new IDs. Returns the downloaded lists to fetch again as `pending`.
+- `PUT /api/backup`: Replace the whole configuration with a backup; devices get new IDs. Returns the downloaded lists to fetch again as `pending`. Inline list `text` and `customRules` may be left out (stored empty): the dashboard strips them and uploads each with `PUT /api/lists/:id/text` and `PUT /api/custom-rules`, so every request stays inside the CPU budget.
 - `POST /api/alerts/test`: Send a test message to the saved alert webhook. The `*/15 * * * *` cron trigger checks the last 15 minutes of stats every 15 minutes (upstream failure rate, blocked share, queries refused by the client limit; thresholds in settings, a failure is a query no upstream answered or every upstream answered with SERVFAIL; below 20 queries the share alerts keep their state) and POSTs JSON only when an alert starts or ends (`text` / `content` hold readable text, `alerts` the structured data). State lives in KV `alerts:state`. Needs query stats configured.
 
 ### Query Analytics & Logs

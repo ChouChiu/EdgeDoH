@@ -301,6 +301,7 @@ export const zhHans = {
   "backup.imported": "已导入，共 {count} 台设备",
   "backup.newEndpoints": "设备接入地址已更新，请在各设备上重新配置",
   "backup.listsFailed": "{count} 个远程列表下载失败，可稍后在过滤列表中刷新",
+  "backup.textsFailed": "{count} 份内联列表或自定义规则未能写入，请重新导入",
   "backup.rebuildReason": "导入配置",
   "backup.importFailed": "导入失败",
   "settings.theme": "主题模式",

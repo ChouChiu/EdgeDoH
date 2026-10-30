@@ -132,7 +132,7 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免�
 - `GET /api/settings`：读取全局配置。
 - `PATCH /api/settings`：更新全局配置。
 - `GET /api/backup`：导出配置备份（设置、策略组、设备、列表、自定义规则、本地记录；不含设备 ID 与远程列表内容）。
-- `PUT /api/backup`：用备份全量覆盖配置，设备获得新 ID；返回需重新下载的远程列表 `pending`。
+- `PUT /api/backup`：用备份全量覆盖配置，设备获得新 ID；返回需重新下载的远程列表 `pending`。内联列表的 `text` 与 `customRules` 可以省略（存为空）：控制台导入时会把它们拆出，逐个用 `PUT /api/lists/:id/text` 与 `PUT /api/custom-rules` 上传，让每个请求都在 CPU 预算内。
 - `POST /api/alerts/test`：向已保存的告警 Webhook 发送测试消息。告警由 Cron 触发器 `*/15 * * * *` 每 15 分钟检查最近 15 分钟的统计（上游失败率、拦截率、防滥用拒绝次数，阈值在设置中配置，失败指没有上游应答或所有上游都返回 SERVFAIL；查询少于 20 次时比例类告警保持原状态），仅在告警开始与恢复时以 JSON POST 推送（`text` / `content` 为可读文本，`alerts` 为结构化数据），状态保存在 KV `alerts:state`。需要已配置查询统计。
 
 ### 查询统计与日志

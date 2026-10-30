@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { listsApi } from "@/features/filters/api";
+import { rulesApi } from "@/features/rules/api";
 import { useRebuild } from "@/features/snapshot/api";
 import { Download } from "@/shared/components/animate-ui/icons/download";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
@@ -11,7 +12,7 @@ import { Row, Section } from "@/shared/components/form-section";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { backupApi } from "./api";
+import { backupApi, splitBackup } from "./api";
 
 type Busy = "export" | "import" | null;
 
@@ -42,13 +43,21 @@ export function BackupCard({ id }: { id: string }) {
   const restore = async (picked: File) => {
     setBusy("import");
     try {
-      const result = await backupApi.import(await picked.text());
-      // Downloaded lists come back as URLs only; one request each keeps every download inside its own CPU budget
+      const { body, texts, customRules } = splitBackup(await picked.text());
+      const result = await backupApi.import(body);
+      // Texts and downloads go one request each, so every one stays inside its own CPU budget
+      let unsaved = 0;
+      for (const { id, text } of texts) await listsApi.setText(id, text).catch(() => unsaved++);
+      if (customRules) await rulesApi.put(customRules).catch(() => unsaved++);
       const failed: string[] = [];
       for (const listId of result.pending) await listsApi.refresh(listId).catch(() => failed.push(listId));
       await queryClient.invalidateQueries();
+      const problems = [
+        ...(unsaved > 0 ? [t("backup.textsFailed", { count: unsaved })] : []),
+        ...(failed.length > 0 ? [t("backup.listsFailed", { count: failed.length })] : []),
+      ];
       toast.success(t("backup.imported", { count: result.devices }), {
-        description: failed.length > 0 ? t("backup.listsFailed", { count: failed.length }) : t("backup.newEndpoints"),
+        description: problems.length > 0 ? problems.join(" ") : t("backup.newEndpoints"),
       });
       await rebuild(t("backup.rebuildReason"));
     } catch (err) {
