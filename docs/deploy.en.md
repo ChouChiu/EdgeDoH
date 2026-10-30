@@ -6,7 +6,7 @@
 
 </div>
 
-cf-dns provides two deployment options: an interactive CLI setup script (recommended) or the automated Deploy to Cloudflare button. Both require the same prerequisites.
+EdgeDoH provides two deployment options: an interactive CLI setup script (recommended) or the automated Deploy to Cloudflare button. Both require the same prerequisites.
 
 ## Prerequisites
 
@@ -32,8 +32,8 @@ Navigate to Access → Applications → Add an application → Self-hosted. Crea
 
 | Application | Path | Policy | Purpose |
 | --- | --- | --- | --- |
-| `cf-dns Dashboard` | Leave empty (protects root) | Action: `Allow`<br>Include: `Emails` (your email) | Restricts dashboard and `/api/*` access to authorized users |
-| `cf-dns DoH` | `dns-query` | Action: `Bypass`<br>Include: `Everyone` | Allows DoH clients to resolve queries without authentication |
+| `EdgeDoH Dashboard` | Leave empty (protects root) | Action: `Allow`<br>Include: `Emails` (your email) | Restricts dashboard and `/api/*` access to authorized users |
+| `EdgeDoH DoH` | `dns-query` | Action: `Bypass`<br>Include: `Everyone` | Allows DoH clients to resolve queries without authentication |
 
 Cloudflare Access follows longest-prefix matching. By creating a Bypass policy specifically for `dns-query`, all incoming DoH requests to `/dns-query` and `/dns-query/*` bypass login redirects, allowing devices to resolve DNS normally.
 
@@ -66,8 +66,8 @@ Confirm you have the following 4 credentials before deploying:
 Requires [Bun](https://bun.sh) and `git` on your local machine.
 
 ```bash
-git clone https://github.com/ChouChiu/cf-dns.git
-cd cf-dns
+git clone https://github.com/ChouChiu/EdgeDoH.git
+cd EdgeDoH
 bun install
 bun run setup
 ```
@@ -76,12 +76,12 @@ The interactive script executes the following steps:
 
 1. Authenticates wrangler, opening a browser login if not authenticated, and prompts for account selection if multiple accounts exist.
 2. Prompts for your custom domain (e.g. `dns.example.com`), writing it to `.env.deploy`.
-3. Verifies or provisions the D1 database (`cf-dns`) and KV namespace (`cf-dns-rules`), writing their IDs back to `wrangler.jsonc` (which is not in version control; the first run creates it from `wrangler.example.jsonc`).
+3. Verifies or provisions the D1 database (`edgedoh`) and KV namespace (`edgedoh-rules`), writing their IDs back to `wrangler.jsonc` (which is not in version control; the first run creates it from `wrangler.example.jsonc`).
 4. Prompts for missing required secrets, writing them to `.env.production`.
 5. Compiles client assets and Worker, executes remote D1 migrations, and uploads secrets to deploy the Worker.
 
 - Safe to rerun: Existing resources and saved values are reused on subsequent runs.
-- Custom regions: To place your D1 database in a specific location, create it beforehand via `bunx wrangler d1 create cf-dns --location apac`; the setup script will link to the existing database automatically.
+- Custom regions: To place your D1 database in a specific location, create it beforehand via `bunx wrangler d1 create edgedoh --location apac`; the setup script will link to the existing database automatically.
 - Future updates:
   ```bash
   git pull && bun install && bun run deploy
@@ -89,7 +89,7 @@ The interactive script executes the following steps:
 
 ## Method 2: Deploy to Cloudflare Button
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
 > `wrangler.jsonc` holds the account's resource IDs and is not in version control. Before using the button, fork this repository, commit a `wrangler.jsonc` copied from `wrangler.example.jsonc` (D1 and KV IDs left empty, filled in by Cloudflare), and point the button's `url` at your own fork.
 

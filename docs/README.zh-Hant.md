@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="icon-256.png" width="104" alt="cf-dns">
+<img src="icon-256.png" width="104" alt="EdgeDoH">
 
-# cf-dns
+# EdgeDoH
 
 [简体中文](../README.md) · **繁體中文** · [English](README.en.md)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
 基於 Cloudflare Workers 建構的個人 DNS-over-HTTPS (DoH) 服務。支援依裝置分配接入點、AdGuard 規則過濾、策略組管理、分流解析與 Web 管理面板。
 

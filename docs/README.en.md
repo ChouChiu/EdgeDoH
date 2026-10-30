@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="icon-256.png" width="104" alt="cf-dns">
+<img src="icon-256.png" width="104" alt="EdgeDoH">
 
-# cf-dns
+# EdgeDoH
 
 [简体中文](../README.md) · [繁體中文](README.zh-Hant.md) · **English**
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
 A personal DNS-over-HTTPS (DoH) resolver built on Cloudflare Workers. Features per-device endpoints, AdGuard rule filtering, profile-based management, split DNS, and a web dashboard.
 

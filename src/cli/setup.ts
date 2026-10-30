@@ -116,7 +116,7 @@ async function main() {
   const upload = Object.fromEntries(
     SECRET_KEYS.filter((k) => secrets[k] || !onWorker.has(k)).map((k) => [k, secrets[k] ?? ""]),
   );
-  const tmp = mkdtempSync(join(tmpdir(), "cf-dns-setup-"));
+  const tmp = mkdtempSync(join(tmpdir(), "edgedoh-setup-"));
   const secretsFile = join(tmp, "secrets.json");
   writeFileSync(secretsFile, JSON.stringify(upload), { mode: 0o600 });
 

@@ -162,7 +162,7 @@ export function decodeShard(input: ArrayBuffer | Uint8Array, expected?: number):
   if (bytes.byteOffset % 4 !== 0) bytes = bytes.slice();
   if (bytes.length < SHARD_HEADER_BYTES) throw new SnapshotError("shard shorter than header");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (view.getUint32(0, true) !== SNAPSHOT_MAGIC) throw new SnapshotError("not a cf-dns shard");
+  if (view.getUint32(0, true) !== SNAPSHOT_MAGIC) throw new SnapshotError("not an EdgeDoH shard");
   const format = view.getUint16(4, true);
   if (format !== SNAPSHOT_FORMAT) throw new SnapshotError(`unsupported shard format ${format}`);
   const index = view.getUint16(6, true);

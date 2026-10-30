@@ -2,7 +2,7 @@
   // Template for wrangler.jsonc, which holds this account’s resource IDs and stays out of version control:
   // `cp wrangler.example.jsonc wrangler.jsonc`, then `bun run setup` fills the IDs in
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cf-dns",
+  "name": "edgedoh",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-10-20",
   "observability": { "enabled": true },
@@ -21,7 +21,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "cf-dns",
+      "database_name": "edgedoh",
       "database_id": "<d1-database-id>",
       "migrations_dir": "migrations"
     }
@@ -37,10 +37,10 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceClients"] }],
   "analytics_engine_datasets": [
     // One data point per DNS query, see src/worker/features/stats/schema.ts
-    { "binding": "QUERY_LOG", "dataset": "cf_dns_queries" }
+    { "binding": "QUERY_LOG", "dataset": "edgedoh_queries" }
   ],
   "vars": {
-    "STATS_DATASET": "cf_dns_queries",
+    "STATS_DATASET": "edgedoh_queries",
     // How blocked names are answered: null_ip (0.0.0.0 / ::), nxdomain, refused or nodata
     "BLOCKING_MODE": "null_ip",
     // TTL in seconds of blocked and rewritten answers

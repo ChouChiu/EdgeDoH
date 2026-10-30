@@ -18,7 +18,7 @@ import { useI18n } from "@/shared/i18n";
 import { isActive, NAV_GROUPS, type NavItem, SETTINGS_NAV } from "./nav";
 
 // A modified copy served to others has to offer them its own source, so a fork points this at its own repository
-const SOURCE_URL = "https://github.com/ChouChiu/cf-dns";
+const SOURCE_URL = "https://github.com/ChouChiu/EdgeDoH";
 
 export function AppSidebar() {
   const { t } = useI18n();
@@ -30,11 +30,11 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             {/* Same button geometry as the nav items, so the logo stays in their column when collapsed */}
-            <SidebarMenuButton size="lg" asChild tooltip="cf-dns">
+            <SidebarMenuButton size="lg" asChild tooltip="EdgeDoH">
               <NavLink to="/" onClick={() => setOpenMobile(false)}>
                 {/* The favicon itself, so the tab and the sidebar never drift apart */}
                 <img src="/favicon.svg" alt="" className="size-8 shrink-0" />
-                <span className="font-semibold">cf-dns</span>
+                <span className="font-semibold">EdgeDoH</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>

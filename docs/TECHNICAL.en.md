@@ -6,11 +6,11 @@
 
 </div>
 
-This document details the system architecture, resolution pipeline, rule engine design, API specifications, and development conventions of cf-dns.
+This document details the system architecture, resolution pipeline, rule engine design, API specifications, and development conventions of EdgeDoH.
 
 ## Architecture Overview
 
-cf-dns runs in the Cloudflare Workers serverless runtime, utilizing edge storage and compute primitives:
+EdgeDoH runs in the Cloudflare Workers serverless runtime, utilizing edge storage and compute primitives:
 
 - **Cloudflare Worker (`src/worker`)**: Core execution environment. The DoH endpoint (`/dns-query/:deviceId`) processes binary DNS messages directly without routing framework overhead. The management API (`/api/*`) runs on Hono and is protected by Cloudflare Access JWT validation.
 - **D1 Database (`DB`)**: Relational storage for devices, filter lists, profiles, local DNS records, and global settings.
@@ -46,7 +46,7 @@ The DoH handler (`/dns-query/:deviceId`) evaluates incoming DNS queries through 
 
 ## Rule Engine & Snapshot Sharding
 
-Cloudflare Workers Free Tier limits CPU execution to 10ms per request. cf-dns avoids parsing text rules at the edge; compilation runs entirely inside browser Web Workers or via the CLI:
+Cloudflare Workers Free Tier limits CPU execution to 10ms per request. EdgeDoH avoids parsing text rules at the edge; compilation runs entirely inside browser Web Workers or via the CLI:
 
 ### Sharded Storage Architecture
 - **Exact & Suffix Rules**: Stored in a sorted 64-bit hash table. Queries match domains and successive parent domains via binary search in $O(\log N)$ time.

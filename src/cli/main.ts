@@ -5,8 +5,8 @@ import { parseArgs } from "node:util";
 import { compile, type FilterSource, publishSnapshot, SHARD_COUNT, type SnapshotFiles } from "#filter";
 
 const USAGE = `Usage:
-  cf-dns compile <file-or-url>... [-o snapshot/] [--max-complex N]
-  cf-dns upload <snapshot/> --url https://dns.example.com
+  edgedoh compile <file-or-url>... [-o snapshot/] [--max-complex N]
+  edgedoh upload <snapshot/> --url https://dns.example.com
 
 Sources may be prefixed with "id=" to set the list ID, e.g. adguard=https://.../filter_1.txt
 upload reads CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET for a Cloudflare Access service token`;

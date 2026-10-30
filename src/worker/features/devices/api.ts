@@ -86,7 +86,7 @@ devicesApi.get("/:id/mobileconfig", async (c) => {
   const { dohUrl } = present(device, c.req.url);
   return c.body(await mobileconfig(device, dohUrl), 200, {
     "content-type": "application/x-apple-aspen-config",
-    "content-disposition": `attachment; filename="cf-dns-${device.id}.mobileconfig"`,
+    "content-disposition": `attachment; filename="edgedoh-${device.id}.mobileconfig"`,
   });
 });
 

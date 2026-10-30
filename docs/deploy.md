@@ -6,7 +6,7 @@
 
 </div>
 
-cf-dns 提供两种部署方式：本地交互式一键部署脚本（推荐），或通过 GitHub 上的 Deploy to Cloudflare 按钮自动化部署。两种方式依赖的前置资源相同，部署前请先完成前置准备。
+EdgeDoH 提供两种部署方式：本地交互式一键部署脚本（推荐），或通过 GitHub 上的 Deploy to Cloudflare 按钮自动化部署。两种方式依赖的前置资源相同，部署前请先完成前置准备。
 
 ## 前置准备
 
@@ -32,8 +32,8 @@ cf-dns 提供两种部署方式：本地交互式一键部署脚本（推荐）�
 
 | 应用名称 | 路径 (Path) | 策略配置 | 说明 |
 | --- | --- | --- | --- |
-| `cf-dns 控制台` | 留空（保护全站） | 操作：`Allow`<br>规则包含：`Emails` 填入管理员邮箱 | 仅允许指定的邮箱登录面板并调用 `/api/*` |
-| `cf-dns DoH` | `dns-query` | 操作：`Bypass`<br>规则包含：`Everyone` | 允许所有客户端直连 DoH 接口，绕过登录认证 |
+| `EdgeDoH 控制台` | 留空（保护全站） | 操作：`Allow`<br>规则包含：`Emails` 填入管理员邮箱 | 仅允许指定的邮箱登录面板并调用 `/api/*` |
+| `EdgeDoH DoH` | `dns-query` | 操作：`Bypass`<br>规则包含：`Everyone` | 允许所有客户端直连 DoH 接口，绕过登录认证 |
 
 Cloudflare Access 遵循最长前缀优先匹配原则。创建路径为 `dns-query` 的 Bypass 规则后，发往 `/dns-query` 及 `/dns-query/*` 的 DoH 查询请求都会直接放行，避免因重定向至登录页导致客户端解析失败。
 
@@ -66,8 +66,8 @@ Cloudflare Access 遵循最长前缀优先匹配原则。创建路径为 `dns-qu
 依赖本地环境安装 [Bun](https://bun.sh) 与 `git`。
 
 ```bash
-git clone https://github.com/ChouChiu/cf-dns.git
-cd cf-dns
+git clone https://github.com/ChouChiu/EdgeDoH.git
+cd EdgeDoH
 bun install
 bun run setup
 ```
@@ -76,12 +76,12 @@ bun run setup
 
 1. 检查 wrangler 登录状态，未登录时自动唤起浏览器授权；账号不止一个时提供序号选择。
 2. 提示输入自定义域名（如 `dns.example.com`），配置保存至本地 `.env.deploy`。
-3. 检查并自动创建 D1 数据库 (`cf-dns`) 与 KV 命名空间 (`cf-dns-rules`)，将生成的资源 ID 回写至 `wrangler.jsonc`（该文件不纳入版本控制，首次运行由 `wrangler.example.jsonc` 创建）。
+3. 检查并自动创建 D1 数据库 (`edgedoh`) 与 KV 命名空间 (`edgedoh-rules`)，将生成的资源 ID 回写至 `wrangler.jsonc`（该文件不纳入版本控制，首次运行由 `wrangler.example.jsonc` 创建）。
 4. 提示输入缺失的必需密钥，写入本地 `.env.production`。
 5. 编译前端面板与 Worker，执行 D1 远程数据库迁移，并将凭据批量加密上传至 Worker 完成部署。
 
 - 脚本支持多次执行，已创建的资源与已保存的凭据均会自动复用。
-- 若需指定 D1 数据库物理位置，可在执行脚本前手动运行 `bunx wrangler d1 create cf-dns --location apac`，脚本将自动关联已有数据库。
+- 若需指定 D1 数据库物理位置，可在执行脚本前手动运行 `bunx wrangler d1 create edgedoh --location apac`，脚本将自动关联已有数据库。
 - 后续更新代码并部署仅需执行：
   ```bash
   git pull && bun install && bun run deploy
@@ -89,7 +89,7 @@ bun run setup
 
 ## 方式二：Deploy to Cloudflare 按钮
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/cf-dns)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
 > `wrangler.jsonc` 含账号资源 ID，不纳入版本控制。使用按钮前请先 Fork 本仓库，在 Fork 中提交一份由 `wrangler.example.jsonc` 复制的 `wrangler.jsonc`（D1 与 KV 的 ID 留空，由 Cloudflare 创建后回填），并把按钮链接中的 `url` 换成自己的仓库地址。
 

@@ -1,5 +1,5 @@
 {
-  "name": "cf-dns",
+  "name": "edgedoh",
   "version": "0.0.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
@@ -10,6 +10,7 @@
     "#contract": "./src/lib/contract/index.ts"
   },
   "bin": {
+    "edgedoh": "./src/cli/main.ts",
     "cf-dns": "./src/cli/main.ts"
   },
   "scripts": {
@@ -72,7 +73,7 @@
         "description": "Zero Trust team domain protecting the dashboard, e.g. `myteam.cloudflareaccess.com`. Found under **Zero Trust > Settings > Team name and domain**"
       },
       "ACCESS_AUD": {
-        "description": "Application Audience (AUD) tag of the Access application covering the dashboard hostname, under **Zero Trust > Access > Applications > Configure > Basic information**. See [the deployment guide](https://github.com/ChouChiu/cf-dns/blob/main/docs/deploy.md)"
+        "description": "Application Audience (AUD) tag of the Access application covering the dashboard hostname, under **Zero Trust > Access > Applications > Configure > Basic information**. See [the deployment guide](https://github.com/ChouChiu/EdgeDoH/blob/main/docs/deploy.md)"
       },
       "CF_ACCOUNT_ID": {
         "description": "Your Cloudflare account ID, shown on the account home page and in the dashboard URL"

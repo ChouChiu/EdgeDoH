@@ -6,7 +6,7 @@ export async function mobileconfig(device: Device, dohUrl: string): Promise<stri
   const host = new URL(dohUrl).hostname;
   const identifier = `${host.split(".").reverse().join(".")}.${device.id}`;
   const [outer, inner] = await Promise.all([stableUuid(`${device.id}:profile`), stableUuid(`${device.id}:dns`)]);
-  const name = escapeXml(`cf-dns · ${device.name}`);
+  const name = escapeXml(`EdgeDoH · ${device.name}`);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

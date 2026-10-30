@@ -6,11 +6,11 @@
 
 </div>
 
-本文档记录 cf-dns 的系统架构、核心解析流程、规则引擎设计、API 接口规格与开发约定。
+本文档记录 EdgeDoH 的系统架构、核心解析流程、规则引擎设计、API 接口规格与开发约定。
 
 ## 架构总览
 
-cf-dns 运行在 Cloudflare Workers 无服务器环境中，结合边缘存储与计算能力构建：
+EdgeDoH 运行在 Cloudflare Workers 无服务器环境中，结合边缘存储与计算能力构建：
 
 - **Cloudflare Worker (`src/worker`)**：核心运行环境。DoH 端点（`/dns-query/:deviceId`）独立处理二进制 DNS 报文，绕过路由框架开销；管理接口（`/api/*`）基于 Hono 提供 RESTful API 并受 Cloudflare Access JWT 保护。
 - **D1 数据库 (`DB`)**：存储设备、过滤列表、策略组、本地 DNS 记录与全局配置等关系型数据。
@@ -46,7 +46,7 @@ Worker 处理 DoH 请求（`/dns-query/:deviceId`）遵循以下执行顺序：
 
 ## 规则引擎与快照分片
 
-Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。cf-dns 避免在 Worker 运行时解析规则文本，编译过程全部移至浏览器 Web Worker 或 CLI：
+Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免在 Worker 运行时解析规则文本，编译过程全部移至浏览器 Web Worker 或 CLI：
 
 ### 分片存储机制
 - **精确域名与后缀规则**：转换为 64 位哈希有序表，查询时通过二分查找匹配目标域名及逐级父域名，时间复杂度为 $O(\log N)$。

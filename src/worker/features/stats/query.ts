@@ -23,7 +23,7 @@ export function statsConfig(env: Env): StatsConfig {
 const CACHE_SECONDS = 60;
 
 export async function runSql<T>(config: StatsConfig, sql: string): Promise<T[]> {
-  const cacheKey = `https://cf-dns.cache/stats/${await sha256Hex(`${config.accountId}\n${sql}`)}`;
+  const cacheKey = `https://edgedoh.cache/stats/${await sha256Hex(`${config.accountId}\n${sql}`)}`;
   const cached = await caches.default.match(cacheKey);
   if (cached) return cached.json<T[]>();
 

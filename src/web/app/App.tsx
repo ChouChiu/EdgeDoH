@@ -20,7 +20,7 @@ export default function App() {
   const title = label ? t(label) : undefined;
 
   useEffect(() => {
-    document.title = title ? `${title} · cf-dns` : "cf-dns";
+    document.title = title ? `${title} · EdgeDoH` : "EdgeDoH";
   }, [title]);
 
   return (
@@ -31,7 +31,7 @@ export default function App() {
           <SidebarTrigger className="-ml-1" aria-label={t("nav.toggleSidebar")} />
           {/* Wider screens already name the page twice, in the sidebar and the page heading; phones hide both behind the trigger */}
           <div aria-hidden className="mr-1 h-4 w-px shrink-0 bg-border md:hidden" />
-          <span className="truncate text-sm font-medium md:hidden">{title ?? "cf-dns"}</span>
+          <span className="truncate text-sm font-medium md:hidden">{title ?? "EdgeDoH"}</span>
           <div className="ml-auto flex items-center gap-1">
             {stage && (
               <span className="mr-2 flex items-center gap-1.5 text-xs text-muted-foreground" role="status">

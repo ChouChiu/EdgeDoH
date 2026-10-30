@@ -19,7 +19,7 @@ import {
 import type { UpstreamMode } from "../settings/store.ts";
 
 export const DNS_MESSAGE = "application/dns-message";
-const STORED_AT = "x-cf-dns-stored-at";
+const STORED_AT = "x-edgedoh-stored-at";
 
 export interface UpstreamConfig {
   upstreams: string[];
@@ -171,7 +171,7 @@ function cacheKey(query: Message, upstreams: string[], subnet: ClientSubnet | un
   });
   // Answers differ per subnet, and must never leak to clients the upstream did not tailor them for
   if (subnet) params.set("ecs", subnetText(subnet));
-  return `https://cf-dns.cache/v1/${q.class}/${q.type}/${encodeURIComponent(q.name.toLowerCase())}?${params}`;
+  return `https://edgedoh.cache/v1/${q.class}/${q.type}/${encodeURIComponent(q.name.toLowerCase())}?${params}`;
 }
 
 async function readCache(key: string, query: Message, raw: Uint8Array): Promise<Resolution | undefined> {
