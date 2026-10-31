@@ -1,3 +1,4 @@
+import { DEFAULT_PROFILE_ID } from "#contract";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -15,7 +16,7 @@ import { Input } from "@/shared/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { DEFAULT_PROFILE_ID, profileName, useProfiles } from "@/features/profiles/api";
+import { profileName, useProfiles } from "@/features/profiles/api";
 import { useSettings } from "@/features/settings/api";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/lib/clipboard";
@@ -80,7 +81,7 @@ export function DeviceCard({ device }: { device: Device }) {
           <PauseButton device={device} />
           <DeviceRulesDialog device={device} />
           <Button variant="outline" size="sm" asChild>
-            <a href={devicesApi.mobileconfigUrl(device.id)} download>
+            <a href={devicesApi.mobileconfigUrl(device.id)} download title=".mobileconfig">
               <Download />
               {t("devices.downloadProfile")}
             </a>
