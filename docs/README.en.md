@@ -8,36 +8,36 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
-A personal DNS-over-HTTPS (DoH) resolver built on Cloudflare Workers. Features per-device endpoints, AdGuard rule filtering, profile-based management, split DNS, and a web dashboard.
+A personal DNS-over-HTTPS resolver on Cloudflare Workers, with filter rules, profiles and a dashboard.
 
 </div>
 
-## Architecture Overview
+## How it works
 
 ```mermaid
 graph LR
-    Client[Client Device] -->|DoH /dns-query/:id| Worker[Cloudflare Worker]
-    Worker --> Cache[(Edge Cache)]
-    Worker --> Filter[Filter Rules & Profile]
-    Worker --> Guard[(Abuse Guard DO)]
-    Filter -->|Block / Local Record| Client
-    Filter -->|Pass / Split DNS| Upstream[Upstream DoH]
-    Worker -.->|Async Telemetry| AE[(Analytics Engine)]
+    Client[Device] -->|DoH /dns-query/:id| Worker[Cloudflare Worker]
+    Worker --> Cache[(Edge cache)]
+    Worker --> Filter[Rules and profiles]
+    Worker --> Guard[(Client limit DO)]
+    Filter -->|Block / local record| Client
+    Filter -->|Pass / split DNS| Upstream[Upstream DoH]
+    Worker -.->|Query log| AE[(Analytics Engine)]
 ```
 
-## Key Features
+## Features
 
-- **DoH Endpoints**: RFC 8484 compliant (GET / POST), dedicated endpoint per device, and one-click Apple configuration profile (`.mobileconfig`) export.
-- **Rule Filtering**: Compatible with AdGuard DNS syntax, hosts files, and plain domain lists. Snapshots are compiled in the browser into 64-bit hashed binary shards for fast in-memory binary search at the edge.
-- **Per-Device Profiles**: Assign profiles to devices to control active filter lists, blocking responses, upstream resolvers, scheduled service blocking, Safe Search, and YouTube Restricted Mode.
-- **Split DNS & ECS**: Route specific domains to designated upstreams; forward client /24 (IPv6 /56) EDNS Client Subnets for CDN optimization.
-- **ECH & HTTP/3 Injection**: Inject public ECH configurations and advertise HTTP/3 for Cloudflare-proxied domains.
-- **Abuse Protection**: SQLite-backed Durable Objects track active networks in a sliding window (IPv4 by IP, IPv6 by /64 prefix) to prevent endpoint abuse.
-- **Monitoring & Dashboard**: Analytics Engine tracks query metrics and real-time logs; management dashboard and APIs are secured by Cloudflare Access (Zero Trust) JWT.
+- One DoH URL per device (RFC 8484, GET and POST); Apple devices can download a `.mobileconfig` profile.
+- Filter rules in AdGuard DNS syntax, hosts files or plain domain lists. The browser compiles them into hashed shards stored in KV, so the Worker only runs binary searches and never parses rule text.
+- Profiles: each device can use a profile with its own lists, blocking response, upstreams, blocked services (optionally on a schedule), safe search and YouTube restricted mode.
+- Split DNS: send chosen domains to chosen upstreams; optionally forward the client subnet (ECS, IPv4 /24, IPv6 /56).
+- For Cloudflare-proxied sites, ECH and HTTP/3 can be added to HTTPS records.
+- Each device may be used from a limited number of networks over a time window (IPv4 by address, IPv6 by /64), so a leaked DoH URL cannot be used freely.
+- Query stats and logs go to Analytics Engine; the dashboard and API sit behind Cloudflare Access.
 
-## Quick Start
+## Run locally
 
-Requires [Bun](https://bun.sh) and a Cloudflare account:
+Requires [Bun](https://bun.sh):
 
 ```bash
 bun install
@@ -48,13 +48,13 @@ bun run db:migrate:local
 bun run dev
 ```
 
-Visit `http://localhost:8787`. For production deployment and remote configuration, see the [Deployment Guide](deploy.en.md).
+Open `http://localhost:8787`. To deploy to Cloudflare, see the [deployment guide](deploy.en.md).
 
 ## Documentation
 
-- [Deployment Guide](deploy.en.md): Production deployment steps, Zero Trust team setup, and Cloudflare Access rules.
-- [Technical Documentation](TECHNICAL.en.md): Detailed resolution pipeline, rule engine architecture, API reference, and codebase structure.
+- [Deployment guide](deploy.en.md): deployment steps, Zero Trust and Access setup.
+- [Technical notes](TECHNICAL.en.md): resolution pipeline, rule engine, API and code layout.
 
 ## License
 
-Released under the [GNU AGPL v3](../LICENSE).
+[GNU AGPL v3](../LICENSE)

@@ -25,10 +25,10 @@ EdgeDoH 运行在 Cloudflare Workers 无服务器环境中，结合边缘存储�
 Worker 处理 DoH 请求（`/dns-query/:deviceId`）遵循以下执行顺序：
 
 1. **设备识别与配置读取**：从 URL 路径获取设备 ID。优先读取 KV 中的运行时配置缓存（`config:v2`），未命中时回退查询 D1 数据库；设备不存在时直接响应 HTTP 404。若设备的策略组配置了定时规则并设置了「时段内改用策略组」，时段内整体改用目标策略组（只跟随一层；目标被删除时保持原策略组）。
-2. **来源网络频控 (Client Guard)**：若策略启用了网络数限制，提取客户端 IP（`cf-connecting-ip`）。已验证的网络在 Worker 内存中缓存 5 分钟；新网络由设备对应的 Durable Object 校验滑动窗口内的活跃网络总数。超出上限返回 `REFUSED`（标记 `source: limited`）。若 Durable Object 异常，默认放行以保证高可用。
+2. **来源网络频控 (Client Guard)**：若设置中启用了网络数限制，提取客户端 IP（`cf-connecting-ip`）。已验证的网络在 Worker 内存中缓存 5 分钟；新网络由设备对应的 Durable Object 校验滑动窗口内的活跃网络总数。超出上限返回 `REFUSED`（标记 `source: limited`）。若 Durable Object 异常，默认放行以保证高可用。
 3. **本地记录与 IPv6 降级**：
    - 优先匹配面板中维护的本地 A / AAAA / CNAME 记录，命中即在边缘合成 DNS 响应返回。
-   - 若策略组启用了「禁用 IPv6 解析」，对 AAAA 类型查询直接返回 `NODATA`（NOERROR 且 Answer 为空），客户端将快速回退至 IPv4。
+   - 若设置中开启了「禁用 IPv6 解析」，对 AAAA 类型查询直接返回 `NODATA`（NOERROR 且 Answer 为空），客户端将快速回退至 IPv4。
 4. **规则过滤与服务屏蔽**：当策略组启用过滤且设备未暂停时，使用当前规则快照二分查找匹配域名（仅执行策略组选中的列表与服务）：
    - **拦截**：根据配置的响应模式（`null_ip` 返回 0.0.0.0/::、`nxdomain`、`refused`、`nodata` 或 `custom_ip`）在本地构建 DNS 报文。
    - **改写**：命中 `$dnsrewrite` 或 hosts 规则时本地合成应答；若改写目标为 CNAME，递归向上游解析目标域名。
@@ -169,7 +169,7 @@ src/
 │   ├── filter/    # 规则解析、快照编译与匹配引擎（别名 #filter）
 │   └── contract/  # 前后端共用的限制常量与枚举（别名 #contract）
 ├── worker/        # Cloudflare Worker 后端源码
-│   ├── features/  # 业务领域模块（devices, doh, lists, profiles, records, rules, services, settings, stats）
+│   ├── features/  # 业务领域模块（alerts, backup, devices, doh, lists, profiles, records, rules, services, settings, stats）
 │   ├── shared/    # 鉴权中间件、配置同步、错误模型与通用校验
 │   └── test/      # 上游 Mock 与测试辅助工具
 ├── web/           # 管理面板前端（Vite + React 19 + Tailwind CSS v4 + shadcn/ui）

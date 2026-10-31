@@ -8,36 +8,36 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ChouChiu/EdgeDoH)
 
-基於 Cloudflare Workers 建構的個人 DNS-over-HTTPS (DoH) 服務。支援依裝置分配接入點、AdGuard 規則過濾、策略組管理、分流解析與 Web 管理面板。
+執行於 Cloudflare Workers 的個人 DNS-over-HTTPS 服務，提供過濾規則、策略組與管理面板。
 
 </div>
 
-## 架構概覽
+## 運作方式
 
 ```mermaid
 graph LR
-    Client[用戶端裝置] -->|DoH /dns-query/:id| Worker[Cloudflare Worker]
+    Client[裝置] -->|DoH /dns-query/:id| Worker[Cloudflare Worker]
     Worker --> Cache[(邊緣快取)]
-    Worker --> Filter[規則過濾 & 策略組]
-    Worker --> Guard[(來源防濫用 DO)]
+    Worker --> Filter[規則與策略組]
+    Worker --> Guard[(來源限制 DO)]
     Filter -->|攔截 / 本機記錄| Client
     Filter -->|放行 / 分流| Upstream[上游 DoH]
-    Worker -.->|非同步遙測| AE[(Analytics Engine)]
+    Worker -.->|查詢記錄| AE[(Analytics Engine)]
 ```
 
-## 核心特性
+## 功能
 
-- **DoH 接入點**：遵循 RFC 8484 規範（GET / POST），依裝置分配獨立路徑，支援 Apple 描述檔（`.mobileconfig`）一鍵匯入。
-- **規則過濾**：相容 AdGuard 語法、hosts 與純網域清單；快照在瀏覽器端編譯為 64 位元雜湊分片，Worker 節點以二分搜尋比對，不消耗即時解析 CPU。
-- **策略組管理**：支援依裝置綁定策略組，獨立設定生效清單、攔截回應模式、上游伺服器、預設服務封鎖（含定時封鎖）、安全搜尋與 YouTube 嚴格篩選模式。
-- **分流解析與 ECS**：支援依網域清單分流至專屬上游；支援轉送用戶端 /24（IPv6 /56）EDNS Client Subnet 最佳化 CDN 調度。
-- **ECH 與 HTTP/3 注入**：為 Cloudflare 代理的網站補上公用 ECH 與 HTTP/3 設定，加密交握網域並加速連線。
-- **用戶端防濫用**：基於 Durable Objects 限制單台裝置滑動區間內的活躍網路數（IPv4 單 IP，IPv6 /64 網段），防止接入點外洩。
-- **監控與管理面板**：基於 Analytics Engine 記錄請求統計與即時查詢日誌；管理面板受 Cloudflare Access (Zero Trust) JWT 保護。
+- 每台裝置一個 DoH 位址（RFC 8484，GET 與 POST），Apple 裝置可下載 `.mobileconfig` 描述檔。
+- 過濾規則支援 AdGuard DNS 語法、hosts 與純網域清單。規則在瀏覽器中編譯成雜湊分片存入 KV，Worker 只做二分搜尋，不解析規則文字。
+- 策略組：每台裝置可綁定一個策略組，分別設定啟用的清單、攔截方式、上游、要封鎖的服務（可依時段）、安全搜尋與 YouTube 限制模式。
+- 分流：指定網域走指定上游；可選擇轉送用戶端子網路（ECS，IPv4 /24、IPv6 /56）。
+- 對 Cloudflare 代理的網站，可在 HTTPS 記錄中補上 ECH 與 HTTP/3。
+- 限制每台裝置在一段時間內可使用的網路數（IPv4 依位址，IPv6 依 /64），DoH 位址外洩後不會被任意使用。
+- 查詢統計與記錄寫入 Analytics Engine；面板與 API 由 Cloudflare Access 保護。
 
-## 快速開始
+## 本機執行
 
-本機開發依賴 [Bun](https://bun.sh) 與 Cloudflare 帳號：
+需要 [Bun](https://bun.sh)：
 
 ```bash
 bun install
@@ -48,13 +48,13 @@ bun run db:migrate:local
 bun run dev
 ```
 
-啟動後存取 `http://localhost:8787`。正式部署與遠端設定請參考 [部署指南](deploy.zh-Hant.md)。
+開啟 `http://localhost:8787`。部署至 Cloudflare 請見[部署指南](deploy.zh-Hant.md)。
 
-## 專案文件
+## 文件
 
-- [部署指南](deploy.zh-Hant.md)：正式環境一鍵部署、Zero Trust 團隊與 Access 規則設定。
-- [技術實作文件](TECHNICAL.zh-Hant.md)：解析流程詳解、規則引擎架構、完整 API 介面與程式碼庫結構。
+- [部署指南](deploy.zh-Hant.md)：部署步驟、Zero Trust 與 Access 設定。
+- [技術文件](TECHNICAL.zh-Hant.md)：解析流程、規則引擎、API 與目錄結構。
 
-## 授權條款
+## 授權
 
-本專案基於 [GNU AGPL v3](../LICENSE) 開源。
+[GNU AGPL v3](../LICENSE)

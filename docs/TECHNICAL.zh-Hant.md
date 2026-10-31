@@ -25,10 +25,10 @@ EdgeDoH 運行於 Cloudflare Workers 無伺服器環境中，結合邊緣儲存�
 Worker 處理 DoH 請求（`/dns-query/:deviceId`）遵循以下執行順序：
 
 1. **裝置識別與設定讀取**：從 URL 路徑取得裝置 ID。優先讀取 KV 中的執行階段設定快取（`config:v2`），未命中時回退查詢 D1 資料庫；裝置不存在時直接回應 HTTP 404。若裝置的策略組設定了定時規則並指定「時段內改用策略組」，時段內整體改用目標策略組（只跟隨一層；目標被刪除時保持原策略組）。
-2. **來源網路頻控 (Client Guard)**：若策略啟用了網路數限制，提取用戶端 IP（`cf-connecting-ip`）。已驗證的網路在 Worker 記憶體中快取 5 分鐘；新網路由裝置對應的 Durable Object 驗證滑動區間內的活躍網路總數。超出上限回傳 `REFUSED`（標記 `source: limited`）。若 Durable Object 異常，預設放行以確保高可用性。
+2. **來源網路頻控 (Client Guard)**：若設定中啟用了網路數限制，提取用戶端 IP（`cf-connecting-ip`）。已驗證的網路在 Worker 記憶體中快取 5 分鐘；新網路由裝置對應的 Durable Object 驗證滑動區間內的活躍網路總數。超出上限回傳 `REFUSED`（標記 `source: limited`）。若 Durable Object 異常，預設放行以確保高可用性。
 3. **本機記錄與 IPv6 降級**：
    - 優先比對面板中維護的本機 A / AAAA / CNAME 記錄，命中即在邊緣合成 DNS 回應回傳。
-   - 若策略組啟用了「停用 IPv6 解析」，對 AAAA 類型查詢直接回傳 `NODATA`（NOERROR 且 Answer 為空），用戶端將快速回退至 IPv4。
+   - 若設定中開啟了「停用 IPv6 解析」，對 AAAA 類型查詢直接回傳 `NODATA`（NOERROR 且 Answer 為空），用戶端將快速回退至 IPv4。
 4. **規則過濾與服務封鎖**：當策略組啟用過濾且裝置未暫停時，使用目前規則快照以二分搜尋比對網域（僅執行策略組選取的清單與服務）：
    - **攔截**：根據設定的回應模式（`null_ip` 回傳 0.0.0.0/::、`nxdomain`、`refused`、`nodata` 或 `custom_ip`）在本機建構 DNS 封包。
    - **改寫**：命中 `$dnsrewrite` 或 hosts 規則時本機合成應答；若改寫目標為 CNAME，遞迴向上游解析目標網域。
@@ -169,7 +169,7 @@ src/
 │   ├── filter/    # 規則解析、快照編譯與比對引擎（別名 #filter）
 │   └── contract/  # 前後端共用的限制常數與列舉（別名 #contract）
 ├── worker/        # Cloudflare Worker 後端原始碼
-│   ├── features/  # 業務模組（devices, doh, lists, profiles, records, rules, services, settings, stats）
+│   ├── features/  # 業務模組（alerts, backup, devices, doh, lists, profiles, records, rules, services, settings, stats）
 │   ├── shared/    # 驗證中介軟體、設定同步、錯誤模型與通用校驗
 │   └── test/      # 上游 Mock 與測試輔助工具
 ├── web/           # 管理面板前端（Vite + React 19 + Tailwind CSS v4 + shadcn/ui）
