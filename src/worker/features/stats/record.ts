@@ -1,6 +1,6 @@
+import type { AnswerSource, FilterAction } from "#contract";
 import { readHeader, typeName } from "#dns";
 import type { MatchedRule } from "#filter";
-import type { AnswerSource, FilterAction } from "./schema.ts";
 
 export interface QueryEvent {
   deviceId: string;

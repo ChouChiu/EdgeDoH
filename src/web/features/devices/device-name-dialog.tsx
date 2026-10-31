@@ -1,3 +1,4 @@
+import { MAX_DEVICE_NAME } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { DEVICES_KEY, type Device, devicesApi, MAX_DEVICE_NAME } from "./api";
+import { DEVICES_KEY, type Device, devicesApi } from "./api";
 
 /** Creates a device, or renames `device` when given */
 export function DeviceNameDialog({ device }: { device?: Device }) {

@@ -3,8 +3,6 @@ import { jsonBody, request } from "@/shared/lib/http";
 
 import type { BlockingMode, UpstreamMode } from "#contract";
 
-export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode } from "#contract";
-
 export interface Settings {
   filteringEnabled: boolean;
   blockingMode: BlockingMode;

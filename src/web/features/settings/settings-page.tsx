@@ -1,3 +1,4 @@
+import { BLOCKING_MODES, type BlockingMode, isHttpUrl, MAX_ECH_FORCED_DOMAINS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -18,34 +19,19 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Textarea } from "@/shared/ui/textarea";
 import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
-import { errorMessage, isHttpUrl } from "@/shared/lib/http";
+import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 import { isDomain } from "#filter";
-import { MAX_ECH_FORCED_DOMAINS } from "#contract";
 import { BackupCard } from "./backup-card";
 import { TestAlertButton } from "./test-alert-button";
 import {
-  BLOCKING_MODES,
-  type BlockingMode,
   type Settings,
   SETTINGS_KEY,
   settingsApi,
-  UPSTREAM_MODES,
-  type UpstreamMode,
   useSettings,
 } from "./api";
 
-type NumberField =
-  | "blockedTtl"
-  | "upstreamTimeoutMs"
-  | "cacheMinTtl"
-  | "cacheMaxTtl"
-  | "maxDeviceClients"
-  | "deviceClientWindowMinutes"
-  | "alertFailurePercent"
-  | "alertBlockedPercent"
-  | "alertLimitedQueries";
-const NUMBER_FIELDS: NumberField[] = [
+const NUMBER_FIELDS = [
   "blockedTtl",
   "upstreamTimeoutMs",
   "cacheMinTtl",
@@ -55,7 +41,8 @@ const NUMBER_FIELDS: NumberField[] = [
   "alertFailurePercent",
   "alertBlockedPercent",
   "alertLimitedQueries",
-];
+] as const;
+type NumberField = (typeof NUMBER_FIELDS)[number];
 
 type ListField = "upstreams" | "echForcedDomains";
 
@@ -284,25 +271,16 @@ function ServerSettings() {
       </Section>
 
       <Section id={sectionId("upstream")} title={t("settings.upstream")} description={t("settings.upstreamDescription")}>
-        <div className="grid gap-2 py-3">
-          <Label htmlFor="upstreams">{t("settings.upstreams")}</Label>
-          <Textarea
-            id="upstreams"
-            required
-            spellCheck={false}
-            autoCapitalize="none"
-            autoCorrect="off"
-            inputMode="url"
-            aria-invalid={errors.upstreams !== undefined}
-            aria-describedby="upstreams-hint"
-            className="font-mono text-sm"
-            value={draft.upstreams}
-            onChange={(e) => set("upstreams", e.target.value)}
-          />
-          <p id="upstreams-hint" className={errors.upstreams ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-            {errors.upstreams ?? t("settings.upstreamsHint")}
-          </p>
-        </div>
+        <ListInput
+          id="upstreams"
+          label={t("settings.upstreams")}
+          hint={t("settings.upstreamsHint")}
+          error={errors.upstreams}
+          required
+          inputMode="url"
+          value={draft.upstreams}
+          onChange={(v) => set("upstreams", v)}
+        />
         <Row label={t("settings.upstreamMode")} hint={t(`settings.upstreamMode.${draft.upstreamMode}.hint`)} htmlFor="upstreamMode">
           <Select value={draft.upstreamMode} onValueChange={(v) => set("upstreamMode", v as UpstreamMode)}>
             <SelectTrigger id="upstreamMode" className="w-40">
@@ -434,12 +412,24 @@ function AddressField(props: { id: string; label: string; placeholder: string; v
   );
 }
 
-function ListInput(props: { id: string; label: string; hint: string; error: string | undefined; placeholder: string; value: string; onChange: (value: string) => void }) {
+function ListInput(props: {
+  id: string;
+  label: string;
+  hint: string;
+  error: string | undefined;
+  placeholder?: string;
+  required?: boolean;
+  inputMode?: "url";
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <div className="grid gap-2 py-3">
       <Label htmlFor={props.id}>{props.label}</Label>
       <Textarea
         id={props.id}
+        required={props.required}
+        inputMode={props.inputMode}
         spellCheck={false}
         autoCapitalize="none"
         autoCorrect="off"

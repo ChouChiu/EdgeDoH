@@ -1,8 +1,9 @@
+import { CUSTOM_LIST_ID, DEVICE_RULES_LIST_ID, SERVICE_LIST_PREFIX } from "#contract";
 import { deviceRulesText, type FilterSource, publishSnapshot } from "#filter";
-import { DEVICE_RULES_LIST_ID, devicesApi } from "@/features/devices/api";
+import { devicesApi } from "@/features/devices/api";
 import { listsApi } from "@/features/filters/api";
-import { servicesApi, SERVICE_LIST_PREFIX } from "@/features/profiles/api";
-import { CUSTOM_LIST_ID, rulesApi } from "@/features/rules/api";
+import { servicesApi } from "@/features/profiles/api";
+import { rulesApi } from "@/features/rules/api";
 import { snapshotApi } from "./api";
 import type { CompileRequest, CompileResponse } from "./compile.worker";
 

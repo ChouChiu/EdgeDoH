@@ -1,3 +1,4 @@
+import type { UpstreamMode } from "#contract";
 import {
   buildResponse,
   cacheTtl,
@@ -16,7 +17,6 @@ import {
   withClientSubnet,
   withId,
 } from "#dns";
-import type { UpstreamMode } from "../settings/store.ts";
 
 export const DNS_MESSAGE = "application/dns-message";
 const STORED_AT = "x-edgedoh-stored-at";

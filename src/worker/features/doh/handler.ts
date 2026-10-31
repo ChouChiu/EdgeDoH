@@ -1,3 +1,4 @@
+import { type AnswerSource, SERVICE_LIST_PREFIX } from "#contract";
 import {
   buildResponse,
   clientSubnet,
@@ -18,11 +19,10 @@ import { HttpError, readBody } from "../../shared/http.ts";
 import { getRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { admitClient } from "../devices/client-guard.ts";
 import { type Device, findDevice } from "../devices/store.ts";
-import { getProfile, type Profile, profileAt, SERVICE_LIST_PREFIX } from "../profiles/store.ts";
+import { getProfile, type Profile, profileAt } from "../profiles/store.ts";
 import { getSettings, type Settings } from "../settings/store.ts";
 import { clientLabel } from "../stats/client.ts";
 import { recordQuery } from "../stats/record.ts";
-import type { AnswerSource } from "../stats/schema.ts";
 import { type AnswerConfig, blockedResponse, rewriteResponse } from "./answers.ts";
 import { decide, filteringActive } from "./decide.ts";
 import { forcedDomains, injectHttps } from "./https-inject.ts";

@@ -1,4 +1,3 @@
-export { isHttpUrl } from "#contract";
 import type { Context } from "hono";
 import { Hono } from "hono/quick";
 import type { ContentfulStatusCode } from "hono/utils/http-status";

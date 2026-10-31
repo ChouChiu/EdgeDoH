@@ -1,15 +1,16 @@
+import type { StatsRange } from "#contract";
 import { useQuery } from "@tanstack/react-query";
 import { QueryError } from "@/shared/components/page";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { useI18n } from "@/shared/i18n";
-import { type Range, statsApi } from "./api";
+import { statsApi } from "./api";
 
 /** Above this share of failed attempts an upstream is worth a look */
 const WARN_RATE = 0.05;
 
 /** Answers, failures and round trip per upstream host */
-export function UpstreamHealth({ range, enabled }: { range: Range; enabled: boolean }) {
+export function UpstreamHealth({ range, enabled }: { range: StatsRange; enabled: boolean }) {
   const { t, fmt } = useI18n();
   const health = useQuery({ queryKey: ["stats", "upstreams", range], queryFn: () => statsApi.upstreams({ range }), enabled });
   const ms = (v: number | null) => (v === null ? "–" : `${fmt.number(v)} ms`);

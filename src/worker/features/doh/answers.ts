@@ -1,3 +1,4 @@
+import type { BlockingMode } from "#contract";
 import {
   type AnswerRecord,
   buildQuery,
@@ -15,7 +16,6 @@ import {
   RRType,
 } from "#dns";
 import type { Verdict } from "#filter";
-import type { BlockingMode } from "../settings/store.ts";
 import { resolve, type UpstreamConfig } from "./upstream.ts";
 
 export interface AnswerConfig {

@@ -1,25 +1,22 @@
+import { CUSTOM_LIST_ID, DEFAULT_PROFILE_ID, isHttpUrl, isUpstreamList, MAX_DEVICE_NAME, MAX_LIST_NAME, MAX_PROFILE_NAME } from "#contract";
 /**
  * Whole-configuration backup: settings, profiles, devices with their overrides, lists, custom rules
  * and local records.
  * Device IDs are left out because they are the DoH endpoints themselves; an import gives every
  * device a new one. Downloaded lists travel as URLs only and are fetched again after an import
  */
-import { isHttpUrl, MAX_DEVICE_NAME, MAX_PROFILE_NAME } from "#contract";
 import { HttpError } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
-import { isUpstreamList } from "../../shared/validate.ts";
 import { newDeviceId, type StoredDeviceRule, validateDeviceRules } from "../devices/store.ts";
 import {
-  CUSTOM_LIST_ID,
   getLists,
   LIST_KINDS,
   type ListKind,
   MAX_CUSTOM_RULES_BYTES,
   MAX_INLINE_BYTES,
-  MAX_LIST_NAME,
   textKey,
 } from "../lists/store.ts";
-import { DEFAULT_PROFILE_ID, PROFILE_DEFAULTS, profileErrors, validateProfile } from "../profiles/store.ts";
+import { PROFILE_DEFAULTS, profileErrors, validateProfile } from "../profiles/store.ts";
 import { listRecords, type LocalRecord, validateRecords } from "../records/store.ts";
 import { crossFieldErrors, defaultSettings, validateSettings } from "../settings/store.ts";
 

@@ -1,7 +1,6 @@
 import type { Verdict } from "#filter";
 import { jsonBody, request } from "@/shared/lib/http";
 
-export { CUSTOM_LIST_ID } from "#contract";
 export const CUSTOM_RULES_KEY = ["custom-rules"];
 
 export const rulesApi = {

@@ -1,12 +1,11 @@
+import { BLOCKING_MODES, type BlockingMode, CUSTOM_LIST_ID, DEFAULT_PROFILE_ID, MAX_PROFILE_NAME } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { useLists } from "@/features/filters/api";
-import { CUSTOM_LIST_ID } from "@/features/rules/api";
 import { snapshotApi } from "@/features/snapshot/api";
 import { useRebuild } from "@/features/snapshot/api";
-import { BLOCKING_MODES, type BlockingMode } from "@/features/settings/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
 import { Save } from "@/shared/components/animate-ui/icons/save";
@@ -24,7 +23,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
-import { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, type Profile, PROFILES_KEY, profileName, profilesApi, type Schedule, useProfiles } from "./api";
+import { type Profile, PROFILES_KEY, profileName, profilesApi, type Schedule, useProfiles } from "./api";
 import { ScheduleEditor } from "./schedule-editor";
 import { ServicePicker } from "./service-picker";
 

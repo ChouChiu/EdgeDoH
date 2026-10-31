@@ -1,3 +1,4 @@
+import { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -16,7 +17,7 @@ import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { type Translate, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, type Profile, PROFILES_KEY, profileName, profilesApi, useProfiles } from "./api";
+import { type Profile, PROFILES_KEY, profileName, profilesApi, useProfiles } from "./api";
 
 export function ProfilesPage() {
   const { t } = useI18n();

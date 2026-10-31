@@ -1,3 +1,4 @@
+import { RECORD_TYPES, type RecordType } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { type LocalRecord, RECORD_TYPES, type RecordType, RECORDS_KEY, recordsApi, useLocalRecords } from "./api";
+import { type LocalRecord, RECORDS_KEY, recordsApi, useLocalRecords } from "./api";
 
 const PLACEHOLDER: Record<RecordType, string> = { A: "192.168.1.20", AAAA: "fd00::20", CNAME: "nas.lan" };
 

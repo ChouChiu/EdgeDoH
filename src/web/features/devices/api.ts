@@ -21,7 +21,6 @@ export interface DeviceClients {
   clients: { client: string; lastSeen: number }[];
 }
 
-export { DEVICE_RULES_LIST_ID, MAX_DEVICE_NAME, MAX_DEVICE_RULES } from "#contract";
 
 export interface DeviceOverride {
   name: string;

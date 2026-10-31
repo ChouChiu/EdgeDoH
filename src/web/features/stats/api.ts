@@ -1,13 +1,11 @@
 import { ApiError, queryString, request } from "@/shared/lib/http";
 
-import { type AnswerSource, type FilterAction, type StatsRange as Range, STATS_RANGES as RANGES } from "#contract";
+import { type AnswerSource, type FilterAction, type StatsRange, STATS_RANGES } from "#contract";
 
-export { FILTER_ACTIONS as ACTIONS, ANSWER_SOURCES as SOURCES, STATS_RANGES as RANGES } from "#contract";
-export type { AnswerSource, FilterAction, Range };
 export type TopKind = "domains" | "blocked" | "devices" | "rules" | "lists" | "upstreams" | "services" | "clients" | "networks";
 
 export interface StatsQuery {
-  range: Range;
+  range: StatsRange;
   device?: string;
   action?: FilterAction;
   source?: AnswerSource;
@@ -71,7 +69,7 @@ export interface UpstreamHealth {
 
 export const statsApi = {
   upstreams: (q: StatsQuery) => request<{ items: UpstreamHealth[] }>(`/stats/upstreams${queryString({ ...q })}`),
-  summary: (q: StatsQuery) => request<Summary & { range: Range }>(`/stats/summary${queryString({ ...q })}`),
+  summary: (q: StatsQuery) => request<Summary & { range: StatsRange }>(`/stats/summary${queryString({ ...q })}`),
   timeseries: (q: StatsQuery) => request<{ points: TimeseriesPoint[] }>(`/stats/timeseries${queryString({ ...q })}`),
   top: (kind: TopKind, q: StatsQuery, limit = 10) => request<{ items: TopItem[] }>(`/stats/top/${kind}${queryString({ ...q, limit })}`),
   logs: (q: StatsQuery, limit: number, offset: number) =>
@@ -83,6 +81,6 @@ export function isStatsNotConfigured(error: unknown): boolean {
   return error instanceof ApiError && error.status === 503;
 }
 
-export function parseRange(value: string | null): Range {
-  return RANGES.find((r) => r === value) ?? "24h";
+export function parseRange(value: string | null): StatsRange {
+  return STATS_RANGES.find((r) => r === value) ?? "24h";
 }

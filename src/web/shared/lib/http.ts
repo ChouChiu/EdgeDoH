@@ -1,4 +1,3 @@
-export { isHttpUrl } from "#contract";
 import type { Translate } from "@/shared/i18n/messages";
 
 /** Non-2xx API answer; `message` is the server's own English error text, when it sent one */

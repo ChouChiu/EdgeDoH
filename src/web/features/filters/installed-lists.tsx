@@ -1,4 +1,4 @@
-import { MAX_LIST_NAME } from "#contract";
+import { isHttpUrl, MAX_LIST_NAME } from "#contract";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
@@ -26,7 +26,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { type Selection, useSelection } from "@/shared/hooks/use-selection";
 import { useI18n } from "@/shared/i18n";
-import { errorMessage, isHttpUrl } from "@/shared/lib/http";
+import { errorMessage } from "@/shared/lib/http";
 import { AddUrlDialog } from "./add-url-dialog";
 import { type FilterList, type ListActions, LISTS_KEY, listsApi } from "./api";
 

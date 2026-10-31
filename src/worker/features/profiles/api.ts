@@ -1,3 +1,4 @@
+import { MAX_PROFILE_NAME } from "#contract";
 import type { Context } from "hono";
 import { type AppEnv, HttpError, readJsonObject, router } from "../../shared/http.ts";
 import { getSettings } from "../settings/store.ts";
@@ -6,7 +7,6 @@ import {
   deleteProfile,
   findProfile,
   listProfiles,
-  MAX_PROFILE_NAME,
   PROFILE_DEFAULTS,
   type ProfileConfig,
   profileErrors,

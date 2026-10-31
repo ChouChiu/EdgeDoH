@@ -1,3 +1,4 @@
+import type { StatsRange } from "#contract";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { QueryError } from "@/shared/components/page";
@@ -7,7 +8,7 @@ import { useListName } from "@/features/filters/api";
 import { useServices } from "@/features/profiles/api";
 import { ServiceIcon } from "@/shared/components/service-icon";
 import { useI18n } from "@/shared/i18n";
-import { type Range, statsApi, type TopItem, type TopKind } from "./api";
+import { statsApi, type TopItem, type TopKind } from "./api";
 
 const ROW = "relative block overflow-hidden rounded-md px-2 py-1 text-sm";
 
@@ -28,7 +29,7 @@ const BAR: Record<TopKind, string> = {
 };
 
 /** Rows the query log can filter by link to it; rules, lists and upstreams have no such filter */
-function logLink(kind: TopKind, item: TopItem, range: Range): string | undefined {
+function logLink(kind: TopKind, item: TopItem, range: StatsRange): string | undefined {
   if (kind !== "domains" && kind !== "blocked" && kind !== "devices") return undefined;
   const params = new URLSearchParams({ range });
   if (kind === "devices") params.set("device", item.key);
@@ -39,7 +40,7 @@ function logLink(kind: TopKind, item: TopItem, range: Range): string | undefined
 
 interface TopProps {
   kind: TopKind;
-  range: Range;
+  range: StatsRange;
   enabled: boolean;
 }
 

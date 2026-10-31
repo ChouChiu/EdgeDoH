@@ -1,4 +1,4 @@
-import { MAX_LIST_NAME } from "#contract";
+import { isHttpUrl, MAX_LIST_NAME } from "#contract";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
@@ -10,7 +10,6 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { useI18n } from "@/shared/i18n";
 import { listsApi, useListAction } from "./api";
-import { isHttpUrl } from "@/shared/lib/http";
 
 const BUSY_KEY = "deeplink";
 

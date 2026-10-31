@@ -3,8 +3,6 @@ import { jsonBody, request } from "@/shared/lib/http";
 
 import type { RecordType } from "#contract";
 
-export { RECORD_TYPES, type RecordType } from "#contract";
-
 export interface LocalRecord {
   name: string;
   type: RecordType;

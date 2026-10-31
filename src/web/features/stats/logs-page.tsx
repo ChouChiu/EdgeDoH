@@ -1,3 +1,4 @@
+import { ANSWER_SOURCES, FILTER_ACTIONS, STATS_RANGES } from "#contract";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
@@ -26,7 +27,7 @@ import { useRebuild } from "@/features/snapshot/api";
 import { useSelection } from "@/shared/hooks/use-selection";
 import { type MessageKey, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { ACTIONS, isStatsNotConfigured, type LogEntry, parseRange, RANGES, SOURCES, type StatsQuery, statsApi } from "./api";
+import { isStatsNotConfigured, type LogEntry, parseRange, type StatsQuery, statsApi } from "./api";
 import { LogRow, ruleFor, type RuleKind } from "./log-row";
 import { StatsNotConfigured } from "./stats-not-configured";
 
@@ -47,8 +48,8 @@ export function LogsPage() {
 
   const page = Math.max(1, Math.floor(Number(params.get("page"))) || 1);
   const offset = (page - 1) * PAGE_SIZE;
-  const action = ACTIONS.find((a) => a === params.get("action"));
-  const source = SOURCES.find((s) => s === params.get("source"));
+  const action = FILTER_ACTIONS.find((a) => a === params.get("action"));
+  const source = ANSWER_SOURCES.find((s) => s === params.get("source"));
   const query: StatsQuery = {
     range: parseRange(params.get("range")),
     ...(params.get("device") && { device: params.get("device")! }),
@@ -125,7 +126,7 @@ export function LogsPage() {
 
       <div className="flex flex-wrap gap-2">
         <FilterSelect label={t("logs.range")} value={query.range} onChange={(v) => setParam("range", v === "24h" ? undefined : v)} className="w-28">
-          {RANGES.map((r) => (
+          {STATS_RANGES.map((r) => (
             <SelectItem key={r} value={r}>
               {t(`range.${r}`)}
             </SelectItem>
@@ -141,7 +142,7 @@ export function LogsPage() {
         </FilterSelect>
         <FilterSelect label={t("logs.col.action")} value={query.action ?? ALL} onChange={(v) => setParam("action", v)} className="w-32">
           <SelectItem value={ALL}>{t("logs.allActions")}</SelectItem>
-          {ACTIONS.map((a) => (
+          {FILTER_ACTIONS.map((a) => (
             <SelectItem key={a} value={a}>
               {t(`action.${a}`)}
             </SelectItem>
@@ -149,7 +150,7 @@ export function LogsPage() {
         </FilterSelect>
         <FilterSelect label={t("logs.col.source")} value={query.source ?? ALL} onChange={(v) => setParam("source", v)} className="w-36">
           <SelectItem value={ALL}>{t("logs.allSources")}</SelectItem>
-          {SOURCES.map((s) => (
+          {ANSWER_SOURCES.map((s) => (
             <SelectItem key={s} value={s}>
               {t(`logs.source.${s}`)}
             </SelectItem>

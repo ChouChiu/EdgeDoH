@@ -1,3 +1,4 @@
+import { STATS_RANGES, type StatsRange } from "#contract";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
@@ -15,7 +16,7 @@ import { type ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, Char
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n";
-import { isStatsNotConfigured, parseRange, type Range, RANGES, statsApi, type TopKind } from "./api";
+import { isStatsNotConfigured, parseRange, statsApi, type TopKind } from "./api";
 import { StatsNotConfigured } from "./stats-not-configured";
 import { TopCard, TopList } from "./top-card";
 import { UpstreamHealth } from "./upstream-health";
@@ -38,7 +39,7 @@ export function OverviewPage() {
         actions={
           <Tabs value={range} onValueChange={(v) => setParams(v === "24h" ? {} : { range: v }, { replace: true })}>
             <TabsList>
-              {RANGES.map((r) => (
+              {STATS_RANGES.map((r) => (
                 <TabsTrigger key={r} value={r}>
                   {t(`range.${r}`)}
                 </TabsTrigger>
@@ -135,7 +136,7 @@ function Stat({
   );
 }
 
-function TrafficChart({ range, enabled }: { range: Range; enabled: boolean }) {
+function TrafficChart({ range, enabled }: { range: StatsRange; enabled: boolean }) {
   const { t, fmt } = useI18n();
   const series = useQuery({ queryKey: ["stats", "timeseries", range], queryFn: () => statsApi.timeseries({ range }), enabled });
   const short = range === "1h" || range === "24h";
@@ -170,7 +171,7 @@ function TrafficChart({ range, enabled }: { range: Range; enabled: boolean }) {
   );
 }
 
-function MoreRankings({ range, enabled }: { range: Range; enabled: boolean }) {
+function MoreRankings({ range, enabled }: { range: StatsRange; enabled: boolean }) {
   const { t } = useI18n();
   const [kind, setKind] = useState<TopKind>(MORE_TOP[0]!);
   return (

@@ -10,8 +10,7 @@
     "#contract": "./src/lib/contract/index.ts"
   },
   "bin": {
-    "edgedoh": "./src/cli/main.ts",
-    "cf-dns": "./src/cli/main.ts"
+    "edgedoh": "./src/cli/main.ts"
   },
   "scripts": {
     "dev": "vite",

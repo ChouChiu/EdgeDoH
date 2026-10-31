@@ -5,8 +5,6 @@ import { jsonBody, request } from "@/shared/lib/http";
 
 import { DEFAULT_PROFILE_ID } from "#contract";
 
-export { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, SERVICE_LIST_PREFIX } from "#contract";
-
 export interface Schedule {
   timezone: string;
   /** 0 = Sunday … 6 = Saturday */

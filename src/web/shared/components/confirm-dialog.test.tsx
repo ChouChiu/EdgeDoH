@@ -21,17 +21,12 @@ async function open(onConfirm: () => void) {
 }
 
 describe("ConfirmDialog", () => {
-  it("shows the title and description before anything runs", async () => {
+  it("shows what will happen and runs the action only on confirm", async () => {
     const onConfirm = vi.fn();
     const dialog = await open(onConfirm);
     expect(within(dialog).getByText("Delete phone?")).toBeTruthy();
     expect(within(dialog).getByText("Its DoH URL stops working")).toBeTruthy();
-    expect(onConfirm).not.toHaveBeenCalled();
-  });
-
-  it("runs the action only on confirm", async () => {
-    const onConfirm = vi.fn();
-    fireEvent.click(within(await open(onConfirm)).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(onConfirm).not.toHaveBeenCalled();
     cleanup();
 

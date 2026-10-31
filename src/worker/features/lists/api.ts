@@ -1,20 +1,19 @@
-import { HttpError, isHttpUrl, readBody, readJson, readJsonObject, router } from "../../shared/http.ts";
+import { CUSTOM_LIST_ID, isHttpUrl, isUpstreamList, MAX_LIST_NAME } from "#contract";
+import { HttpError, readBody, readJson, readJsonObject, router } from "../../shared/http.ts";
 import { publishRuntimeConfig } from "../../shared/runtime-config.ts";
-import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
+import { isOneOf, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 import {
   addInlineList,
   addList,
   CATALOG_URL,
   checkListUpdates,
   type CompileReport,
-  CUSTOM_LIST_ID,
   getList,
   getLists,
   LIST_KINDS,
   type ListKind,
   MAX_CUSTOM_RULES_BYTES,
   MAX_INLINE_BYTES,
-  MAX_LIST_NAME,
   refreshList,
   removeList,
   saveReports,

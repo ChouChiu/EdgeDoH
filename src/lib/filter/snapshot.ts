@@ -46,7 +46,7 @@ export interface ListInfo {
   id: string;
   name: string;
   rules: number;
-  /** Absent in snapshots built before list kinds existed, which means filter */
+  /** Absent means `filter`, which keeps the meta small */
   kind?: ListKind;
 }
 

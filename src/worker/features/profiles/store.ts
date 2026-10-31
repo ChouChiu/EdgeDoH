@@ -1,12 +1,9 @@
+import { BLOCKING_MODES, type BlockingMode, DEFAULT_PROFILE_ID, DEVICE_RULES_LIST_ID, isUpstreamList, SERVICE_LIST_PREFIX } from "#contract";
 import type { Snapshot } from "#filter";
 import { HttpError } from "../../shared/http.ts";
 import { getRuntimeConfig, publishRuntimeConfig } from "../../shared/runtime-config.ts";
-import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
-import { BLOCKING_MODES, type BlockingMode } from "../settings/store.ts";
+import { isOneOf, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 
-import { DEFAULT_PROFILE_ID, DEVICE_RULES_LIST_ID, SERVICE_LIST_PREFIX } from "#contract";
-
-export { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME, SERVICE_LIST_PREFIX } from "#contract";
 const MAX_IDS = 1000;
 const ID_RE = /^[A-Za-z0-9_.:-]{1,100}$/;
 

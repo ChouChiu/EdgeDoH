@@ -1,3 +1,4 @@
+import { MAX_DEVICE_RULES } from "#contract";
 import { type DeviceRule, isDomain } from "#filter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
@@ -14,7 +15,7 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
-import { type Device, DEVICE_RULES_KEY, type DeviceOverride, devicesApi, MAX_DEVICE_RULES } from "./api";
+import { type Device, DEVICE_RULES_KEY, type DeviceOverride, devicesApi } from "./api";
 
 const normalise = (name: string) => name.trim().toLowerCase().replace(/\.$/, "");
 

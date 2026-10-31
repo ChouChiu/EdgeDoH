@@ -43,5 +43,3 @@ export const Column = {
   asn: "double3",
   upstreamMs: "double4",
 } as const;
-
-export { FILTER_ACTIONS as ACTIONS, ANSWER_SOURCES as SOURCES, type AnswerSource, type FilterAction } from "#contract";

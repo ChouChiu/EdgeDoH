@@ -1,9 +1,8 @@
-import { DEVICE_RULES_LIST_ID } from "#contract";
+import { CUSTOM_LIST_ID, DEVICE_RULES_LIST_ID } from "#contract";
 import type { ListMeta } from "#filter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CUSTOM_LIST_ID } from "@/features/rules/api";
 import { useRebuild } from "@/features/snapshot/api";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage, jsonBody, request } from "@/shared/lib/http";

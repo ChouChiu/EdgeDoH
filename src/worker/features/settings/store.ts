@@ -1,11 +1,8 @@
+import { BLOCKING_MODES, type BlockingMode, isHttpUrl, isUpstreamList, MAX_ECH_FORCED_DOMAINS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
 import { isIPv4, isIPv6 } from "#dns";
 import { isDomain } from "#filter";
 import { getRuntimeConfig, publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
-import { isOneOf, isUpstreamList, UPSTREAMS_ERROR } from "../../shared/validate.ts";
-
-import { BLOCKING_MODES, type BlockingMode, isHttpUrl, MAX_ECH_FORCED_DOMAINS, UPSTREAM_MODES, type UpstreamMode } from "#contract";
-
-export { BLOCKING_MODES, type BlockingMode, UPSTREAM_MODES, type UpstreamMode };
+import { isOneOf, UPSTREAMS_ERROR } from "../../shared/validate.ts";
 
 export interface Settings {
   /** Off: every query is forwarded, rules are not even loaded */

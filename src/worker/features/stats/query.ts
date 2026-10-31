@@ -1,8 +1,8 @@
-import type { StatsRange } from "#contract";
+import { ANSWER_SOURCES, type AnswerSource, FILTER_ACTIONS, type FilterAction, type StatsRange } from "#contract";
 import { sha256Hex } from "../../shared/crypto.ts";
 import { HttpError } from "../../shared/http.ts";
 import { isDeviceId } from "../devices/store.ts";
-import { ACTIONS, type AnswerSource, Column as C, type FilterAction, SOURCES } from "./schema.ts";
+import { Column as C } from "./schema.ts";
 
 export interface StatsConfig {
   accountId: string;
@@ -77,12 +77,12 @@ export function parseFilter(params: URLSearchParams): StatsFilter {
   }
   const action = params.get("action");
   if (action) {
-    if (!(ACTIONS as readonly string[]).includes(action)) throw new HttpError(400, `action must be one of ${ACTIONS.join(", ")}`);
+    if (!(FILTER_ACTIONS as readonly string[]).includes(action)) throw new HttpError(400, `action must be one of ${FILTER_ACTIONS.join(", ")}`);
     filter.action = action as FilterAction;
   }
   const source = params.get("source");
   if (source) {
-    if (!(SOURCES as readonly string[]).includes(source)) throw new HttpError(400, `source must be one of ${SOURCES.join(", ")}`);
+    if (!(ANSWER_SOURCES as readonly string[]).includes(source)) throw new HttpError(400, `source must be one of ${ANSWER_SOURCES.join(", ")}`);
     filter.source = source as AnswerSource;
   }
   const search = params.get("search")?.trim().toLowerCase();

@@ -5,7 +5,6 @@ import { publishRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-c
 
 import { RECORD_TYPES, type RecordType } from "#contract";
 
-export { RECORD_TYPES, type RecordType } from "#contract";
 /** Kept small: every record travels in the runtime config each isolate loads */
 export const MAX_RECORDS = 1000;
 /** Shown as the matched list in logs and the rule tester */
