@@ -19,6 +19,9 @@ Deconstruct requests to fundamental objectives, real-world constraints, and meas
 - Simple inquiries: Return direct, concise answers with zero conversational overhead.
 - Complex tasks & designs: Use answer-me-with-html to present structured breakdowns, interactive UI controls, comparative tables, and architecture diagrams.
 
+### Git Branching
+Work and commit directly on `main` unless the user asks for a separate branch. Do not create feature branches on your own.
+
 ### Pitfall Tracking via HANDOFF.md
 - Pre-task: Read HANDOFF.md before executing any task to prevent repeating documented traps.
 - Post-task: Immediately record non-obvious failure modes, platform quirks, and workarounds into HANDOFF.md upon discovery.
