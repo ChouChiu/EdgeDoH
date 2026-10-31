@@ -156,3 +156,17 @@ export function useListAction() {
 
   return { busy, run, runEach, anyBusy: Object.keys(busy).length > 0 };
 }
+
+/** Switch, update and remove for one list card, run through the page's shared `actions` */
+export function useListControls(list: FilterList, actions: ListActions) {
+  const { t } = useI18n();
+  const busy = actions.busy[list.id];
+  const run = (step: string, action: () => Promise<unknown>, reason: string) => void actions.run(list.id, step, action, reason);
+  return {
+    busy,
+    setEnabled: (enabled: boolean) =>
+      run(t("filters.step.saving"), () => listsApi.update(list.id, { enabled }), t(enabled ? "filters.reason.enable" : "filters.reason.disable")),
+    refresh: () => run(t("filters.step.downloading"), () => listsApi.refresh(list.id), t("filters.reason.refresh")),
+    remove: () => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove")),
+  };
+}

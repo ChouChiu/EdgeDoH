@@ -1,6 +1,7 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import type { ReactNode } from "react";
 import { CircleAlert } from "@/shared/components/animate-ui/icons/circle-alert";
+import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n";
@@ -47,5 +48,15 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
       <p className="type-subtitle">{title}</p>
       {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
     </div>
+  );
+}
+
+/** Spinner and the step an item is busy with, e.g. in a card footer */
+export function BusyStatus({ children }: { children: ReactNode }) {
+  return (
+    <span className="mr-1 flex items-center gap-1" role="status">
+      <LoaderCircle animate className="size-3.5" />
+      {children}
+    </span>
   );
 }

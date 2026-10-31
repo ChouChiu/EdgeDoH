@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
 import { Save } from "@/shared/components/animate-ui/icons/save";
-import { Row, Section } from "@/shared/components/form-section";
+import { ListField, Row, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ThemeSwitch } from "@/shared/components/header-controls";
 import { Button } from "@/shared/ui/button";
@@ -17,7 +17,6 @@ import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
-import { Textarea } from "@/shared/ui/textarea";
 import { type Locale, LOCALE_NAMES, LOCALES, useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
@@ -44,10 +43,10 @@ const NUMBER_FIELDS = [
 ] as const;
 type NumberField = (typeof NUMBER_FIELDS)[number];
 
-type ListField = "upstreams" | "echForcedDomains";
+type ListKey = "upstreams" | "echForcedDomains";
 
 /** Form state: numbers stay strings while typing, lists are one entry per line */
-type Draft = Omit<Settings, NumberField | ListField> & Record<NumberField, string> & Record<ListField, string>;
+type Draft = Omit<Settings, NumberField | ListKey> & Record<NumberField, string> & Record<ListKey, string>;
 
 /** Page order; the index beside the form lists the same sections */
 const SECTIONS = ["appearance", "backup", "filtering", "upstream", "cache", "abuse", "ech", "queryLog", "alerts"] as const;
@@ -271,7 +270,8 @@ function ServerSettings() {
       </Section>
 
       <Section id={sectionId("upstream")} title={t("settings.upstream")} description={t("settings.upstreamDescription")}>
-        <ListInput
+        <ListField
+          className="py-3"
           id="upstreams"
           label={t("settings.upstreams")}
           hint={t("settings.upstreamsHint")}
@@ -326,7 +326,8 @@ function ServerSettings() {
       </Section>
 
       <Section id={sectionId("ech")} title={t("settings.ech")} description={t("settings.echDescription")}>
-        <ListInput
+        <ListField
+          className="py-3"
           id="echForcedDomains"
           label={t("settings.echForcedDomains")}
           hint={t("settings.echForcedDomainsHint", { max: MAX_ECH_FORCED_DOMAINS })}
@@ -412,41 +413,6 @@ function AddressField(props: { id: string; label: string; placeholder: string; v
   );
 }
 
-function ListInput(props: {
-  id: string;
-  label: string;
-  hint: string;
-  error: string | undefined;
-  placeholder?: string;
-  required?: boolean;
-  inputMode?: "url";
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="grid gap-2 py-3">
-      <Label htmlFor={props.id}>{props.label}</Label>
-      <Textarea
-        id={props.id}
-        required={props.required}
-        inputMode={props.inputMode}
-        spellCheck={false}
-        autoCapitalize="none"
-        autoCorrect="off"
-        aria-invalid={props.error !== undefined}
-        aria-describedby={`${props.id}-hint`}
-        className="font-mono text-sm"
-        placeholder={props.placeholder}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-      />
-      <p id={`${props.id}-hint`} className={props.error ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-        {props.error ?? props.hint}
-      </p>
-    </div>
-  );
-}
-
 /** Entries separated by any whitespace, normalised and without duplicates */
 function splitList(text: string, normalise: (entry: string) => string = (entry) => entry): string[] {
   return [...new Set(text.split(/\s+/).filter(Boolean).map(normalise))];
@@ -466,7 +432,7 @@ function toDraft(s: Settings): Draft {
   };
 }
 
-function fromDraft(draft: Draft, lists: Pick<Settings, ListField>): Settings {
+function fromDraft(draft: Draft, lists: Pick<Settings, ListKey>): Settings {
   return {
     ...draft,
     blockingIpv4: draft.blockingIpv4.trim(),

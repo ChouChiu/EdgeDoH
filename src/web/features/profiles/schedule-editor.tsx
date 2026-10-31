@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Row } from "@/shared/components/form-section";
 import { Input } from "@/shared/ui/input";
 import { useI18n } from "@/shared/i18n";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "cn";
 import type { Schedule } from "./api";
 
 /** Monday first, as most of the dashboard's locales count weeks */

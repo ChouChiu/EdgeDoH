@@ -10,7 +10,7 @@ import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
 import { Save } from "@/shared/components/animate-ui/icons/save";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
-import { Row, Section } from "@/shared/components/form-section";
+import { ListField, Row, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { Button } from "@/shared/ui/button";
@@ -19,7 +19,6 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
-import { Textarea } from "@/shared/ui/textarea";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
@@ -205,22 +204,16 @@ function ProfileForm({ profile }: { profile: Profile }) {
       </Section>
 
       <Section title={t("profiles.resolution")}>
-        <div className="grid gap-2 py-3">
-          <Textarea
-            id="profile-upstreams"
-            aria-label={t("settings.upstreams")}
-            spellCheck={false}
-            autoCapitalize="none"
-            autoCorrect="off"
-            inputMode="url"
-            aria-invalid={upstreamError !== undefined}
-            className="font-mono text-sm"
-            placeholder={t("profiles.upstreamsPlaceholder")}
-            value={draft.upstreams}
-            onChange={(e) => set("upstreams", e.target.value)}
-          />
-          {upstreamError && <p className="text-xs text-destructive">{upstreamError}</p>}
-        </div>
+        <ListField
+          className="py-3"
+          id="profile-upstreams"
+          label={t("settings.upstreams")}
+          error={upstreamError}
+          inputMode="url"
+          placeholder={t("profiles.upstreamsPlaceholder")}
+          value={draft.upstreams}
+          onChange={(v) => set("upstreams", v)}
+        />
         <Row label={t("profiles.splitDns")} hint={t("profiles.splitDnsHint")} htmlFor="split-dns" inline>
           <Switch id="split-dns" checked={draft.splitDns} onCheckedChange={(v) => set("splitDns", v)} />
         </Row>

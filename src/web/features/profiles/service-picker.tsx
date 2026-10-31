@@ -6,7 +6,7 @@ import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useI18n } from "@/shared/i18n";
 import { compareNames } from "@/shared/lib/collate";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "cn";
 import { type Service, useServices } from "./api";
 
 /** Toggle grid of blocked services, grouped by category */

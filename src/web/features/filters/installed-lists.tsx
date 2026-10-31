@@ -12,7 +12,7 @@ import { PowerOff } from "@/shared/components/animate-ui/icons/power-off";
 import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
-import { EmptyState, QueryError } from "@/shared/components/page";
+import { BusyStatus, EmptyState, QueryError } from "@/shared/components/page";
 import { SelectionBar } from "@/shared/components/selection-bar";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -28,7 +28,7 @@ import { type Selection, useSelection } from "@/shared/hooks/use-selection";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { AddUrlDialog } from "./add-url-dialog";
-import { type FilterList, type ListActions, LISTS_KEY, listsApi } from "./api";
+import { type FilterList, type ListActions, LISTS_KEY, listsApi, useListControls } from "./api";
 
 export function InstalledLists({
   lists,
@@ -151,9 +151,8 @@ function CheckUpdatesButton({ disabled }: { disabled: boolean }) {
 
 function InstalledCard({ list, actions, selection }: { list: FilterList; actions: ListActions; selection: Selection }) {
   const { t, fmt } = useI18n();
-  const busy = actions.busy[list.id];
+  const { busy, setEnabled, refresh, remove } = useListControls(list, actions);
   const reasons = Object.entries(list.reasons ?? {}).sort((a, b) => b[1] - a[1]);
-  const run = (step: string, action: () => Promise<unknown>, reason: string) => void actions.run(list.id, step, action, reason);
 
   return (
     <Card size="sm" className={list.enabled ? undefined : "opacity-70"}>
@@ -183,9 +182,7 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
             checked={list.enabled}
             disabled={busy !== undefined}
             aria-label={t("filters.enable")}
-            onCheckedChange={(enabled) =>
-              run(t("filters.step.saving"), () => listsApi.update(list.id, { enabled }), t(enabled ? "filters.reason.enable" : "filters.reason.disable"))
-            }
+            onCheckedChange={setEnabled}
           />
         </CardAction>
       </CardHeader>
@@ -206,18 +203,13 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
         )}
         <span>{t("filters.fetched", { time: fmt.relative(list.fetchedAt) })}</span>
         <div className="ml-auto flex items-center gap-0.5">
-          {busy && (
-            <span className="mr-1 flex items-center gap-1" role="status">
-              <LoaderCircle animate className="size-3.5" />
-              {busy}
-            </span>
-          )}
+          {busy && <BusyStatus>{busy}</BusyStatus>}
           <RenameDialog list={list} disabled={busy !== undefined} />
           <Button
             variant="ghost"
             size="sm"
             disabled={busy !== undefined}
-            onClick={() => run(t("filters.step.downloading"), () => listsApi.refresh(list.id), t("filters.reason.refresh"))}
+            onClick={refresh}
           >
             <RefreshCw />
             {t("filters.update")}
@@ -226,7 +218,7 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
             title={t("filters.uninstallTitle", { name: list.name })}
             description={t("filters.uninstallBody")}
             confirmLabel={t("filters.uninstall")}
-            onConfirm={() => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove"))}
+            onConfirm={remove}
           >
             <Button variant="ghost" size="sm" disabled={busy !== undefined}>
               <Trash2 />

@@ -1,4 +1,4 @@
-import { cn } from "@/shared/lib/utils";
+import { cn } from "cn";
 
 /**
  * A blocked service's registry SVG. The markup is untrusted, so it is never inlined: it is used as a

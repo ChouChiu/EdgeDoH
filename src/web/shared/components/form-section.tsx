@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+import { cn } from "cn";
+import type { ComponentProps, ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Label } from "@/shared/ui/label";
+import { Textarea } from "@/shared/ui/textarea";
 
 /** `id` makes the section a jump target; the scroll margin keeps its title clear of the sticky header */
 export function Section({ id, title, description, children }: { id?: string; title: string; description?: string; children: ReactNode }) {
@@ -34,6 +36,43 @@ export function Row({ label, hint, hintError, htmlFor, inline, children }: RowPr
         {hint && <p className={hintError ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>{hint}</p>}
       </div>
       <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+type ListFieldProps = Omit<ComponentProps<typeof Textarea>, "id" | "value" | "onChange"> & {
+  id: string;
+  label: string;
+  hint?: string | undefined;
+  /** Replaces the hint while set */
+  error?: string | undefined;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+/** Monospace text area for entries such as URLs or domains, one per line, with its hint or error below */
+export function ListField({ id, label, hint, error, value, onChange, className, ...textarea }: ListFieldProps) {
+  const note = error ?? hint;
+  return (
+    <div className={cn("grid gap-2", className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea
+        id={id}
+        spellCheck={false}
+        autoCapitalize="none"
+        autoCorrect="off"
+        aria-invalid={error !== undefined}
+        aria-describedby={note ? `${id}-hint` : undefined}
+        className="font-mono text-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        {...textarea}
+      />
+      {note && (
+        <p id={`${id}-hint`} className={error ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+          {note}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,14 +1,15 @@
 import { MAX_LIST_NAME } from "#contract";
 import { type FormEvent, useState } from "react";
-import { type FilterList, type ListActions, listsApi, useRouteLists } from "@/features/filters/api";
+import { type FilterList, type ListActions, listsApi, useListControls, useRouteLists } from "@/features/filters/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Network } from "@/shared/components/animate-ui/icons/network";
 import { Pencil } from "@/shared/components/animate-ui/icons/pencil";
 import { Plus } from "@/shared/components/animate-ui/icons/plus";
 import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
-import { EmptyState, QueryError } from "@/shared/components/page";
+import { BusyStatus, EmptyState, QueryError } from "@/shared/components/page";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
+import { ListField } from "@/shared/components/form-section";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -18,7 +19,6 @@ import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import { Textarea } from "@/shared/ui/textarea";
 import { useI18n } from "@/shared/i18n";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 
@@ -46,8 +46,7 @@ export function RouteLists({ actions }: { actions: ListActions }) {
 
 function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }) {
   const { t, fmt } = useI18n();
-  const busy = actions.busy[list.id];
-  const run = (step: string, action: () => Promise<unknown>, reason: string) => void actions.run(list.id, step, action, reason);
+  const { busy, setEnabled, refresh, remove } = useListControls(list, actions);
   return (
     <Card size="sm" className={list.enabled ? undefined : "opacity-70"}>
       <CardHeader>
@@ -63,9 +62,7 @@ function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }
             checked={list.enabled}
             disabled={busy !== undefined}
             aria-label={t("filters.enable")}
-            onCheckedChange={(enabled) =>
-              run(t("filters.step.saving"), () => listsApi.update(list.id, { enabled }), t(enabled ? "filters.reason.enable" : "filters.reason.disable"))
-            }
+            onCheckedChange={setEnabled}
           />
         </CardAction>
       </CardHeader>
@@ -73,19 +70,14 @@ function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }
         <span>{list.rules === null ? t("filters.notCompiled") : t("dns.domains", { count: list.rules })}</span>
         {list.source !== "inline" && <span>{t("filters.fetched", { time: fmt.relative(list.fetchedAt) })}</span>}
         <div className="ml-auto flex items-center gap-0.5">
-          {busy && (
-            <span className="mr-1 flex items-center gap-1" role="status">
-              <LoaderCircle animate className="size-3.5" />
-              {busy}
-            </span>
-          )}
+          {busy && <BusyStatus>{busy}</BusyStatus>}
           <RouteDialog list={list} actions={actions} />
           {list.source !== "inline" && (
             <Button
               variant="ghost"
               size="sm"
               disabled={busy !== undefined}
-              onClick={() => run(t("filters.step.downloading"), () => listsApi.refresh(list.id), t("filters.reason.refresh"))}
+              onClick={refresh}
             >
               <RefreshCw />
               {t("filters.update")}
@@ -94,7 +86,7 @@ function RouteCard({ list, actions }: { list: FilterList; actions: ListActions }
           <ConfirmDialog
             title={t("filters.uninstallTitle", { name: list.name })}
             confirmLabel={t("common.delete")}
-            onConfirm={() => run(t("filters.step.removing"), () => listsApi.remove(list.id), t("filters.reason.remove"))}
+            onConfirm={remove}
           >
             <Button variant="ghost" size="icon-sm" disabled={busy !== undefined} aria-label={t("common.delete")} title={t("common.delete")}>
               <Trash2 />
@@ -201,37 +193,26 @@ export function RouteDialog({ list, actions }: { list?: FilterList; actions: Lis
             </div>
           )}
           {(list ? list.source === "inline" : mode === "inline") && (
-            <div className="space-y-2">
-              <Label htmlFor="route-text">{t("dns.domainsLabel")}</Label>
-              <Textarea
-                id="route-text"
-                className="min-h-32 font-mono text-sm"
-                spellCheck={false}
-                autoCapitalize="none"
-                placeholder={"corp.example\nserver=/intranet.example/10.0.0.53"}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="route-upstreams">{t("settings.upstreams")}</Label>
-            <Textarea
-              id="route-upstreams"
-              required
-              className="font-mono text-sm"
-              spellCheck={false}
-              autoCapitalize="none"
-              inputMode="url"
-              aria-invalid={upstreams !== "" && upstreamError !== undefined}
-              placeholder="https://dns.alidns.com/dns-query"
-              value={upstreams}
-              onChange={(e) => setUpstreams(e.target.value)}
+            <ListField
+              id="route-text"
+              label={t("dns.domainsLabel")}
+              className="[&_textarea]:min-h-32"
+              placeholder={"corp.example\nserver=/intranet.example/10.0.0.53"}
+              value={text}
+              onChange={setText}
             />
-            <p className={upstreams !== "" && upstreamError ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-              {(upstreams !== "" && upstreamError) || t("settings.upstreamsHint")}
-            </p>
-          </div>
+          )}
+          <ListField
+            id="route-upstreams"
+            label={t("settings.upstreams")}
+            hint={t("settings.upstreamsHint")}
+            error={upstreams === "" ? undefined : upstreamError}
+            required
+            inputMode="url"
+            placeholder="https://dns.alidns.com/dns-query"
+            value={upstreams}
+            onChange={setUpstreams}
+          />
           <DialogFooter>
             <Button type="submit" disabled={busy !== undefined || upstreamError !== undefined}>
               {busy && <LoaderCircle animate />}
