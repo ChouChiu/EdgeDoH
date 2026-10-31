@@ -16,6 +16,7 @@ EdgeDoH 运行在 Cloudflare Workers 无服务器环境中，结合边缘存储�
 - **D1 数据库 (`DB`)**：存储设备、过滤列表、策略组、本地 DNS 记录与全局配置等关系型数据。
 - **KV 命名空间 (`RULES`)**：存储编译后的规则二进制快照分片、过滤列表原文与运行时配置镜像缓存。
 - **Durable Objects (`DEVICE_CLIENTS`)**：基于 SQLite 存储跟踪每台设备在滑动时间窗口内的活跃来源网络（IPv4 单 IP，IPv6 `/64` 网段），执行接入防滥用控制。
+- **Durable Objects (`PROBES`)**：单实例 `ProbeResults`，记录面板探测域名由哪台设备的 DoH 地址解析，供概览页判断本机是否在使用 EdgeDoH。
 - **Analytics Engine (`QUERY_LOG`)**：异步写入多维 DNS 查询日志与遥测指标，不阻塞解析链路。
 - **Web 管理面板 (`src/web`)**：基于 Vite、React 19、Tailwind CSS v4 与 shadcn/ui 构建的响应式 SPA，规则快照直接在浏览器 Web Worker 中异步编译。
 - **平台无关基础库 (`src/lib`)**：提供无平台依赖的标准 DNS 编解码器（`#dns`）、规则匹配引擎（`#filter`）与跨端契约常量（`#contract`）。
@@ -66,6 +67,11 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免�
 - IPv4 按单 IP 统计，IPv6 按 `/64` 子网聚合统计以兼容 SLAAC 隐私地址轮换。
 - 已放行的来源网络在当前 Worker isolate 内存中缓存 5 分钟；常规查询无额外存储调用。
 - 限制阈值与时间窗口在控制台「设置 → 防滥用」中调整，设为 0 表示不限制；设备卡片支持实时查看网络数并提供手动重置。
+
+## 本机检测 (Probe)
+
+- 概览页让浏览器请求 `<随机 nonce>.edgedoh-probe.<面板域名>`；DoH 收到该名称时先把 nonce 与设备写入 `ProbeResults`，再直接返回 NXDOMAIN（不转发上游、不记日志），面板随后用 `GET /api/probe/:nonce` 读取结果。
+- 浏览器启用了自己的安全 DNS、走代理（如 Clash fake-ip）或在 `localhost` 打开面板时，查询不会到达 EdgeDoH，结果显示为未使用。
 
 ## 配置与密钥
 
@@ -134,6 +140,7 @@ Cloudflare Workers 免费层单请求 CPU 时间限制为 10ms。EdgeDoH 避免�
 - `GET /api/backup`：导出配置备份（设置、策略组、设备、列表、自定义规则、本地记录；不含设备 ID 与远程列表内容）。
 - `PUT /api/backup`：用备份全量覆盖配置，设备获得新 ID；返回需重新下载的远程列表 `pending`。内联列表的 `text` 与 `customRules` 可以省略（存为空）：控制台导入时会把它们拆出，逐个用 `PUT /api/lists/:id/text` 与 `PUT /api/custom-rules` 上传，让每个请求都在 CPU 预算内。
 - `POST /api/alerts/test`：向已保存的告警 Webhook 发送测试消息。告警由 Cron 触发器 `*/15 * * * *` 每 15 分钟检查最近 15 分钟的统计（上游失败率、拦截率、防滥用拒绝次数，阈值在设置中配置，失败指没有上游应答或所有上游都返回 SERVFAIL；查询少于 20 次时比例类告警保持原状态），仅在告警开始与恢复时以 JSON POST 推送（`text` / `content` 为可读文本，`alerts` 为结构化数据），状态保存在 KV `alerts:state`。需要已配置查询统计。
+- `GET /api/probe/:nonce`：返回解析过该探测 nonce 的设备（`{ device: { id, name } | null }`），供概览页的本机检测使用。
 
 ### 查询统计与日志
 - `GET /api/stats/summary`：概览指标（查询总量、拦截率、平均耗时等）。
@@ -169,7 +176,7 @@ src/
 │   ├── filter/    # 规则解析、快照编译与匹配引擎（别名 #filter）
 │   └── contract/  # 前后端共用的限制常量与枚举（别名 #contract）
 ├── worker/        # Cloudflare Worker 后端源码
-│   ├── features/  # 业务领域模块（alerts, backup, devices, doh, lists, profiles, records, rules, services, settings, stats）
+│   ├── features/  # 业务领域模块（alerts, backup, devices, doh, lists, probe, profiles, records, rules, services, settings, stats）
 │   ├── shared/    # 鉴权中间件、配置同步、错误模型与通用校验
 │   └── test/      # 上游 Mock 与测试辅助工具
 ├── web/           # 管理面板前端（Vite + React 19 + Tailwind CSS v4 + shadcn/ui）

@@ -462,4 +462,7 @@ export const zhHans = {
   "overview.top.services": "服务排行",
   "overview.top.clients": "DoH 客户端",
   "overview.top.networks": "来源网络",
+  "probe.using": "本机正在通过 EdgeDoH 解析（{device}）",
+  "probe.notUsing": "本机未使用 EdgeDoH",
+  "probe.recheck": "重新检测",
 } as const;

@@ -463,4 +463,7 @@ export const zhHant: Messages = {
   "overview.top.services": "服務排行",
   "overview.top.clients": "DoH 用戶端",
   "overview.top.networks": "來源網路",
+  "probe.using": "本機正透過 EdgeDoH 解析（{device}）",
+  "probe.notUsing": "本機未使用 EdgeDoH",
+  "probe.recheck": "重新偵測",
 };

@@ -31,10 +31,17 @@
     { "binding": "RULES", "id": "<kv-namespace-id>" }
   ],
   "durable_objects": {
-    // Source networks seen per device, for the client limit; see src/worker/features/devices/client-guard.ts
-    "bindings": [{ "name": "DEVICE_CLIENTS", "class_name": "DeviceClients" }]
+    "bindings": [
+      // Source networks seen per device, for the client limit; see src/worker/features/devices/client-guard.ts
+      { "name": "DEVICE_CLIENTS", "class_name": "DeviceClients" },
+      // Probe names resolved by each device, for the dashboard's check; see src/worker/features/probe/store.ts
+      { "name": "PROBES", "class_name": "ProbeResults" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceClients"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DeviceClients"] },
+    { "tag": "v2", "new_sqlite_classes": ["ProbeResults"] }
+  ],
   // Every 6 hours: ask filter list sources whether they changed (checkListUpdates in src/worker/features/lists/store.ts).
   // Every 15 minutes: alert thresholds (src/worker/features/alerts/store.ts). Each cron counts against the account's limit
   // (5 on the free plan)

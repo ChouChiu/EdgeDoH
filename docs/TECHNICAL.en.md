@@ -16,6 +16,7 @@ EdgeDoH runs in the Cloudflare Workers serverless runtime, utilizing edge storag
 - **D1 Database (`DB`)**: Relational storage for devices, filter lists, profiles, local DNS records, and global settings.
 - **KV Namespace (`RULES`)**: Stores compiled binary rule shards, raw filter list texts, and cached runtime configurations.
 - **Durable Objects (`DEVICE_CLIENTS`)**: SQLite-backed per-device actors tracking active source networks within a sliding time window (IPv4 by single IP, IPv6 by `/64` prefix) for abuse mitigation.
+- **Durable Objects (`PROBES`)**: a single `ProbeResults` instance recording which device's DoH URL resolved the dashboard's probe name, so the overview can tell whether this device uses EdgeDoH.
 - **Analytics Engine (`QUERY_LOG`)**: Asynchronously ingests multidimensional DNS telemetry points without delaying query answers.
 - **Web Dashboard (`src/web`)**: Single-page application built with Vite, React 19, Tailwind CSS v4, and shadcn/ui. Snapshots are compiled asynchronously inside browser Web Workers.
 - **Platform-Agnostic Core (`src/lib`)**: Zero-dependency DNS wireformat codec (`#dns`), rule compilation and matching engine (`#filter`), and shared contract limits/enums (`#contract`).
@@ -66,6 +67,11 @@ Cloudflare Workers Free Tier limits CPU execution to 10ms per request. EdgeDoH a
 - IPv4 counts per IP address; IPv6 clusters by `/64` subnet to handle SLAAC privacy address changes.
 - Admitted origins are cached in Worker isolate memory for 5 minutes, avoiding unnecessary storage calls.
 - Thresholds and sliding windows are configured in Settings > Abuse Protection (set to 0 to disable); device cards provide live counters and manual reset controls.
+
+## Device Check (Probe)
+
+- The overview makes the browser request `<random nonce>.edgedoh-probe.<dashboard host>`; when DoH receives that name it first stores the nonce and device in `ProbeResults`, then answers NXDOMAIN (never forwarded upstream, never logged). The dashboard reads the result from `GET /api/probe/:nonce`.
+- With the browser's own secure DNS, a proxy (such as Clash fake-ip) or a dashboard opened on `localhost`, the lookup never reaches EdgeDoH and the card reports it as not in use.
 
 ## Configuration & Secrets
 
@@ -134,6 +140,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `GET /api/backup`: Export a configuration backup (settings, profiles, devices, lists, custom rules, local records; device IDs and downloaded list contents are left out).
 - `PUT /api/backup`: Replace the whole configuration with a backup; devices get new IDs. Returns the downloaded lists to fetch again as `pending`. Inline list `text` and `customRules` may be left out (stored empty): the dashboard strips them and uploads each with `PUT /api/lists/:id/text` and `PUT /api/custom-rules`, so every request stays inside the CPU budget.
 - `POST /api/alerts/test`: Send a test message to the saved alert webhook. The `*/15 * * * *` cron trigger checks the last 15 minutes of stats every 15 minutes (upstream failure rate, blocked share, queries refused by the client limit; thresholds in settings, a failure is a query no upstream answered or every upstream answered with SERVFAIL; below 20 queries the share alerts keep their state) and POSTs JSON only when an alert starts or ends (`text` / `content` hold readable text, `alerts` the structured data). State lives in KV `alerts:state`. Needs query stats configured.
+- `GET /api/probe/:nonce`: The device that resolved this probe nonce (`{ device: { id, name } | null }`), for the overview's device check.
 
 ### Query Analytics & Logs
 - `GET /api/stats/summary`: Aggregate metrics (totals, block rate, latency).
@@ -169,7 +176,7 @@ src/
 │   ├── filter/    # Rule compiler, shard format, and matching engine (#filter)
 │   └── contract/  # Shared limits, enums, and types (#contract)
 ├── worker/        # Cloudflare Worker backend
-│   ├── features/  # Domain features (alerts, backup, devices, doh, lists, profiles, records, rules, services, settings, stats)
+│   ├── features/  # Domain features (alerts, backup, devices, doh, lists, probe, profiles, records, rules, services, settings, stats)
 │   ├── shared/    # Auth middleware, config sync, error model, validators
 │   └── test/      # Upstream mocks and test helpers
 ├── web/           # React dashboard (Vite + React 19 + Tailwind CSS v4 + shadcn/ui)

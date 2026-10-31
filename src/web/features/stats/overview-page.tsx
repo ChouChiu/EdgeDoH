@@ -17,6 +17,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n";
 import { isStatsNotConfigured, parseRange, statsApi, type TopKind } from "./api";
+import { ProbeCard } from "./probe-card";
 import { StatsNotConfigured } from "./stats-not-configured";
 import { TopCard, TopList } from "./top-card";
 import { UpstreamHealth } from "./upstream-health";
@@ -49,6 +50,7 @@ export function OverviewPage() {
         }
       />
 
+      <ProbeCard />
       {isStatsNotConfigured(summary.error) ? (
         <StatsNotConfigured />
       ) : summary.error ? (

@@ -19,6 +19,7 @@ import { HttpError, readBody } from "../../shared/http.ts";
 import { getRuntimeConfig, type RuntimeConfig } from "../../shared/runtime-config.ts";
 import { admitClient } from "../devices/client-guard.ts";
 import { type Device, findDevice } from "../devices/store.ts";
+import { probeNonce, recordProbe } from "../probe/store.ts";
 import { getProfile, type Profile, profileAt } from "../profiles/store.ts";
 import { getSettings, type Settings } from "../settings/store.ts";
 import { clientLabel } from "../stats/client.ts";
@@ -55,10 +56,18 @@ export async function handleDoh(request: Request, env: Env, ctx: WaitUntil, devi
     return dnsResponse(buildResponse(query, raw, { rcode: Rcode.FORMERR }));
   }
 
-  const [settings, assigned, runtime] = await Promise.all([getSettings(env), getProfile(env, device.profileId), getRuntimeConfig(env)]);
-  const profile = await profileAt(env, assigned, started);
   const question = query.questions[0]!;
   const name = question.name.toLowerCase();
+  const nonce = probeNonce(name);
+  if (nonce) {
+    // The dashboard's "is this device using EdgeDoH" check: stored before answering, so the hit is there by the
+    // time the browser's lookup fails. Not logged, and never forwarded upstream
+    await recordProbe(env, nonce, device);
+    return dnsResponse(buildResponse(query, raw, { rcode: Rcode.NXDOMAIN }));
+  }
+
+  const [settings, assigned, runtime] = await Promise.all([getSettings(env), getProfile(env, device.profileId), getRuntimeConfig(env)]);
+  const profile = await profileAt(env, assigned, started);
   const ip = request.headers.get("cf-connecting-ip");
   const result = await answer({ env, ctx, query, raw, device, settings, profile, runtime, name, type: question.type, ip, now: started });
 

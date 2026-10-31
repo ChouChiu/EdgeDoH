@@ -467,4 +467,7 @@ export const enUS: Messages = {
   "overview.top.services": "Top services",
   "overview.top.clients": "DoH clients",
   "overview.top.networks": "Source networks",
+  "probe.using": "This device resolves through EdgeDoH ({device})",
+  "probe.notUsing": "This device is not using EdgeDoH",
+  "probe.recheck": "Check Again",
 };

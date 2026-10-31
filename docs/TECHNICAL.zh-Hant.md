@@ -16,6 +16,7 @@ EdgeDoH 運行於 Cloudflare Workers 無伺服器環境中，結合邊緣儲存�
 - **D1 資料庫 (`DB`)**：儲存裝置、過濾清單、策略組、本機 DNS 記錄與全域設定等關聯式資料。
 - **KV 命名空間 (`RULES`)**：儲存編譯後的規則二進位快照分片、過濾清單原文與執行階段設定快取。
 - **Durable Objects (`DEVICE_CLIENTS`)**：基於 SQLite 儲存追蹤每台裝置在滑動時間區間內的活躍來源網路（IPv4 單 IP，IPv6 `/64` 網段），執行存取防濫用控制。
+- **Durable Objects (`PROBES`)**：單一實例 `ProbeResults`，記錄面板探測網域由哪台裝置的 DoH 位址解析，供概覽頁判斷本機是否正在使用 EdgeDoH。
 - **Analytics Engine (`QUERY_LOG`)**：非同步寫入多維 DNS 查詢記錄與遙測指標，不阻塞解析流程。
 - **Web 管理面板 (`src/web`)**：基於 Vite、React 19、Tailwind CSS v4 與 shadcn/ui 建構的響應式 SPA，規則快照直接在瀏覽器 Web Worker 中非同步編譯。
 - **跨平台基礎庫 (`src/lib`)**：提供無平台依賴的標準 DNS 編解碼器（`#dns`）、規則比對引擎（`#filter`）與跨端契約常數（`#contract`）。
@@ -66,6 +67,11 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - IPv4 依單 IP 統計，IPv6 依 `/64` 子網路聚合統計以相容 SLAAC 隱私位址輪換。
 - 已放行的來源網络在目前 Worker isolate 記憶體中快取 5 分鐘；常規查詢無額外儲存呼叫。
 - 限制閥值與時間區間在控制台「設定 → 防濫用」中調整，設為 0 表示不限制；裝置卡片支援即時檢視網路數並提供手動重設。
+
+## 本機偵測 (Probe)
+
+- 概覽頁讓瀏覽器請求 `<隨機 nonce>.edgedoh-probe.<面板網域>`；DoH 收到該名稱時先把 nonce 與裝置寫入 `ProbeResults`，再直接回傳 NXDOMAIN（不轉發上游、不記錄日誌），面板隨後以 `GET /api/probe/:nonce` 讀取結果。
+- 瀏覽器啟用了自身的安全 DNS、經由代理（如 Clash fake-ip）或在 `localhost` 開啟面板時，查詢不會抵達 EdgeDoH，結果顯示為未使用。
 
 ## 設定與金鑰
 
@@ -134,6 +140,7 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `GET /api/backup`：匯出設定備份（設定、策略組、裝置、清單、自訂規則、本機記錄；不含裝置 ID 與遠端清單內容）。
 - `PUT /api/backup`：以備份全量覆寫設定，裝置取得新 ID；回傳需重新下載的遠端清單 `pending`。內聯清單的 `text` 與 `customRules` 可以省略（存為空）：控制台匯入時會將其拆出，逐一以 `PUT /api/lists/:id/text` 與 `PUT /api/custom-rules` 上傳，讓每個請求都在 CPU 預算內。
 - `POST /api/alerts/test`：向已儲存的告警 Webhook 傳送測試訊息。告警由 Cron 觸發器 `*/15 * * * *` 每 15 分鐘檢查最近 15 分鐘的統計（上游失敗率、攔截率、防濫用拒絕次數，門檻於設定中調整，失敗指沒有上游應答或所有上游都回傳 SERVFAIL；查詢少於 20 次時比例類告警維持原狀態），僅在告警開始與恢復時以 JSON POST 推送（`text` / `content` 為可讀文字，`alerts` 為結構化資料），狀態保存在 KV `alerts:state`。需要已設定查詢統計。
+- `GET /api/probe/:nonce`：回傳解析過該探測 nonce 的裝置（`{ device: { id, name } | null }`），供概覽頁的本機偵測使用。
 
 ### 查詢統計與日誌
 - `GET /api/stats/summary`：概覽指標（查詢總量、攔截率、平均耗時等）。
@@ -169,7 +176,7 @@ src/
 │   ├── filter/    # 規則解析、快照編譯與比對引擎（別名 #filter）
 │   └── contract/  # 前後端共用的限制常數與列舉（別名 #contract）
 ├── worker/        # Cloudflare Worker 後端原始碼
-│   ├── features/  # 業務模組（alerts, backup, devices, doh, lists, profiles, records, rules, services, settings, stats）
+│   ├── features/  # 業務模組（alerts, backup, devices, doh, lists, probe, profiles, records, rules, services, settings, stats）
 │   ├── shared/    # 驗證中介軟體、設定同步、錯誤模型與通用校驗
 │   └── test/      # 上游 Mock 與測試輔助工具
 ├── web/           # 管理面板前端（Vite + React 19 + Tailwind CSS v4 + shadcn/ui）

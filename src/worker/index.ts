@@ -8,6 +8,8 @@ import { ruleTestApi } from "./features/doh/api.ts";
 import { handleDoh } from "./features/doh/handler.ts";
 import { catalogApi, customRulesApi, listsApi } from "./features/lists/api.ts";
 import { checkListUpdates } from "./features/lists/store.ts";
+import { probeApi } from "./features/probe/api.ts";
+export { ProbeResults } from "./features/probe/store.ts";
 import { profilesApi } from "./features/profiles/api.ts";
 import { recordsApi } from "./features/records/api.ts";
 import { rulesApi } from "./features/rules/api.ts";
@@ -33,6 +35,7 @@ api.route("/services", servicesApi);
 api.route("/local-records", recordsApi);
 api.route("/backup", backupApi);
 api.route("/alerts", alertsApi);
+api.route("/probe", probeApi);
 api.all("*", (c) => c.json({ error: "not found" }, 404));
 api.onError((err, c) => {
   if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
