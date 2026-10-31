@@ -2,7 +2,7 @@ import { Rcode, RRType } from "#dns";
 import type { Verdict } from "#filter";
 
 /** Matched-list ID shown in logs for safe search rewrites */
-export const SAFE_SEARCH_LIST_ID = "safesearch";
+const SAFE_SEARCH_LIST_ID = "safesearch";
 
 /** Google's country domains: google.de, google.co.uk, google.com.hk … with or without www. */
 const GOOGLE_RE = /^(?:www\.)?google\.(?:com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$/;

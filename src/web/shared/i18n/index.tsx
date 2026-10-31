@@ -28,7 +28,7 @@ interface I18n {
 const I18nContext = createContext<I18n | null>(null);
 
 /** Saved choice first, then the browser languages; Traditional Chinese regions map to zh-Hant */
-export function detectLocale(): Locale {
+function detectLocale(): Locale {
   const saved = readSaved();
   if (saved) return saved;
   for (const tag of navigator.languages) {

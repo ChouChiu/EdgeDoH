@@ -40,7 +40,6 @@ export const enUS: Messages = {
   "common.page": "Page {page}",
   "common.reset": "Reset",
   "common.unsaved": "Unsaved changes",
-  "common.unsavedLeave": "You have unsaved changes. Leave anyway?",
   "common.name": "Name",
   "common.listSeparator": ", ",
   "common.select": "Select",
@@ -70,8 +69,6 @@ export const enUS: Messages = {
   "rebuild.failed": "Rule compilation or sync failed",
   "rebuild.servicesSkipped": "Could not fetch the services catalog; this compile has no services, so profile service blocking is off until the next compile",
   "rebuild.customList": "Custom rules",
-
-  "snapshot.title": "Active Rule Snapshot",
   "snapshot.summary": "{entries} hashed rules · {complex} complex rules · {size} · Updated {time}",
   "snapshot.inactive": "Filtering inactive: install a filter list or add custom rules to compile",
 
@@ -258,7 +255,6 @@ export const enUS: Messages = {
   "devices.rulesBlock": "Block",
   "devices.rulesAllow": "Allow",
   "devices.rulesReason": "Update device rules for {name}",
-  "devices.clients": { one: "{count} network", other: "{count} networks" },
   "devices.clientsLimit": "{count} / {limit} networks",
   "devices.clientsTitle": "Active networks in the last {minutes} minutes",
   "devices.clientsEmpty": "No network connection records yet",

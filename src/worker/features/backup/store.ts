@@ -20,8 +20,8 @@ import { PROFILE_DEFAULTS, profileErrors, validateProfile } from "../profiles/st
 import { listRecords, type LocalRecord, validateRecords } from "../records/store.ts";
 import { crossFieldErrors, defaultSettings, validateSettings } from "../settings/store.ts";
 
-export const BACKUP_FORMAT = "edgedoh-backup";
-export const BACKUP_VERSION = 1;
+const BACKUP_FORMAT = "edgedoh-backup";
+const BACKUP_VERSION = 1;
 /**
  * Inline lists and custom rules are each capped at 1 MiB, so this leaves room for a few of both.
  * Parsing that much would not fit the free plan's CPU budget, so the dashboard sends the texts

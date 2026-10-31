@@ -75,7 +75,7 @@ export interface AlertMessage {
   at: string;
 }
 
-export function buildMessage(firing: Alert[], resolved: Alert[], totals: Totals, now: number): AlertMessage {
+function buildMessage(firing: Alert[], resolved: Alert[], totals: Totals, now: number): AlertMessage {
   const lines = [...firing.map((a) => describe(a, "firing")), ...resolved.map((a) => describe(a, "resolved"))];
   const text = `EdgeDoH, last ${ALERT_WINDOW_MINUTES} min (${totals.total} queries)\n${lines.join("\n")}`;
   return {

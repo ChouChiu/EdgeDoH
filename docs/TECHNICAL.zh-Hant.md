@@ -93,7 +93,7 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `PATCH /api/devices/:id`：修改裝置名稱或綁定策略組。
 - `DELETE /api/devices/:id`：刪除指定裝置。
 - `GET /api/devices/:id/mobileconfig`：下載 Apple 裝置描述檔。
-- `GET /api/devices/:id/clients`：取得裝置目前活躍來源網路。
+- `GET /api/devices/:id/clients`：取得裝置目前活躍來源網路；網路數限制關閉時回傳 `limit: 0` 與空清單。
 - `DELETE /api/devices/:id/clients`：重設裝置來源網路記錄。
 - `POST /api/devices/:id/pause`：暫停裝置過濾，參數 `{ minutes }`（0 表示恢復）。
 - `GET /api/devices/:id/rules` / `PUT /api/devices/:id/rules`：讀取或全量取代裝置規則 `[{ name, action }]`（`allow` / `block`，含子網域）。規則編譯為始終生效的 `device-rules` 清單（`$client=<裝置ID>,important`），不受策略組清單選擇影響，儲存後需重建快照。
@@ -122,7 +122,7 @@ Cloudflare Workers 免費層單次請求 CPU 時間限制為 10ms。EdgeDoH 避�
 - `PUT /api/custom-rules`：更新自訂規則文字。
 
 ### 策略組、服務與分流
-- `GET /api/profiles`：取得策略組清單。
+- `GET /api/profiles`：取得策略組清單，每項附帶使用該策略組的裝置數 `devices`。
 - `POST /api/profiles`：建立新策略組。
 - `PATCH /api/profiles/:id`：修改策略組設定。
 - `DELETE /api/profiles/:id`：刪除策略組（預設策略組不可刪除）。

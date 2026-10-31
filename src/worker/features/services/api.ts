@@ -6,7 +6,7 @@ import { HttpError, router } from "../../shared/http.ts";
  * files because their licenses differ (GPL-3.0 and GPL-2.0)
  */
 export const CATALOG_URL = "https://raw.githubusercontent.com/ChouChiu/service-catalog/main/output";
-export const CATALOG_SOURCES = ["adguard", "community"] as const;
+const CATALOG_SOURCES = ["adguard", "community"] as const;
 const EDGE_TTL = 3600;
 
 export const servicesApi = router();

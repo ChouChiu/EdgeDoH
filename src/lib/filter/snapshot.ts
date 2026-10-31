@@ -15,13 +15,13 @@ import type { Modifiers } from "./types.ts";
  * Entry meta: bit 0 allow, bit 1 important, bit 2 exact (else suffix), bits 3-4 syntax,
  * bits 8-31 modifier index + 1 (0 = none). Entry ref: list index << 22 | line
  */
-export const SNAPSHOT_MAGIC = 0x53444643;
+const SNAPSHOT_MAGIC = 0x53444643;
 /** Shard binary layout version; unchanged shards keep their hashes across meta format bumps */
-export const SNAPSHOT_FORMAT = 2;
+const SNAPSHOT_FORMAT = 2;
 export const META_FORMAT = 3;
-export const SHARD_HEADER_BYTES = 16;
+const SHARD_HEADER_BYTES = 16;
 export const ENTRY_WORDS = 4;
-export const SHARD_BITS = 5;
+const SHARD_BITS = 5;
 export const SHARD_COUNT = 1 << SHARD_BITS;
 
 export const EntryFlag = {

@@ -5,7 +5,7 @@ import { HttpError } from "../../shared/http.ts";
 
 export const CATALOG_URL = "https://adguardteam.github.io/HostlistsRegistry/assets/filters.json";
 /** Leaves headroom under the 25 MiB KV value limit */
-export const MAX_LIST_BYTES = 20 * 1024 * 1024;
+const MAX_LIST_BYTES = 20 * 1024 * 1024;
 export const MAX_CUSTOM_RULES_BYTES = 1024 * 1024;
 
 export const LIST_KINDS = ["filter", "route"] as const;

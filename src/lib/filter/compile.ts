@@ -50,7 +50,7 @@ export interface CompileResult {
   complex: number;
 }
 
-export const DEFAULT_MAX_COMPLEX_RULES = 5000;
+const DEFAULT_MAX_COMPLEX_RULES = 5000;
 
 interface Parsed {
   rule: Rule;

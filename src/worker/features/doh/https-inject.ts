@@ -63,7 +63,7 @@ const CLOUDFLARE_RANGES = parseRanges([
   "2c0f:f248::/32",
 ]);
 
-export function isCloudflareAddress(address: Uint8Array): boolean {
+function isCloudflareAddress(address: Uint8Array): boolean {
   return inRanges(address, CLOUDFLARE_RANGES);
 }
 

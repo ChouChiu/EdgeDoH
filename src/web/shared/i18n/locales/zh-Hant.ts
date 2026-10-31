@@ -40,7 +40,6 @@ export const zhHant: Messages = {
   "common.page": "第 {page} 頁",
   "common.reset": "重設",
   "common.unsaved": "有未儲存的修改",
-  "common.unsavedLeave": "目前有未儲存的修改，確定離開？",
   "common.name": "名稱",
   "common.listSeparator": "、",
   "common.select": "選取",
@@ -67,8 +66,6 @@ export const zhHant: Messages = {
   "rebuild.failed": "規則編譯或同步失敗",
   "rebuild.servicesSkipped": "無法取得服務目錄，本次編譯未包含封鎖服務，策略組中的服務封鎖暫不生效",
   "rebuild.customList": "自訂規則",
-
-  "snapshot.title": "目前生效的規則快照",
   "snapshot.summary": "{entries} 條雜湊規則 · {complex} 條複雜規則 · {size} · 更新於 {time}",
   "snapshot.inactive": "過濾引擎未就緒：安裝規則清單或新增自訂規則後將自動編譯生效",
 
@@ -254,7 +251,6 @@ export const zhHant: Messages = {
   "devices.rulesBlock": "攔截",
   "devices.rulesAllow": "放行",
   "devices.rulesReason": "更新 {name} 的裝置規則",
-  "devices.clients": "{count} 個來源網路",
   "devices.clientsLimit": "{count} / {limit} 個來源網路",
   "devices.clientsTitle": "最近 {minutes} 分鐘內活躍的來源網路",
   "devices.clientsEmpty": "暫無接入網路紀錄",

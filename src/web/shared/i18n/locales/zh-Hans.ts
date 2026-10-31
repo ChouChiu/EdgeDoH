@@ -39,7 +39,6 @@ export const zhHans = {
   "common.page": "第 {page} 页",
   "common.reset": "重置",
   "common.unsaved": "有未保存的修改",
-  "common.unsavedLeave": "当前有未保存的修改，确定离开？",
   "common.name": "名称",
   "common.listSeparator": "、",
   "common.select": "选择",
@@ -66,8 +65,6 @@ export const zhHans = {
   "rebuild.failed": "规则编译或同步失败",
   "rebuild.servicesSkipped": "无法获取服务目录，本次编译未包含屏蔽服务，策略组中的服务屏蔽暂不生效",
   "rebuild.customList": "自定义规则",
-
-  "snapshot.title": "当前生效的规则快照",
   "snapshot.summary": "{entries} 条哈希规则 · {complex} 条复杂规则 · {size} · 更新于 {time}",
   "snapshot.inactive": "过滤引擎未就绪：安装规则列表或添加自定义规则后将自动编译生效",
 
@@ -253,7 +250,6 @@ export const zhHans = {
   "devices.rulesBlock": "拦截",
   "devices.rulesAllow": "放行",
   "devices.rulesReason": "更新 {name} 的设备规则",
-  "devices.clients": "{count} 个来源网络",
   "devices.clientsLimit": "{count} / {limit} 个来源网络",
   "devices.clientsTitle": "最近 {minutes} 分钟内活跃的来源网络",
   "devices.clientsEmpty": "暂无接入网络记录",

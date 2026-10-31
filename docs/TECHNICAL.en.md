@@ -93,7 +93,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `PATCH /api/devices/:id`: Update device name or profile.
 - `DELETE /api/devices/:id`: Delete a device.
 - `GET /api/devices/:id/mobileconfig`: Download Apple configuration profile.
-- `GET /api/devices/:id/clients`: List active source networks for a device.
+- `GET /api/devices/:id/clients`: List active source networks for a device; returns `limit: 0` and an empty list while the limit is off.
 - `DELETE /api/devices/:id/clients`: Reset active source networks for a device.
 - `POST /api/devices/:id/pause`: Pause device filtering (`{ minutes }`, 0 resumes).
 - `GET /api/devices/:id/rules` / `PUT /api/devices/:id/rules`: Read or replace a device's rules `[{ name, action }]` (`allow` / `block`, subdomains included). They compile into the always-applied `device-rules` list (`$client=<device ID>,important`), whatever the profile's lists; a rebuild applies them.
@@ -122,7 +122,7 @@ All `/api/*` endpoints require a valid Cloudflare Access JWT. Errors return `{ "
 - `PUT /api/custom-rules`: Update custom rules text.
 
 ### Profiles, Services & Split DNS
-- `GET /api/profiles`: List profiles.
+- `GET /api/profiles`: List profiles, each with `devices`, the number of devices using it.
 - `POST /api/profiles`: Create a profile.
 - `PATCH /api/profiles/:id`: Update profile configuration.
 - `DELETE /api/profiles/:id`: Delete a profile (default profile cannot be deleted).

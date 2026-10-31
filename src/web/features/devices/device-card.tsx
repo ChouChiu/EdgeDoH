@@ -171,7 +171,8 @@ function ClientsButton({ device }: { device: Device }) {
   const { t, fmt } = useI18n();
   const queryClient = useQueryClient();
   const key = [...DEVICES_KEY, device.id, "clients"];
-  const clients = useQuery({ queryKey: key, queryFn: () => devicesApi.clients(device.id) });
+  // Fetched on every visit, so turning the limit on in Settings shows here at once
+  const clients = useQuery({ queryKey: key, queryFn: () => devicesApi.clients(device.id), staleTime: 0 });
   const reset = useMutation({
     mutationFn: () => devicesApi.resetClients(device.id),
     onSuccess: () => {
