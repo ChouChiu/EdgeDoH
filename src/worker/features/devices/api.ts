@@ -91,16 +91,14 @@ devicesApi.post("/:id/pause", async (c) => {
   return c.json(present(device, c.req.url));
 });
 
-/** Source networks that used the device inside the client-limit window */
+/** Source networks that used the device inside the client-limit window; none while the limit is off */
 devicesApi.get("/:id/clients", async (c) => {
   const device = await findDevice(c.env, c.req.param("id"));
   if (!device) throw new HttpError(404, NOT_FOUND);
-  const settings = await getSettings(c.env);
-  return c.json({
-    limit: settings.maxDeviceClients,
-    windowMinutes: settings.deviceClientWindowMinutes,
-    clients: await seenClients(c.env, device.id, settings.deviceClientWindowMinutes * 60_000),
-  });
+  const { maxDeviceClients: limit, deviceClientWindowMinutes: windowMinutes } = await getSettings(c.env);
+  // Reading the list wakes the device's Durable Object, which is not worth it when nothing is limited
+  const clients = limit > 0 ? await seenClients(c.env, device.id, windowMinutes * 60_000) : [];
+  return c.json({ limit, windowMinutes, clients });
 });
 
 devicesApi.delete("/:id/clients", async (c) => {

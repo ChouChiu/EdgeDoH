@@ -67,10 +67,14 @@ describe("profiles API", () => {
     expect((await api("/profiles/default", { method: "DELETE" })).status).toBe(400);
   });
 
-  it("moves devices back to the default profile when theirs is deleted", async () => {
+  it("counts devices per profile and moves them back to the default one when theirs is deleted", async () => {
+    const counts = async () => Object.fromEntries((await (await api("/profiles")).json<{ id: string; devices: number }[]>()).map((p) => [p.id, p.devices]));
     const { id: profile } = await createProfile({ filtering: false });
     const device = await deviceWith(profile);
+    const before = await counts();
+    expect(before[profile]).toBe(1);
     expect((await api(`/profiles/${profile}`, { method: "DELETE" })).status).toBe(204);
+    expect((await counts()).default).toBe(before.default! + 1);
     const devices = await (await api("/devices")).json<{ id: string; profileId: string | null }[]>();
     expect(devices.find((d) => d.id === device)?.profileId).toBeNull();
     expect((await api(`/devices/${device}`, json({ profileId: "nope" }, "PATCH"))).status).toBe(400);

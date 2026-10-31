@@ -104,9 +104,17 @@ async function runtimeProfiles(env: Env): Promise<Map<string, Profile>> {
   return cached.profiles;
 }
 
-export async function listProfiles(db: D1Database): Promise<Profile[]> {
-  const { results } = await db.prepare("SELECT id, name, config, created_at FROM profiles ORDER BY created_at, name").all<Row>();
-  return results.map((r) => fromStored(r.id, { ...(JSON.parse(r.config) as Record<string, unknown>), name: r.name }));
+/** Every profile with the number of devices using it; devices without a profile count towards the default one */
+export async function listProfiles(db: D1Database): Promise<(Profile & { devices: number })[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT p.id, p.name, p.config, p.created_at,
+         (SELECT COUNT(*) FROM devices d WHERE COALESCE(d.profile_id, ?1) = p.id) AS devices
+       FROM profiles p ORDER BY p.created_at, p.name`,
+    )
+    .bind(DEFAULT_PROFILE_ID)
+    .all<Row & { devices: number }>();
+  return results.map((r) => ({ ...fromStored(r.id, { ...(JSON.parse(r.config) as Record<string, unknown>), name: r.name }), devices: r.devices }));
 }
 
 export async function findProfile(db: D1Database, id: string): Promise<Profile | null> {

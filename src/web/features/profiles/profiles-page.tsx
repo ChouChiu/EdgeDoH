@@ -1,9 +1,8 @@
-import { DEFAULT_PROFILE_ID, MAX_PROFILE_NAME } from "#contract";
+import { MAX_PROFILE_NAME } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { useDevices } from "@/features/devices/api";
 import { ChevronRight } from "@/shared/components/animate-ui/icons/chevron-right";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Plus } from "@/shared/components/animate-ui/icons/plus";
@@ -22,8 +21,6 @@ import { type Profile, PROFILES_KEY, profileName, profilesApi, useProfiles } fro
 export function ProfilesPage() {
   const { t } = useI18n();
   const profiles = useProfiles();
-  const devices = useDevices();
-  const count = (id: string) => devices.data?.filter((d) => (d.profileId ?? DEFAULT_PROFILE_ID) === id).length ?? 0;
   return (
     <>
       <PageHeader title={t("nav.profiles")} actions={<NewProfileDialog />} />
@@ -35,7 +32,7 @@ export function ProfilesPage() {
             <Link to={`/profiles/${p.id}`} className="contents">
               <CardHeader>
                 <CardTitle>{profileName(p, t)}</CardTitle>
-                <CardDescription>{t("profiles.devices", { count: count(p.id) })}</CardDescription>
+                <CardDescription>{t("profiles.devices", { count: p.devices })}</CardDescription>
                 <CardAction>
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </CardAction>

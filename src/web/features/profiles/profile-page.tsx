@@ -247,7 +247,8 @@ function newSchedule(): Schedule {
   return { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, days: [1, 2, 3, 4, 5], start: 21 * 60, end: 7 * 60 };
 }
 
-function toDraft({ id: _id, upstreams, ...rest }: Profile): Draft {
+/** Only what the form edits: the device count of a listed profile stays out of the draft and the PATCH */
+function toDraft({ id: _id, upstreams, devices: _devices, ...rest }: Profile & { devices?: number }): Draft {
   return { ...rest, upstreams: upstreams?.join("\n") ?? "" };
 }
 

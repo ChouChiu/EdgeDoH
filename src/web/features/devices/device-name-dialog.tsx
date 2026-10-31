@@ -11,6 +11,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
+import { PROFILES_KEY } from "@/features/profiles/api";
 import { DEVICES_KEY, type Device, devicesApi } from "./api";
 
 /** Creates a device, or renames `device` when given */
@@ -22,7 +23,11 @@ export function DeviceNameDialog({ device }: { device?: Device }) {
   const save = useMutation({
     mutationFn: () => (device ? devicesApi.rename(device.id, name.trim()) : devicesApi.create(name.trim())),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: DEVICES_KEY });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: DEVICES_KEY }),
+        // A new device counts towards the default profile
+        ...(device ? [] : [queryClient.invalidateQueries({ queryKey: PROFILES_KEY })]),
+      ]);
       setOpen(false);
       if (!device) setName("");
       toast.success(t(device ? "devices.renamed" : "devices.created"));

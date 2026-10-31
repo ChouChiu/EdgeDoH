@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RebuildProvider } from "@/features/snapshot/rebuild-provider";
+import { RebuildContext } from "@/features/snapshot/api";
 import { I18nProvider } from "@/shared/i18n";
 import { DeviceRulesDialog } from "./device-rules-dialog";
 
@@ -27,11 +27,11 @@ describe("DeviceRulesDialog", () => {
     render(
       <QueryClientProvider client={new QueryClient()}>
         <I18nProvider>
-          <RebuildProvider>
+          <RebuildContext.Provider value={{ stage: null, rebuild: vi.fn() }}>
             <DeviceRulesDialog device={device("phone")} />
             <DeviceRulesDialog device={device("laptop")} />
             <DeviceRulesDialog device={device("tv")} />
-          </RebuildProvider>
+          </RebuildContext.Provider>
         </I18nProvider>
       </QueryClientProvider>,
     );

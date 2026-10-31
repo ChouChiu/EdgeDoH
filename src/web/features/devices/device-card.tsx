@@ -16,8 +16,7 @@ import { Input } from "@/shared/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { profileName, useProfiles } from "@/features/profiles/api";
-import { useSettings } from "@/features/settings/api";
+import { PROFILES_KEY, profileName, useProfiles } from "@/features/profiles/api";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/lib/clipboard";
 import { errorMessage } from "@/shared/lib/http";
@@ -32,7 +31,8 @@ export function DeviceCard({ device }: { device: Device }) {
     mutationFn: () => devicesApi.remove(device.id),
     onSuccess: () => {
       toast.success(t("devices.deleted", { name: device.name }));
-      return queryClient.invalidateQueries({ queryKey: DEVICES_KEY });
+      // Profiles list how many devices use them
+      return Promise.all([queryClient.invalidateQueries({ queryKey: DEVICES_KEY }), queryClient.invalidateQueries({ queryKey: PROFILES_KEY })]);
     },
     onError: (err) => toast.error(t("devices.deleteFailed"), { description: errorMessage(err, t) }),
   });
@@ -105,7 +105,7 @@ function ProfileSelect({ device }: { device: Device }) {
   const profiles = useProfiles();
   const assign = useMutation({
     mutationFn: (id: string) => devicesApi.setProfile(device.id, id === DEFAULT_PROFILE_ID ? null : id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: DEVICES_KEY }),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: DEVICES_KEY }), queryClient.invalidateQueries({ queryKey: PROFILES_KEY })]),
     onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
   });
   return (
@@ -166,14 +166,12 @@ function PauseButton({ device }: { device: Device }) {
   );
 }
 
-/** Only shown while the client limit is on; reading the list wakes the device's Durable Object */
+/** Only shown while the client limit is on (the Worker answers `limit: 0` otherwise) */
 function ClientsButton({ device }: { device: Device }) {
   const { t, fmt } = useI18n();
   const queryClient = useQueryClient();
-  const settings = useSettings();
-  const enabled = (settings.data?.maxDeviceClients ?? 0) > 0;
   const key = [...DEVICES_KEY, device.id, "clients"];
-  const clients = useQuery({ queryKey: key, queryFn: () => devicesApi.clients(device.id), enabled });
+  const clients = useQuery({ queryKey: key, queryFn: () => devicesApi.clients(device.id) });
   const reset = useMutation({
     mutationFn: () => devicesApi.resetClients(device.id),
     onSuccess: () => {
@@ -182,7 +180,7 @@ function ClientsButton({ device }: { device: Device }) {
     },
     onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
   });
-  if (!enabled || !clients.data) return null;
+  if (!clients.data || clients.data.limit === 0) return null;
   const { limit, windowMinutes, clients: seen } = clients.data;
   const full = seen.length >= limit;
 

@@ -148,6 +148,10 @@ describe("settings", () => {
 
     expect((await api(`/devices/${id}/clients`, { method: "DELETE" })).status).toBe(204);
     expect(await from("203.0.113.9")).toBe(Rcode.NOERROR);
+
+    // With the limit off the list is not read at all
+    await patch({ maxDeviceClients: 0 });
+    expect(await (await api(`/devices/${id}/clients`)).json()).toMatchObject({ limit: 0, clients: [] });
   });
 
   it("normalises client networks", () => {

@@ -11,7 +11,7 @@ import { PAGES } from "@/app/routes";
 import { ThemeProvider } from "@/shared/components/theme-provider";
 import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
-import { RebuildProvider } from "@/features/snapshot/rebuild-provider";
+import { RebuildProvider } from "@/app/rebuild-provider";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { I18nProvider } from "@/shared/i18n";
 import { ApiError } from "@/shared/lib/http";

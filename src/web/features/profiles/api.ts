@@ -1,9 +1,7 @@
+import { type BlockingMode, DEFAULT_PROFILE_ID } from "#contract";
 import { useQuery } from "@tanstack/react-query";
-import type { BlockingMode } from "#contract";
 import type { Translate } from "@/shared/i18n";
 import { jsonBody, request } from "@/shared/lib/http";
-
-import { DEFAULT_PROFILE_ID } from "#contract";
 
 export interface Schedule {
   timezone: string;
@@ -38,6 +36,9 @@ export interface Profile extends ProfileConfig {
   name: string;
 }
 
+/** As listed: with the number of devices using the profile */
+export type ProfileSummary = Profile & { devices: number };
+
 export interface Service {
   id: string;
   name: string;
@@ -51,7 +52,7 @@ export const PROFILES_KEY = ["profiles"];
 export const SERVICES_KEY = ["services"];
 
 export const profilesApi = {
-  list: () => request<Profile[]>("/profiles"),
+  list: () => request<ProfileSummary[]>("/profiles"),
   create: (name: string) => request<Profile>("/profiles", jsonBody("POST", { name })),
   update: (id: string, patch: Partial<ProfileConfig> & { name?: string }) => request<Profile>(`/profiles/${id}`, jsonBody("PATCH", patch)),
   remove: (id: string) => request<void>(`/profiles/${id}`, { method: "DELETE" }),
