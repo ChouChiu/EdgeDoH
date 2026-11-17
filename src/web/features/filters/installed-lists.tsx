@@ -195,11 +195,13 @@ function InstalledCard({ list, actions, selection }: { list: FilterList; actions
             {/* Part of the list silently does nothing, which is worth noticing without being an error */}
             <TooltipTrigger className="text-warning underline decoration-dotted">{t("filters.unsupported", { count: list.unsupported })}</TooltipTrigger>
             <TooltipContent className="max-w-80">
-              {reasons.map(([reason, count]) => (
-                <div key={reason}>
-                  {fmt.number(count)} × {reason}
-                </div>
-              ))}
+              <div className="flex max-h-64 flex-col gap-1 overflow-y-auto py-0.5 tabular-nums">
+                {reasons.map(([reason, count]) => (
+                  <div key={reason}>
+                    {fmt.number(count)} × {reason}
+                  </div>
+                ))}
+              </div>
             </TooltipContent>
           </Tooltip>
         )}
