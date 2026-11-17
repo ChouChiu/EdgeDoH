@@ -39,17 +39,62 @@ export function isDomain(s: string): boolean {
   return s.length > 0 && s.length <= 253 && DOMAIN_RE.test(s);
 }
 
+const DNSMASQ_ADDRESS_RE = /^address=\/(.+)\/([^/]*)$/i;
+
+const CLASH_RULE_TYPES = new Set([
+  "DOMAIN",
+  "DOMAIN-SUFFIX",
+  "DOMAIN-KEYWORD",
+  "DOMAIN-WILDCARD",
+  "DOMAIN-REGEX",
+  "HOST",
+  "HOST-SUFFIX",
+  "HOST-KEYWORD",
+  "HOST-REGEX",
+  "IP-CIDR",
+  "IP-CIDR6",
+  "IP-ASN",
+  "GEOIP",
+  "USER-AGENT",
+  "URL-REGEX",
+  "PROCESS-NAME",
+  "DST-PORT",
+  "SRC-IP-CIDR",
+  "SRC-PORT",
+  "AND",
+  "OR",
+  "NOT",
+  "MATCH",
+  "FINAL",
+]);
+
 /**
- * Parses one line of an AdGuard DNS filter list: Adblock-style, /etc/hosts-style or
- * domains-only syntax. https://adguard-dns.io/kb/general/dns-filtering-syntax/
+ * Parses one line of an AdGuard DNS filter list: Adblock-style, /etc/hosts-style,
+ * domains-only, dnsmasq address=, or Clash/Surge rule-set syntax.
+ * https://adguard-dns.io/kb/general/dns-filtering-syntax/
  */
 export function parseLine(raw: string, line: number): ParseResult {
-  const text = raw.trim();
-  if (text === "" || text.startsWith("!") || text.startsWith("#") || text.startsWith("[")) return { type: "skip" };
+  let text = raw.trim();
+  if (text === "" || text.startsWith("!") || text.startsWith("#") || text.startsWith("[") || /^payload:\s*$/i.test(text)) {
+    return { type: "skip" };
+  }
+  if (text.startsWith("- ")) {
+    text = text.slice(2).trim();
+    const quote = text[0];
+    if ((quote === "'" || quote === '"') && text.endsWith(quote) && text.length >= 2) {
+      text = text.slice(1, -1).trim();
+    }
+    if (text === "" || text.startsWith("#")) return { type: "skip" };
+  }
   if (!text.startsWith("/") && COSMETIC_RE.test(text)) return { type: "unsupported", reason: "cosmetic rule" };
 
   try {
-    return parseHostsOrDomain(text, line) ?? parseAdblock(text, line);
+    return (
+      parseDnsmasqAddress(text, line) ??
+      parseClashRule(text, line) ??
+      parseHostsOrDomain(text, line) ??
+      parseAdblock(text, line)
+    );
   } catch (err) {
     if (err instanceof RuleError) return { type: "unsupported", reason: err.message };
     throw err;
@@ -83,12 +128,114 @@ export function parseRouteLine(raw: string, line: number): ParseResult {
   return rules.length > 0 ? { type: "rules", rules } : { type: "unsupported", reason: "not a plain domain rule" };
 }
 
+function parseDnsmasqAddress(text: string, line: number): ParseResult | undefined {
+  const m = DNSMASQ_ADDRESS_RE.exec(text);
+  if (!m) return undefined;
+  const target = m[2]!.trim();
+  let rewrite: Rewrite | undefined;
+  if (target !== "" && target !== "#" && !NULL_IPS.has(target)) {
+    if (!isIP(target)) throw new RuleError(`unsupported dnsmasq address target: ${target}`);
+    rewrite = { rcode: Rcode.NOERROR, type: target.includes(":") ? RRType.AAAA : RRType.A, value: target };
+  }
+  const rules: Rule[] = [];
+  for (const part of m[1]!.split("/")) {
+    const domain = normalizeDomain(part);
+    if (!isDomain(domain)) continue;
+    rules.push({
+      action: "block",
+      important: false,
+      pattern: { kind: "suffix", domain },
+      ...(rewrite && { mods: { raw: "", rewrite } }),
+      syntax: "domain",
+      line,
+      text,
+    });
+  }
+  return rules.length > 0 ? { type: "rules", rules } : { type: "skip" };
+}
+
+function parseClashRule(text: string, line: number): ParseResult | undefined {
+  const cleaned = text.replace(/\s+(?:#|\/\/).*$/, "").trim();
+  const parts = cleaned.split(",").map((s) => s.trim());
+  if (parts.length < 2) return undefined;
+  const type = parts[0]!.toUpperCase();
+  if (!CLASH_RULE_TYPES.has(type)) return undefined;
+
+  const value = parts[1]!;
+  const policy = parts.slice(2).find((p) => p.toLowerCase() !== "no-resolve");
+  if (policy && !policy.toUpperCase().startsWith("REJECT")) {
+    throw new RuleError(`non-reject rule policy ${policy}`);
+  }
+
+  let pattern: Pattern;
+  switch (type) {
+    case "DOMAIN":
+    case "HOST": {
+      const domain = normalizeDomain(value);
+      if (!isDomain(domain)) throw new RuleError(`invalid domain in ${type}: ${value}`);
+      pattern = { kind: "exact", domain };
+      break;
+    }
+    case "DOMAIN-SUFFIX":
+    case "HOST-SUFFIX": {
+      const domain = normalizeDomain(value);
+      if (!isDomain(domain)) throw new RuleError(`invalid domain in ${type}: ${value}`);
+      pattern = { kind: "suffix", domain };
+      break;
+    }
+    case "DOMAIN-KEYWORD":
+    case "HOST-KEYWORD": {
+      const kw = value.toLowerCase();
+      if (kw === "" || /[/:\s]/.test(kw)) throw new RuleError(`invalid keyword in ${type}: ${value}`);
+      pattern = { kind: "wildcard", glob: { anchor: "none", end: false, parts: [kw] } };
+      break;
+    }
+    case "DOMAIN-WILDCARD": {
+      const pat = value.toLowerCase();
+      if (pat === "" || /[/:\s]/.test(pat)) throw new RuleError(`invalid wildcard in ${type}: ${value}`);
+      if (pat.includes("?")) {
+        const source = `^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".")}$`;
+        pattern = { kind: "regex", source };
+      } else {
+        pattern = { kind: "wildcard", glob: { anchor: "start", end: true, parts: pat.split("*") } };
+      }
+      break;
+    }
+    case "DOMAIN-REGEX":
+    case "HOST-REGEX": {
+      try {
+        new RegExp(value);
+      } catch {
+        throw new RuleError("invalid regular expression");
+      }
+      pattern = { kind: "regex", source: value };
+      break;
+    }
+    default:
+      throw new RuleError(`unsupported rule type ${type}`);
+  }
+
+  return {
+    type: "rules",
+    rules: [{ action: "block", important: false, pattern, syntax: "domain", line, text }],
+  };
+}
+
 function parseHostsOrDomain(text: string, line: number): ParseResult | undefined {
   const comment = text.search(/\s#/);
   const fields = (comment >= 0 ? text.slice(0, comment) : text).split(/\s+/);
 
   if (fields.length === 1) {
-    const domain = normalizeDomain(fields[0]!);
+    const raw = fields[0]!;
+    if (raw.startsWith("+.")) {
+      const domain = normalizeDomain(raw.slice(2));
+      if (!isDomain(domain)) return undefined;
+      return {
+        type: "rules",
+        rules: [{ action: "block", important: false, pattern: { kind: "suffix", domain }, syntax: "domain", line, text }],
+      };
+    }
+    const domain = normalizeDomain(raw);
     if (!isDomain(domain)) return undefined;
     return { type: "rules", rules: [hostRule(domain, undefined, "domain", line, text)] };
   }
@@ -153,6 +300,9 @@ function parseAdblock(text: string, line: number): ParseResult {
       case "badfilter":
         badfilter = true;
         break;
+      case "all":
+        // Resource-type wildcard in browser lists; DNS blocking already applies to all requests
+        break;
       case "dnstype":
         mods.dnstype = parseDnstype(required(name, value));
         hasMods = true;
@@ -203,6 +353,8 @@ export function badfilterKey(text: string): string {
   return text.trim().toLowerCase();
 }
 
+const URL_HOST_ONLY_RE = /^(?:\|https?:\/\/|:\/\/)([^/:\s^|*]+)(?:\^\/?|\^?\||\/)$/;
+
 function toPattern(text: string, hasMods: boolean): Pattern {
   if (text.length > 2 && text.startsWith("/") && text.endsWith("/")) {
     const source = text.slice(1, -1);
@@ -219,21 +371,38 @@ function toPattern(text: string, hasMods: boolean): Pattern {
     if (!hasMods) throw new RuleError("empty pattern");
     s = "*";
   }
-  if (/[/:\s]/.test(s)) throw new RuleError("URL patterns cannot match hostnames");
+
+  const urlHost = URL_HOST_ONLY_RE.exec(s);
+  if (urlHost) {
+    const domain = toAscii(urlHost[1]!);
+    if (isDomain(domain)) return { kind: "exact", domain };
+  }
 
   const anchor: Glob["anchor"] = s.startsWith("||") ? "domain" : s.startsWith("|") ? "start" : "none";
-  const { body, end } = stripEnd(s.slice(anchor === "domain" ? 2 : anchor === "start" ? 1 : 0));
+  let { body, end } = stripEnd(s.slice(anchor === "domain" ? 2 : anchor === "start" ? 1 : 0));
+  if (/[/:\s]/.test(body)) throw new RuleError("URL patterns cannot match hostnames");
+
   if (end && anchor !== "none") {
     const domain = toAscii(body);
     if (isDomain(domain)) return { kind: anchor === "domain" ? "suffix" : "exact", domain };
   }
+  if (end && anchor === "none" && body.startsWith("^")) {
+    const domain = toAscii(body.slice(1));
+    if (isDomain(domain)) return { kind: "exact", domain };
+  }
   // Hostnames contain no separators, so `^` or `|` anywhere else can never match
   if (/[\^|]/.test(body)) throw new RuleError("separator inside pattern");
+
+  if (anchor === "none" && !end) {
+    if ((body.startsWith("*.") && isDomain(toAscii(body.slice(2)))) || (body.startsWith(".") && isDomain(toAscii(body.slice(1))))) {
+      end = true;
+    }
+  }
   return { kind: "wildcard", glob: { anchor, end, parts: body.split("*") } };
 }
 
 function stripEnd(s: string): { body: string; end: boolean } {
-  const end = ["^|", "^", "|"].find((e) => s.endsWith(e));
+  const end = ["^|", "^*", "^/", "^", "|", "/"].find((e) => s.length > e.length && s.endsWith(e));
   return end ? { body: s.slice(0, -end.length), end: true } : { body: s, end: false };
 }
 

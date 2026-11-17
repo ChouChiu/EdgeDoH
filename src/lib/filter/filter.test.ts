@@ -114,6 +114,42 @@ describe("parseLine", () => {
     expect(reason("||a.test^$dnstype=BOGUS")).toMatch(/unknown DNS type/);
     expect(reason("||a.test^$dnsrewrite=NOERROR;MX;10 mail.test")).toMatch(/unsupported \$dnsrewrite type/);
   });
+
+  it("parses $all, URL host-only patterns, trailing ^* or /, and wildcard domains", () => {
+    expect(rulesOf("||example.org^$all")[0]).toMatchObject({ action: "block", pattern: { kind: "suffix", domain: "example.org" } });
+    expect(rulesOf("@@||example.org^$all,important")[0]).toMatchObject({ action: "allow", important: true, pattern: { kind: "suffix", domain: "example.org" } });
+    expect(rulesOf("||example.org/")[0]?.pattern).toEqual({ kind: "suffix", domain: "example.org" });
+    expect(rulesOf("||example.org^/")[0]?.pattern).toEqual({ kind: "suffix", domain: "example.org" });
+    expect(rulesOf("||example.org^*")[0]?.pattern).toEqual({ kind: "suffix", domain: "example.org" });
+    expect(rulesOf("|https://ads.example.org^")[0]?.pattern).toEqual({ kind: "exact", domain: "ads.example.org" });
+    expect(rulesOf("|http://ads.example.org/")[0]?.pattern).toEqual({ kind: "exact", domain: "ads.example.org" });
+    expect(rulesOf("://ads.example.org^")[0]?.pattern).toEqual({ kind: "exact", domain: "ads.example.org" });
+    expect(rulesOf("^ads.example.org^")[0]?.pattern).toEqual({ kind: "exact", domain: "ads.example.org" });
+    expect(rulesOf("*.example.org")[0]?.pattern).toEqual({ kind: "wildcard", glob: { anchor: "none", end: true, parts: ["", ".example.org"] } });
+    expect(rulesOf(".example.org")[0]?.pattern).toEqual({ kind: "wildcard", glob: { anchor: "none", end: true, parts: [".example.org"] } });
+    expect(parseLine("||example.org/ads/", 1)).toEqual({ type: "unsupported", reason: "URL patterns cannot match hostnames" });
+    expect(parseLine("|https://example.org/ads.js", 1)).toEqual({ type: "unsupported", reason: "URL patterns cannot match hostnames" });
+  });
+
+  it("parses dnsmasq address=, Clash/Surge rules, and YAML rule-sets", () => {
+    expect(rulesOf("address=/a.test/b.test/0.0.0.0").map((r) => r.pattern)).toEqual([
+      { kind: "suffix", domain: "a.test" },
+      { kind: "suffix", domain: "b.test" },
+    ]);
+    expect(rulesOf("address=/lan.test/10.0.0.5")[0]).toMatchObject({
+      pattern: { kind: "suffix", domain: "lan.test" },
+      mods: { rewrite: { rcode: 0, type: RRType.A, value: "10.0.0.5" } },
+    });
+    expect(parseLine("payload:", 1).type).toBe("skip");
+    expect(rulesOf("  - '+.clash.test'")[0]?.pattern).toEqual({ kind: "suffix", domain: "clash.test" });
+    expect(rulesOf('  - "DOMAIN,exact.test"')[0]?.pattern).toEqual({ kind: "exact", domain: "exact.test" });
+    expect(rulesOf("DOMAIN-SUFFIX,suffix.test,REJECT,no-resolve")[0]?.pattern).toEqual({ kind: "suffix", domain: "suffix.test" });
+    expect(rulesOf("DOMAIN-KEYWORD,adservice // comment")[0]?.pattern).toEqual({ kind: "wildcard", glob: { anchor: "none", end: false, parts: ["adservice"] } });
+    expect(rulesOf("DOMAIN-WILDCARD,*.wild.test")[0]?.pattern).toEqual({ kind: "wildcard", glob: { anchor: "start", end: true, parts: ["", ".wild.test"] } });
+    expect(rulesOf("DOMAIN-REGEX,^ad\\d+\\.")[0]?.pattern).toEqual({ kind: "regex", source: "^ad\\d+\\." });
+    expect(parseLine("DOMAIN-SUFFIX,ok.test,DIRECT", 1)).toEqual({ type: "unsupported", reason: "non-reject rule policy DIRECT" });
+    expect(parseLine("IP-CIDR,1.2.3.0/24,no-resolve", 1)).toEqual({ type: "unsupported", reason: "unsupported rule type IP-CIDR" });
+  });
 });
 
 describe("match", () => {
