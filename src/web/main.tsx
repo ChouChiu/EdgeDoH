@@ -8,6 +8,7 @@ import { RouterProvider } from "react-router/dom";
 import "./index.css";
 import App from "@/app/App";
 import { PAGES } from "@/app/routes";
+import { RouteErrorFallback } from "@/shared/components/page";
 import { ThemeProvider } from "@/shared/components/theme-provider";
 import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
         <App />
       </RebuildProvider>
     ),
+    errorElement: <RouteErrorFallback />,
     children: [...PAGES.map(({ path, Page }) => ({ path, element: <Page /> })), { path: "*", element: <Navigate to="/" replace /> }],
   },
 ]);

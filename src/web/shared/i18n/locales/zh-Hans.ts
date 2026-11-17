@@ -29,6 +29,7 @@ export const zhHans = {
   "common.copyFailed": "复制失败，请手动选择文本",
   "common.loading": "加载中…",
   "common.loadFailed": "加载失败",
+  "common.retry": "重试",
   "common.refreshPage": "刷新页面",
   "common.noData": "暂无数据",
   "common.rename": "重命名",
@@ -39,6 +40,10 @@ export const zhHans = {
   "common.page": "第 {page} 页",
   "common.reset": "重置",
   "common.unsaved": "有未保存的修改",
+  "common.leavePageTitle": "放弃未保存的修改？",
+  "common.leavePageBody": "当前页面有尚未保存的修改，离开后将会丢失。",
+  "common.stay": "留在此页",
+  "common.discard": "放弃修改",
   "common.name": "名称",
   "common.listSeparator": "、",
   "common.select": "选择",
@@ -50,6 +55,8 @@ export const zhHans = {
 
   "errors.sessionExpired": "登录会话已过期，请刷新页面重新认证",
   "errors.http": "请求失败 (HTTP {status})",
+  "errors.routeTitle": "页面加载出错",
+  "errors.routeBack": "返回概览",
 
   "time.never": "从未",
   "time.justNow": "刚刚",

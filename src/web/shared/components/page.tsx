@@ -1,7 +1,9 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import type { ReactNode } from "react";
+import { useNavigate, useRouteError } from "react-router";
 import { CircleAlert } from "@/shared/components/animate-ui/icons/circle-alert";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
+import { RefreshCw } from "@/shared/components/animate-ui/icons/refresh-cw";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n";
@@ -20,21 +22,50 @@ export function PageHeader({ title, description, actions }: { title: string; des
   );
 }
 
-export function QueryError({ error, title }: { error: unknown; title?: string }) {
+export function QueryError({ error, title, onRetry }: { error: unknown; title?: string; onRetry?: () => void }) {
   const { t } = useI18n();
+  const expired = error instanceof SessionExpiredError;
   return (
     <Alert variant="destructive">
       <CircleAlert animate />
       <AlertTitle>{title ?? t("common.loadFailed")}</AlertTitle>
       <AlertDescription>
-        {errorMessage(error, t)}
-        {error instanceof SessionExpiredError && (
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => location.reload()}>
-            {t("common.refreshPage")}
+        <p>{errorMessage(error, t)}</p>
+        {(expired || onRetry) && (
+          <Button size="sm" variant="outline" className="mt-2" onClick={expired ? () => location.reload() : onRetry}>
+            {!expired && <RefreshCw />}
+            {t(expired ? "common.refreshPage" : "common.retry")}
           </Button>
         )}
       </AlertDescription>
     </Alert>
+  );
+}
+
+/** Fallback for uncaught route/render errors so React Router never shows an unstyled English error page */
+export function RouteErrorFallback() {
+  const { t } = useI18n();
+  const error = useRouteError();
+  const navigate = useNavigate();
+  return (
+    <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-4 p-6">
+      <Alert variant="destructive">
+        <CircleAlert animate />
+        <AlertTitle>{t("errors.routeTitle")}</AlertTitle>
+        <AlertDescription>
+          <p>{errorMessage(error, t)}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => location.reload()}>
+              <RefreshCw />
+              {t("common.refreshPage")}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void navigate("/", { replace: true })}>
+              {t("errors.routeBack")}
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 }
 

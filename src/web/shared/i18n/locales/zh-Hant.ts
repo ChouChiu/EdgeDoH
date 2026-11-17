@@ -30,6 +30,7 @@ export const zhHant: Messages = {
   "common.copyFailed": "複製失敗，請手動選取文字",
   "common.loading": "載入中…",
   "common.loadFailed": "載入失敗",
+  "common.retry": "重試",
   "common.refreshPage": "重新整理頁面",
   "common.noData": "暫無資料",
   "common.rename": "重新命名",
@@ -40,6 +41,10 @@ export const zhHant: Messages = {
   "common.page": "第 {page} 頁",
   "common.reset": "重設",
   "common.unsaved": "有未儲存的修改",
+  "common.leavePageTitle": "放棄未儲存的修改？",
+  "common.leavePageBody": "目前頁面有尚未儲存的修改，離開後將會遺失。",
+  "common.stay": "留在此頁",
+  "common.discard": "放棄修改",
   "common.name": "名稱",
   "common.listSeparator": "、",
   "common.select": "選取",
@@ -51,6 +56,8 @@ export const zhHant: Messages = {
 
   "errors.sessionExpired": "登入階段已過期，請重新整理頁面再次驗證",
   "errors.http": "請求失敗 (HTTP {status})",
+  "errors.routeTitle": "頁面載入出錯",
+  "errors.routeBack": "返回概覽",
 
   "time.never": "從未",
   "time.justNow": "剛剛",

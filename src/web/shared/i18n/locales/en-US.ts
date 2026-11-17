@@ -30,6 +30,7 @@ export const enUS: Messages = {
   "common.copyFailed": "Failed to copy, please select text manually",
   "common.loading": "Loading…",
   "common.loadFailed": "Failed to load",
+  "common.retry": "Retry",
   "common.refreshPage": "Reload Page",
   "common.noData": "No data available",
   "common.rename": "Rename",
@@ -40,6 +41,10 @@ export const enUS: Messages = {
   "common.page": "Page {page}",
   "common.reset": "Reset",
   "common.unsaved": "Unsaved changes",
+  "common.leavePageTitle": "Discard unsaved changes?",
+  "common.leavePageBody": "You have unsaved changes on this page. Leaving will discard them.",
+  "common.stay": "Stay",
+  "common.discard": "Discard",
   "common.name": "Name",
   "common.listSeparator": ", ",
   "common.select": "Select",
@@ -51,6 +56,8 @@ export const enUS: Messages = {
 
   "errors.sessionExpired": "Session expired, reload the page to authenticate again",
   "errors.http": "Request failed (HTTP {status})",
+  "errors.routeTitle": "Something went wrong",
+  "errors.routeBack": "Back to overview",
 
   "time.never": "Never",
   "time.justNow": "Just now",
