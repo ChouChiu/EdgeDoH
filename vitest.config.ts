@@ -8,10 +8,10 @@ export default defineConfig(async () => {
   return {
     test: {
       projects: [
-        // Shared libraries and dashboard code run in Node; component tests opt into happy-dom per file
+        // Shared libraries and dashboard code run in Node
         {
           resolve: { alias: { "@": resolve(import.meta.dirname, "./src/web") } },
-          test: { name: "node", include: ["src/lib/**/*.test.ts", "src/web/**/*.test.{ts,tsx}"], setupFiles: ["./src/web/test/setup.ts"] },
+          test: { name: "node", include: ["src/lib/**/*.test.ts", "src/web/**/*.test.ts"] },
         },
         {
           plugins: [
