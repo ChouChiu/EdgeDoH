@@ -183,10 +183,35 @@ function validateBackup(env: Env, input: unknown): Backup {
   const global = { ...defaultSettings(env), ...settings.valid };
   if (settings.errors.length === 0) errors.push(...crossFieldErrors(global).map((e) => `settings: ${e}`));
 
-  const profiles = array(b.profiles, "profiles", MAX_PROFILES).map((item, i) => {
+  const { profiles, profileIds } = validateBackupProfiles(b.profiles, global, errors);
+  const devices = validateBackupDevices(b.devices, profileIds, errors);
+  const lists = array(b.lists, "lists", MAX_LISTS).map((item, i) => validateList(object(item, `list ${i + 1}`), i, errors));
+  if (new Set(lists.map((l) => l.id)).size !== lists.length) errors.push("lists: duplicate id");
+
+  if (b.customRules !== undefined && typeof b.customRules !== "string") errors.push("customRules must be text");
+  else if (typeof b.customRules === "string" && new TextEncoder().encode(b.customRules).length > MAX_CUSTOM_RULES_BYTES) {
+    errors.push(`customRules exceed ${MAX_CUSTOM_RULES_BYTES} bytes`);
+  }
+
+  let records: LocalRecord[] = [];
+  try {
+    records = validateRecords(b.records);
+  } catch (err) {
+    errors.push(`records: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  if (errors.length > 0) throw new HttpError(400, errors.slice(0, 10).join("; "));
+  const customRules = typeof b.customRules === "string" ? b.customRules : "";
+  return { ...(b as unknown as Backup), settings: settings.valid, profiles, devices, lists, customRules, records };
+}
+
+function validateBackupProfiles(raw: unknown, global: ReturnType<typeof defaultSettings>, errors: string[]) {
+  const profiles = array(raw, "profiles", MAX_PROFILES).map((item, i) => {
     const p = object(item, `profile ${i + 1}`);
-    const id = typeof p.id === "string" && ID_RE.test(p.id) ? p.id : (errors.push(`profile ${i + 1}: invalid id`), "");
-    const name = trimmedName(p.name, MAX_PROFILE_NAME) ?? (errors.push(`profile ${i + 1}: name must be 1-${MAX_PROFILE_NAME} characters`), "");
+    const id = typeof p.id === "string" && ID_RE.test(p.id) ? p.id : "";
+    if (!id) errors.push(`profile ${i + 1}: invalid id`);
+    const name = trimmedName(p.name, MAX_PROFILE_NAME) ?? "";
+    if (!name) errors.push(`profile ${i + 1}: name must be 1-${MAX_PROFILE_NAME} characters`);
     const { valid, errors: invalid } = validateProfile(object(p.config, `profile ${i + 1} config`));
     errors.push(...invalid.map((e) => `profile ${name || i + 1}: ${e}`));
     if (invalid.length === 0) errors.push(...profileErrors({ ...PROFILE_DEFAULTS, ...valid }, global).map((e) => `profile ${name}: ${e}`));
@@ -201,10 +226,14 @@ function validateBackup(env: Env, input: unknown): Backup {
     if (target === p.id) errors.push(`profile ${p.name}: a profile cannot switch to itself`);
     else if (!profileIds.has(target) && target !== DEFAULT_PROFILE_ID) errors.push(`profile ${p.name}: scheduledProfile does not exist`);
   }
+  return { profiles, profileIds };
+}
 
-  const devices = array(b.devices, "devices", MAX_DEVICES).map((item, i) => {
+function validateBackupDevices(raw: unknown, profileIds: Set<string>, errors: string[]) {
+  return array(raw, "devices", MAX_DEVICES).map((item, i) => {
     const d = object(item, `device ${i + 1}`);
-    const name = trimmedName(d.name, MAX_DEVICE_NAME) ?? (errors.push(`device ${i + 1}: name must be 1-${MAX_DEVICE_NAME} characters`), "");
+    const name = trimmedName(d.name, MAX_DEVICE_NAME) ?? "";
+    if (!name) errors.push(`device ${i + 1}: name must be 1-${MAX_DEVICE_NAME} characters`);
     const profileId = d.profileId === null || d.profileId === DEFAULT_PROFILE_ID ? null : d.profileId;
     if (profileId !== null && (typeof profileId !== "string" || !profileIds.has(profileId))) errors.push(`device ${name}: unknown profile`);
     let rules: StoredDeviceRule[] = [];
@@ -215,37 +244,41 @@ function validateBackup(env: Env, input: unknown): Backup {
     }
     return { name, profileId: profileId as string | null, rules };
   });
-
-  const lists = array(b.lists, "lists", MAX_LISTS).map((item, i) => validateList(object(item, `list ${i + 1}`), i, errors));
-  if (new Set(lists.map((l) => l.id)).size !== lists.length) errors.push("lists: duplicate id");
-
-  if (b.customRules !== undefined && typeof b.customRules !== "string") errors.push("customRules must be text");
-  else if (typeof b.customRules === "string" && new TextEncoder().encode(b.customRules).length > MAX_CUSTOM_RULES_BYTES) errors.push(`customRules exceed ${MAX_CUSTOM_RULES_BYTES} bytes`);
-
-  let records: LocalRecord[] = [];
-  try {
-    records = validateRecords(b.records);
-  } catch (err) {
-    errors.push(`records: ${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  if (errors.length > 0) throw new HttpError(400, errors.slice(0, 10).join("; "));
-  const customRules = typeof b.customRules === "string" ? b.customRules : "";
-  return { ...(b as unknown as Backup), settings: settings.valid, profiles, devices, lists, customRules, records };
 }
 
 function validateList(l: Record<string, unknown>, i: number, errors: string[]): BackupList {
   const label = typeof l.name === "string" && l.name ? l.name : `list ${i + 1}`;
   const fail = (why: string) => errors.push(`${label}: ${why}`);
-  const id = typeof l.id === "string" && ID_RE.test(l.id) && l.id !== CUSTOM_LIST_ID ? l.id : (fail("invalid id"), "");
-  const name = trimmedName(l.name, MAX_LIST_NAME) ?? (fail(`name must be 1-${MAX_LIST_NAME} characters`), "");
-  const source = l.source === "registry" || l.source === "url" || l.source === "inline" ? l.source : (fail("unknown source"), "url");
-  const kind = (LIST_KINDS as readonly unknown[]).includes(l.kind) ? (l.kind as ListKind) : (fail("unknown kind"), "filter");
+
+  const id = typeof l.id === "string" && ID_RE.test(l.id) && l.id !== CUSTOM_LIST_ID ? l.id : "";
+  if (!id) fail("invalid id");
+
+  const name = trimmedName(l.name, MAX_LIST_NAME) ?? "";
+  if (!name) fail(`name must be 1-${MAX_LIST_NAME} characters`);
+
+  const source = l.source === "registry" || l.source === "url" || l.source === "inline" ? l.source : "url";
+  if (source !== l.source) fail("unknown source");
+
+  const kind = (LIST_KINDS as readonly unknown[]).includes(l.kind) ? (l.kind as ListKind) : "filter";
+  if (kind !== l.kind) fail("unknown kind");
+
   const url = typeof l.url === "string" ? l.url : "";
   if (source !== "inline" && !isHttpUrl(url)) fail("URL must be http or https");
-  const upstreams = kind === "route" ? (isUpstreamList(l.upstreams) ? l.upstreams : (fail("route lists need 1-5 https upstreams"), null)) : null;
-  const registryId = source === "registry" ? (Number.isInteger(l.registryId) ? (l.registryId as number) : (fail("invalid registryId"), null)) : null;
+
+  let upstreams: string[] | null = null;
+  if (kind === "route") {
+    if (isUpstreamList(l.upstreams)) upstreams = l.upstreams;
+    else fail("route lists need 1-5 https upstreams");
+  }
+
+  let registryId: number | null = null;
+  if (source === "registry") {
+    if (Number.isInteger(l.registryId)) registryId = l.registryId as number;
+    else fail("invalid registryId");
+  }
+
   if (typeof l.enabled !== "boolean") fail("enabled must be true or false");
+
   let text: string | undefined;
   if (source === "inline") {
     if (l.text !== undefined && typeof l.text !== "string") fail("text must be text");

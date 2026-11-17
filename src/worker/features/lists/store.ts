@@ -153,10 +153,9 @@ export async function updateList(
     sets.push("name = ?");
     values.push(patch.name);
   }
-  if (sets.length > 0) {
-    await db.prepare(`UPDATE filter_lists SET ${sets.join(", ")} WHERE id = ?`).bind(...values, id).run();
-  }
-  return getList(db, id);
+  if (sets.length === 0) return getList(db, id);
+  const row = await db.prepare(`UPDATE filter_lists SET ${sets.join(", ")} WHERE id = ? RETURNING *`).bind(...values, id).first<Row>();
+  return row ? fromRow(row) : null;
 }
 
 export async function removeList(env: Env, id: string): Promise<boolean> {

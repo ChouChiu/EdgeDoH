@@ -22,6 +22,7 @@ import {
   splitHints,
 } from "#dns";
 import type { Settings } from "../settings/store.ts";
+import { concatBytes } from "../../shared/http.ts";
 import { copyAnswers } from "./answers.ts";
 import { inRanges, parseRanges } from "./ranges.ts";
 import { resolve, type UpstreamConfig } from "./upstream.ts";
@@ -158,7 +159,7 @@ export async function injectHttps(
   } else if (records.length === 0) {
     const params = new Map<number, Uint8Array>([[SvcParam.ALPN, encodeAlpn(opts.h3 ? ["h3", "h2"] : ["h2"])]]);
     const v4 = addresses.filter((a) => a.length === 4);
-    if (v4.length > 0) params.set(SvcParam.IPV4HINT, concat(v4));
+    if (v4.length > 0) params.set(SvcParam.IPV4HINT, concatBytes(v4));
     if (ech) params.set(SvcParam.ECH, ech);
     answers.push({ name: ownerName, type: RRType.HTTPS, ttl, data: encodeSvcb({ priority: 1, target: "", params }) });
     changed = true;
@@ -272,16 +273,6 @@ async function fetchEch(upstream: UpstreamConfig, ctx: Pick<ExecutionContext, "w
     if (config) return { config: config.slice(), ttl: Math.min(MAX_TTL, rr.ttl) };
   }
   return undefined;
-}
-
-function concat(parts: Uint8Array[]): Uint8Array {
-  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
-  let offset = 0;
-  for (const p of parts) {
-    out.set(p, offset);
-    offset += p.length;
-  }
-  return out;
 }
 
 /** Test hook: forgets the memoised ECH config */

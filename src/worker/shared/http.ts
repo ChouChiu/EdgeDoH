@@ -44,12 +44,16 @@ export async function readBody(request: Request, max: number): Promise<Uint8Arra
     if (size > max) throw new HttpError(413, `body exceeds ${max} bytes`);
     chunks.push(chunk);
   }
-  if (chunks.length === 1) return chunks[0]!;
-  const out = new Uint8Array(size);
+  return concatBytes(chunks, size);
+}
+
+export function concatBytes(parts: Uint8Array[], total = parts.reduce((n, p) => n + p.length, 0)): Uint8Array {
+  if (parts.length === 1) return parts[0]!;
+  const out = new Uint8Array(total);
   let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.byteLength;
   }
   return out;
 }

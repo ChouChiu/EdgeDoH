@@ -4,7 +4,6 @@ import {
   clientSubnet,
   decodeBase64Url,
   DnsParseError,
-  HEADER_SIZE,
   isResponse,
   MAX_MESSAGE_SIZE,
   type Message,
@@ -225,7 +224,6 @@ async function readQuery(request: Request): Promise<Uint8Array | Response> {
     return new Response("method not allowed", { status: 405, headers: { allow: "GET, POST" } });
   }
 
-  if (raw.length < HEADER_SIZE) return new Response("message too short", { status: 400 });
   if (raw.length > MAX_MESSAGE_SIZE) return new Response("message too large", { status: 413 });
   return raw;
 }

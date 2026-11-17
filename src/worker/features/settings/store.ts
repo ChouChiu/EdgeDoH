@@ -116,7 +116,7 @@ export function validateSettings(input: Record<string, unknown>): { valid: Parti
   const valid: Record<string, unknown> = {};
   const errors: string[] = [];
   const integer = (key: string, value: unknown, min: number, max: number) => {
-    if (Number.isInteger(value) && (value as number) >= min && (value as number) <= max) valid[key] = value;
+    if (typeof value === "number" && Number.isInteger(value) && value >= min && value <= max) valid[key] = value;
     else errors.push(`${key} must be an integer between ${min} and ${max}`);
   };
   const boolean = (key: string, value: unknown) => {

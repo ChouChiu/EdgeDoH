@@ -228,7 +228,7 @@ export function validateProfile(input: Record<string, unknown>): { valid: Partia
 function parseSchedule(value: unknown): Schedule | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const { timezone, days, start, end } = value as Record<string, unknown>;
-  const minute = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 1440;
+  const minute = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 1440;
   if (typeof timezone !== "string" || !isTimeZone(timezone) || !minute(start) || !minute(end)) return undefined;
   if (!Array.isArray(days) || !days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) return undefined;
   return { timezone, days: [...new Set(days as number[])].sort(), start, end };
@@ -282,15 +282,9 @@ const masks = new WeakMap<Snapshot, WeakMap<Profile, (Uint8Array | undefined)[]>
  */
 export function activeLists(snapshot: Snapshot, profile: Profile, scheduled: boolean): Uint8Array {
   let byProfile = masks.get(snapshot);
-  if (!byProfile) {
-    byProfile = new WeakMap();
-    masks.set(snapshot, byProfile);
-  }
+  if (!byProfile) masks.set(snapshot, (byProfile = new WeakMap()));
   let slots = byProfile.get(profile);
-  if (!slots) {
-    slots = [];
-    byProfile.set(profile, slots);
-  }
+  if (!slots) byProfile.set(profile, (slots = []));
   const slot = scheduled ? 1 : 0;
   const hit = slots[slot];
   if (hit) return hit;
