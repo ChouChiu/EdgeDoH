@@ -15,7 +15,7 @@ export function UpstreamHealth({ range, enabled }: { range: StatsRange; enabled:
   const health = useQuery({ queryKey: ["stats", "upstreams", range], queryFn: () => statsApi.upstreams({ range }), enabled });
   const ms = (v: number | null) => (v === null ? "–" : `${fmt.number(v)} ms`);
 
-  if (health.error) return <QueryError error={health.error} />;
+  if (health.error) return <QueryError error={health.error} onRetry={() => void health.refetch()} />;
   if (!health.data) return Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-7 w-full" />);
   if (health.data.items.length === 0) return <p className="py-6 text-center text-sm text-muted-foreground">{t("common.noData")}</p>;
   return (

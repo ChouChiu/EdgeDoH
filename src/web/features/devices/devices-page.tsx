@@ -15,7 +15,7 @@ export function DevicesPage() {
   return (
     <>
       <PageHeader title={t("nav.devices")} actions={<DeviceNameDialog />} />
-      {devices.error && <QueryError error={devices.error} />}
+      {devices.error && <QueryError error={devices.error} onRetry={() => void devices.refetch()} />}
       {devices.isPending && <Skeleton className="h-32 w-full" />}
       {devices.data?.length === 0 && (
         <EmptyState icon={<Smartphone />} title={t("devices.empty")}>

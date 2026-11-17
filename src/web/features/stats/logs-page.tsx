@@ -160,7 +160,10 @@ export function LogsPage() {
           <Input
             type="search"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (e.target.value === "" && search !== "") setParam("search", undefined);
+            }}
             placeholder={t("logs.searchPlaceholder")}
             autoCapitalize="none"
             autoCorrect="off"
@@ -184,7 +187,7 @@ export function LogsPage() {
       {isStatsNotConfigured(logs.error) ? (
         <StatsNotConfigured />
       ) : logs.error ? (
-        <QueryError error={logs.error} />
+        <QueryError error={logs.error} onRetry={() => void logs.refetch()} />
       ) : (
         <Card className="py-0">
           <CardContent className={logs.isPlaceholderData ? "px-0 opacity-60 transition-opacity" : "px-0"}>
@@ -229,7 +232,13 @@ export function LogsPage() {
             </Table>
             {items?.length === 0 && (
               <div className="p-3">
-                <EmptyState icon={<ScrollText />} title={t("logs.empty")} />
+                <EmptyState icon={<ScrollText />} title={t("logs.empty")}>
+                  {filtered && (
+                    <Button variant="link" onClick={() => setParams({}, { replace: true })}>
+                      {t("logs.clearFilters")}
+                    </Button>
+                  )}
+                </EmptyState>
               </div>
             )}
           </CardContent>

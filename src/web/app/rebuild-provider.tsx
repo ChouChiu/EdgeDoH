@@ -1,7 +1,7 @@
 import { CUSTOM_LIST_ID, DEVICE_RULES_LIST_ID, SERVICE_LIST_PREFIX } from "#contract";
 import { deviceRulesText, type FilterSource } from "#filter";
 import { useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { devicesApi } from "@/features/devices/api";
 import { LISTS_KEY, listsApi } from "@/features/filters/api";
@@ -45,40 +45,47 @@ export function RebuildProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [stage, setStage] = useState<RebuildStage | null>(null);
+  const inflight = useRef<Promise<Awaited<ReturnType<typeof rebuildSnapshot>> | undefined> | null>(null);
 
   const rebuild = useCallback(
-    async (reason = t("rebuild.default")) => {
-      const progress = (s: RebuildStage) => t("rebuild.progress", { reason, stage: t(`rebuild.stage.${s}`) });
-      const id = toast.loading(progress("download"));
-      try {
-        const result = await rebuildSnapshot({
-          load: () => loadSources(t),
-          onStage: (s) => {
-            setStage(s);
-            toast.loading(progress(s), { id });
-          },
-        });
-        if (result.lists === 0) toast.success(t("rebuild.cleared"), { id });
-        else {
-          toast.success(t("rebuild.done", { count: result.entries + result.complex }), {
-            id,
-            description: t("rebuild.doneDetail", { count: result.uploaded }),
+    (reason = t("rebuild.default")) => {
+      if (inflight.current) return inflight.current;
+      const run = (async () => {
+        const progress = (s: RebuildStage) => t("rebuild.progress", { reason, stage: t(`rebuild.stage.${s}`) });
+        const id = toast.loading(progress("download"));
+        try {
+          const result = await rebuildSnapshot({
+            load: () => loadSources(t),
+            onStage: (s) => {
+              setStage(s);
+              toast.loading(progress(s), { id });
+            },
           });
+          if (result.lists === 0) toast.success(t("rebuild.cleared"), { id });
+          else {
+            toast.success(t("rebuild.done", { count: result.entries + result.complex }), {
+              id,
+              description: t("rebuild.doneDetail", { count: result.uploaded }),
+            });
+          }
+          if (result.servicesSkipped) toast.warning(t("rebuild.servicesSkipped"));
+          return result;
+        } catch (err) {
+          toast.error(t("rebuild.failed"), { id, description: errorMessage(err, t) });
+          return undefined;
+        } finally {
+          inflight.current = null;
+          setStage(null);
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: LISTS_KEY }),
+            queryClient.invalidateQueries({ queryKey: SNAPSHOT_KEY }),
+            // The rebuild fetched the catalog past every cache; pickers and logs pick that copy up
+            queryClient.invalidateQueries({ queryKey: SERVICES_KEY }),
+          ]);
         }
-        if (result.servicesSkipped) toast.warning(t("rebuild.servicesSkipped"));
-        return result;
-      } catch (err) {
-        toast.error(t("rebuild.failed"), { id, description: errorMessage(err, t) });
-        return undefined;
-      } finally {
-        setStage(null);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: LISTS_KEY }),
-          queryClient.invalidateQueries({ queryKey: SNAPSHOT_KEY }),
-          // The rebuild fetched the catalog past every cache; pickers and logs pick that copy up
-          queryClient.invalidateQueries({ queryKey: SERVICES_KEY }),
-        ]);
-      }
+      })();
+      inflight.current = run;
+      return run;
     },
     [queryClient, t],
   );

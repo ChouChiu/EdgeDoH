@@ -54,7 +54,7 @@ export function OverviewPage() {
       {isStatsNotConfigured(summary.error) ? (
         <StatsNotConfigured />
       ) : summary.error ? (
-        <QueryError error={summary.error} />
+        <QueryError error={summary.error} onRetry={() => void summary.refetch()} />
       ) : (
         <>
           {/* The headline numbers and their trend are one reading, so they share one surface; hairline gaps split the cells */}
@@ -165,7 +165,7 @@ function TrafficChart({ range, enabled }: { range: StatsRange; enabled: boolean 
           </AreaChart>
         </ChartContainer>
       ) : series.error ? (
-        <QueryError error={series.error} />
+        <QueryError error={series.error} onRetry={() => void series.refetch()} />
       ) : (
         <Skeleton className="h-64 w-full" />
       )}

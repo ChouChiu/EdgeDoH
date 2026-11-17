@@ -2,11 +2,9 @@ import { RECORD_TYPES, type RecordType } from "#contract";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Plus } from "@/shared/components/animate-ui/icons/plus";
-import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
-import { Save } from "@/shared/components/animate-ui/icons/save";
 import { X } from "@/shared/components/animate-ui/icons/x";
+import { SaveBar } from "@/shared/components/form-section";
 import { QueryError } from "@/shared/components/page";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -38,7 +36,7 @@ export function LocalRecords() {
     onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
   });
 
-  if (records.error) return <QueryError error={records.error} />;
+  if (records.error) return <QueryError error={records.error} onRetry={() => void records.refetch()} />;
   if (!draft || !records.data) return <Skeleton className="h-40 w-full" />;
 
   const update = (i: number, patch: Partial<LocalRecord>) => setDraft(draft.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -96,17 +94,12 @@ export function LocalRecords() {
           </Button>
         </CardContent>
       </Card>
-      <div className="sticky bottom-keyboard-float z-10 flex items-center justify-end gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
-        {dirty && <span className="mr-auto text-xs text-muted-foreground">{t("common.unsaved")}</span>}
-        <Button type="button" variant="ghost" disabled={!dirty || save.isPending} onClick={() => setDraft(records.data)}>
-          <RotateCcw />
-          {t("common.reset")}
-        </Button>
-        <Button type="submit" disabled={!dirty || save.isPending}>
-          {save.isPending ? <LoaderCircle animate /> : <Save />}
-          {t("common.save")}
-        </Button>
-      </div>
+      <SaveBar
+        dirty={dirty}
+        saving={save.isPending}
+        onReset={() => setDraft(records.data)}
+        onSave={() => dirty && !save.isPending && save.mutate(draft)}
+      />
     </form>
   );
 }

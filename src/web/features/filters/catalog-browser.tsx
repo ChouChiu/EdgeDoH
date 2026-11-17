@@ -61,7 +61,7 @@ export function CatalogBrowser({ installed, actions }: { installed: FilterList[]
 
   const groupLabel = (id: number, fallback: string) => (KNOWN_GROUPS.has(id) ? t(`filters.group.${id}` as MessageKey) : fallback);
 
-  if (catalog.error) return <QueryError error={catalog.error} title={t("filters.catalogError")} />;
+  if (catalog.error) return <QueryError error={catalog.error} title={t("filters.catalogError")} onRetry={() => void catalog.refetch()} />;
 
   return (
     <>

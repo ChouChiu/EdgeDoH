@@ -1,15 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
 import { Save } from "@/shared/components/animate-ui/icons/save";
+import { UnsavedChangesDialog } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Textarea } from "@/shared/ui/textarea";
 import { useRebuild } from "@/features/snapshot/api";
+import { useSaveShortcut, useUnsavedGuard } from "@/shared/hooks/use-unsaved-guard";
 import { useI18n } from "@/shared/i18n";
 import { errorMessage } from "@/shared/lib/http";
 import { CUSTOM_RULES_KEY, rulesApi } from "./api";
@@ -19,7 +21,6 @@ export function CustomRulesPage() {
   const { t } = useI18n();
   const rules = useQuery({ queryKey: CUSTOM_RULES_KEY, queryFn: rulesApi.get });
   const [text, setText] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const { rebuild } = useRebuild();
 
   useEffect(() => {
@@ -27,45 +28,40 @@ export function CustomRulesPage() {
   }, [rules.data]);
 
   const dirty = text !== null && rules.data !== undefined && text !== rules.data;
-  useUnsavedGuard(dirty);
+  const guard = useUnsavedGuard(dirty);
 
   const ruleCount = (text ?? "").split("\n").filter((l) => l.trim() && !/^[!#]/.test(l.trim())).length;
 
-  const save = async () => {
-    if (!dirty || saving || text === null) return;
-    setSaving(true);
-    try {
-      await rulesApi.put(text);
+  const saveMutation = useMutation({
+    mutationFn: async (next: string) => {
+      await rulesApi.put(next);
       await rules.refetch();
       await rebuild(t("rules.saveReason"));
-    } catch (err) {
-      toast.error(t("common.saveFailed"), { description: errorMessage(err, t) });
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
+  });
 
-  const onKeyDown = (e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      void save();
-    }
+  const saving = saveMutation.isPending;
+  const save = () => {
+    if (dirty && !saving && text !== null) saveMutation.mutate(text);
   };
+  useSaveShortcut(dirty && !saving, save);
 
   return (
     <>
+      <UnsavedChangesDialog guard={guard} />
       <PageHeader
         title={t("nav.rules")}
         description={t("rules.description")}
         actions={
-          <Button disabled={!dirty || saving} onClick={() => void save()}>
+          <Button disabled={!dirty || saving} onClick={save}>
             {saving ? <LoaderCircle animate /> : <Save />}
             {t("rules.saveApply")}
           </Button>
         }
       />
       {rules.error ? (
-        <QueryError error={rules.error} />
+        <QueryError error={rules.error} onRetry={() => void rules.refetch()} />
       ) : (
         <Card className="overflow-visible!">
           <CardContent>
@@ -75,7 +71,6 @@ export function CustomRulesPage() {
               <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={onKeyDown}
                 placeholder={t("rules.example")}
                 spellCheck={false}
                 autoCapitalize="none"
@@ -95,7 +90,7 @@ export function CustomRulesPage() {
                   <RotateCcw />
                   {t("common.reset")}
                 </Button>
-                <Button size="sm" className="md:hidden" disabled={saving} onClick={() => void save()}>
+                <Button size="sm" className="md:hidden" disabled={saving} onClick={save}>
                   {saving ? <LoaderCircle animate /> : <Save />}
                   {t("common.save")}
                 </Button>
@@ -107,14 +102,4 @@ export function CustomRulesPage() {
       <RuleTester />
     </>
   );
-}
-
-/** Asks before closing or reloading the tab while there are unsaved edits */
-function useUnsavedGuard(dirty: boolean) {
-  useEffect(() => {
-    if (!dirty) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
 }

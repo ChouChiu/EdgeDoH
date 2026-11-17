@@ -1,8 +1,10 @@
 import { DEFAULT_PROFILE_ID } from "#contract";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
+import { Check } from "@/shared/components/animate-ui/icons/check";
 import { Copy } from "@/shared/components/animate-ui/icons/copy";
 import { Download } from "@/shared/components/animate-ui/icons/download";
 import { Network } from "@/shared/components/animate-ui/icons/network";
@@ -27,6 +29,14 @@ import { DeviceRulesDialog } from "./device-rules-dialog";
 export function DeviceCard({ device }: { device: Device }) {
   const { t, fmt } = useI18n();
   const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   const remove = useMutation({
     mutationFn: () => devicesApi.remove(device.id),
     onSuccess: () => {
@@ -68,11 +78,15 @@ export function DeviceCard({ device }: { device: Device }) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => void copyText(device.dohUrl, t, t("devices.urlCopied"))}
+            onClick={() => {
+              void copyText(device.dohUrl, t, t("devices.urlCopied")).then((ok) => {
+                if (ok) setCopied(true);
+              });
+            }}
             aria-label={t("common.copy")}
             title={t("common.copy")}
           >
-            <Copy />
+            {copied ? <Check className="text-success" /> : <Copy />}
           </Button>
         </div>
         {/* One row of controls: what the device gets (profile, pause) first, then setup and drill-downs */}

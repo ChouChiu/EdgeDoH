@@ -1,7 +1,7 @@
 import { CUSTOM_LIST_ID, DEVICE_RULES_LIST_ID } from "#contract";
 import type { ListMeta } from "#filter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useRebuild } from "@/features/snapshot/api";
 import { useI18n } from "@/shared/i18n";
@@ -93,14 +93,18 @@ export function useRouteLists() {
 export function useListName(): (id: string) => string {
   const { t } = useI18n();
   const lists = useQuery({ queryKey: LISTS_KEY, queryFn: listsApi.list });
-  return (id) => {
-    if (id === CUSTOM_LIST_ID) return t("rebuild.customList");
-    if (id === "safesearch") return t("profiles.safeSearch");
-    if (id === "local") return t("dns.records");
-    if (id === "rebinding") return t("profiles.rebinding");
-    if (id === DEVICE_RULES_LIST_ID) return t("devices.rules");
-    return lists.data?.find((l) => l.id === id)?.name ?? id;
-  };
+  const byId = useMemo(() => new Map(lists.data?.map((l) => [l.id, l.name])), [lists.data]);
+  return useCallback(
+    (id: string) => {
+      if (id === CUSTOM_LIST_ID) return t("rebuild.customList");
+      if (id === "safesearch") return t("profiles.safeSearch");
+      if (id === "local") return t("dns.records");
+      if (id === "rebinding") return t("profiles.rebinding");
+      if (id === DEVICE_RULES_LIST_ID) return t("devices.rules");
+      return byId.get(id) ?? id;
+    },
+    [byId, t],
+  );
 }
 
 export type ListActions = ReturnType<typeof useListAction>;

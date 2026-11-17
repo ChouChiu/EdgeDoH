@@ -5,13 +5,9 @@ import { cn } from "cn";
 import { motion } from "motion/react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
-import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
-import { Save } from "@/shared/components/animate-ui/icons/save";
-import { ListField, Row, Section } from "@/shared/components/form-section";
+import { ListField, Row, SaveBar, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ThemeSwitch } from "@/shared/components/header-controls";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -78,14 +74,14 @@ function SectionIndex() {
   const reduce = useShouldReduceMotion();
   const [active, setActive] = useState<SectionKey>(SECTIONS[0]);
   // While a click scrolls to its section, the sections passing by must not pull the marker along
-  const jumping = useRef(false);
+  const jumpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Looked up on every frame rather than observed once: the server sections mount only after their draft is ready
   useEffect(() => {
     let frame = 0;
     const update = () => {
       frame = 0;
-      if (jumping.current) return;
+      if (jumpTimer.current !== null) return;
       let current: SectionKey = SECTIONS[0];
       for (const key of SECTIONS) {
         const top = document.getElementById(sectionId(key))?.getBoundingClientRect().top;
@@ -107,14 +103,16 @@ function SectionIndex() {
 
   const jump = (key: SectionKey) => {
     setActive(key);
-    jumping.current = true;
+    if (jumpTimer.current !== null) clearTimeout(jumpTimer.current);
     const release = () => {
-      jumping.current = false;
+      if (jumpTimer.current !== null) {
+        clearTimeout(jumpTimer.current);
+        jumpTimer.current = null;
+      }
       window.removeEventListener("scrollend", release);
     };
-    window.addEventListener("scrollend", release);
-    // Browsers without scrollend, or a target already in place, never fire it
-    setTimeout(release, 1000);
+    window.addEventListener("scrollend", release, { once: true });
+    jumpTimer.current = setTimeout(release, 1000);
     document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   };
 
@@ -194,7 +192,7 @@ function ServerSettings() {
     onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
   });
 
-  if (settings.error) return <QueryError error={settings.error} />;
+  if (settings.error) return <QueryError error={settings.error} onRetry={() => void settings.refetch()} />;
   if (!draft || !settings.data) return <Skeleton className="h-96 w-full" />;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...draft, [key]: value });
@@ -213,9 +211,12 @@ function ServerSettings() {
   const invalid = Object.values(errors).some(Boolean);
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(settings.data));
 
+  const saveNow = () => {
+    if (dirty && !save.isPending && !invalid) save.mutate(fromDraft(draft, { upstreams, echForcedDomains: forcedDomains }));
+  };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!invalid) save.mutate(fromDraft(draft, { upstreams, echForcedDomains: forcedDomains }));
+    saveNow();
   };
 
   const number = (key: NumberField, min: number, max: number, className = "w-32") => (
@@ -379,17 +380,13 @@ function ServerSettings() {
         </fieldset>
       </Section>
 
-      <div className="sticky bottom-keyboard-float z-10 flex items-center justify-end gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
-        {dirty && <span className="mr-auto text-xs text-muted-foreground">{t("common.unsaved")}</span>}
-        <Button type="button" variant="ghost" disabled={!dirty || save.isPending} onClick={() => setDraft(toDraft(settings.data))}>
-          <RotateCcw />
-          {t("common.reset")}
-        </Button>
-        <Button type="submit" disabled={!dirty || save.isPending || invalid}>
-          {save.isPending ? <LoaderCircle animate /> : <Save />}
-          {t("common.save")}
-        </Button>
-      </div>
+      <SaveBar
+        dirty={dirty}
+        saving={save.isPending}
+        invalid={invalid}
+        onReset={() => setDraft(toDraft(settings.data))}
+        onSave={saveNow}
+      />
     </form>
   );
 }

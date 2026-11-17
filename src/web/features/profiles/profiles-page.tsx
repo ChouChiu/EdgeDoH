@@ -24,17 +24,17 @@ export function ProfilesPage() {
   return (
     <>
       <PageHeader title={t("nav.profiles")} actions={<NewProfileDialog />} />
-      {profiles.error && <QueryError error={profiles.error} />}
+      {profiles.error && <QueryError error={profiles.error} onRetry={() => void profiles.refetch()} />}
       {profiles.isPending && <Skeleton className="h-32 w-full" />}
       <div className="grid gap-2">
         {profiles.data?.map((p) => (
-          <Card key={p.id} size="sm" className="transition-colors hover:bg-accent/40">
-            <Link to={`/profiles/${p.id}`} className="contents">
+          <Link key={p.id} to={`/profiles/${p.id}`} className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <Card size="sm" className="transition-colors group-hover:bg-accent/40">
               <CardHeader>
                 <CardTitle>{profileName(p, t)}</CardTitle>
                 <CardDescription>{t("profiles.devices", { count: p.devices })}</CardDescription>
                 <CardAction>
-                  <ChevronRight className="size-4 text-muted-foreground" />
+                  <ChevronRight className="size-4 text-muted-foreground transition-transform duration-200 ease-standard group-hover:translate-x-0.5" />
                 </CardAction>
                 <div className="col-span-full flex flex-wrap gap-1 pt-1">
                   {summary(p, t, profiles.data).map((label) => (
@@ -44,8 +44,8 @@ export function ProfilesPage() {
                   ))}
                 </div>
               </CardHeader>
-            </Link>
-          </Card>
+            </Card>
+          </Link>
         ))}
       </div>
     </>

@@ -26,7 +26,7 @@ export function FiltersPage() {
           <TabsTrigger value="catalog">{t("filters.tab.catalog")}</TabsTrigger>
         </TabsList>
         <TabsContent value="installed" className="mt-3 space-y-3">
-          <InstalledLists lists={lists.data} error={lists.error} actions={actions} onBrowse={() => setParams({ tab: "catalog" })} />
+          <InstalledLists lists={lists.data} error={lists.error} onRetry={() => void lists.refetch()} actions={actions} onBrowse={() => setParams({ tab: "catalog" })} />
         </TabsContent>
         <TabsContent value="catalog" className="mt-3 space-y-3">
           <CatalogBrowser installed={lists.data ?? []} actions={actions} />

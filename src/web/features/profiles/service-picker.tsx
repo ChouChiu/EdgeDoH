@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search } from "@/shared/components/animate-ui/icons/search";
-import { QueryError } from "@/shared/components/page";
+import { EmptyState, QueryError } from "@/shared/components/page";
 import { ServiceIcon } from "@/shared/components/service-icon";
 import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -14,14 +14,19 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
   const { t } = useI18n();
   const services = useServices();
   const [search, setSearch] = useState("");
-  const selected = new Set(value);
+  const selected = useMemo(() => new Set(value), [value]);
 
   const groups = useMemo(() => {
     const term = search.trim().toLowerCase();
     const byGroup = new Map<string, Service[]>();
     for (const s of services.data ?? []) {
       if (term && !s.name.toLowerCase().includes(term) && !s.id.includes(term)) continue;
-      byGroup.set(s.group, [...(byGroup.get(s.group) ?? []), s]);
+      let list = byGroup.get(s.group);
+      if (!list) {
+        list = [];
+        byGroup.set(s.group, list);
+      }
+      list.push(s);
     }
     // In GROUPS order; a group the catalog adds later goes just before "other", which is last
     const rank = (g: string) => {
@@ -32,7 +37,7 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
     return [...byGroup].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
   }, [services.data, search]);
 
-  if (services.error) return <QueryError error={services.error} />;
+  if (services.error) return <QueryError error={services.error} onRetry={() => void services.refetch()} />;
   if (!services.data) return <Skeleton className="h-40 w-full" />;
 
   const toggle = (sid: string) => onChange(selected.has(sid) ? value.filter((v) => v !== sid) : [...value, sid]);
@@ -41,8 +46,17 @@ export function ServicePicker({ id, value, onChange }: { id: string; value: stri
     <div className="space-y-3 py-3">
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input id={id} className="pl-8" placeholder={t("profiles.searchServices")} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input
+          id={id}
+          type="search"
+          aria-label={t("profiles.searchServices")}
+          className="pl-8"
+          placeholder={t("profiles.searchServices")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
+      {groups.length === 0 && <EmptyState icon={<Search />} title={t("filters.noMatch")} />}
       {groups.map(([group, items]) => (
         <fieldset key={group} className="space-y-1.5">
           <legend className="text-xs font-medium text-muted-foreground">{groupLabel(group, t)}</legend>

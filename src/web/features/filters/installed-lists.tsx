@@ -33,18 +33,20 @@ import { type FilterList, type ListActions, LISTS_KEY, listsApi, useListControls
 export function InstalledLists({
   lists,
   error,
+  onRetry,
   actions,
   onBrowse,
 }: {
   lists: FilterList[] | undefined;
   error: unknown;
+  onRetry?: () => void;
   actions: ListActions;
   onBrowse: () => void;
 }) {
   const { t } = useI18n();
   const ids = useMemo(() => lists?.map((l) => l.id) ?? [], [lists]);
   const selection = useSelection(ids);
-  if (error) return <QueryError error={error} />;
+  if (error) return <QueryError error={error} onRetry={onRetry} />;
 
   const batch = (keys: string[], step: string, each: (id: string) => Promise<unknown>, reason: string) => {
     selection.clear();
@@ -237,28 +239,28 @@ function RenameDialog({ list, disabled }: { list: FilterList; disabled: boolean 
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(list.name);
-  const [saving, setSaving] = useState(false);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setSaving(true);
-    try {
-      await listsApi.update(list.id, { name: name.trim() });
+  const rename = useMutation({
+    mutationFn: (next: string) => listsApi.update(list.id, { name: next }),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: LISTS_KEY });
       setOpen(false);
       toast.success(t("filters.renamed"));
-    } catch (err) {
-      toast.error(t("common.saveFailed"), { description: errorMessage(err, t) });
-    } finally {
-      setSaving(false);
-    }
+    },
+    onError: (err) => toast.error(t("common.saveFailed"), { description: errorMessage(err, t) }),
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (trimmed) rename.mutate(trimmed);
   };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (rename.isPending) return;
         if (next) setName(list.name);
         setOpen(next);
       }}
@@ -278,8 +280,8 @@ function RenameDialog({ list, disabled }: { list: FilterList; disabled: boolean 
             <Input id={`rename-${list.id}`} required autoFocus maxLength={MAX_LIST_NAME} value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="done" />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving && <LoaderCircle animate />}
+            <Button type="submit" disabled={rename.isPending || !name.trim()}>
+              {rename.isPending && <LoaderCircle animate />}
               {t("common.save")}
             </Button>
           </DialogFooter>

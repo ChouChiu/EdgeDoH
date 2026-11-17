@@ -1,5 +1,6 @@
 import { type BlockingMode, DEFAULT_PROFILE_ID } from "#contract";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import type { Translate } from "@/shared/i18n";
 import { jsonBody, request } from "@/shared/lib/http";
 
@@ -99,6 +100,11 @@ export function useProfiles() {
 
 export function useServices() {
   return useQuery({ queryKey: SERVICES_KEY, queryFn: () => servicesApi.list(), staleTime: 60 * 60_000 });
+}
+
+export function useServiceMap(): Map<string, Service> {
+  const services = useServices();
+  return useMemo(() => new Map(services.data?.map((s) => [s.id, s])), [services.data]);
 }
 
 /** Display name of a profile; the built-in default one is translated */

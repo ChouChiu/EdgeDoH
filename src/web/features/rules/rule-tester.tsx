@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { ActionBadge } from "@/shared/components/action-badge";
@@ -25,21 +26,18 @@ export function RuleTester() {
   const [name, setName] = useState("");
   const [type, setType] = useState("A");
   const [device, setDevice] = useState(ANY_DEVICE);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof rulesApi.test>> | null>(null);
-  const [testing, setTesting] = useState(false);
 
-  const test = async (e: FormEvent) => {
+  const run = useMutation({
+    mutationFn: () => rulesApi.test(name.trim(), type, device === ANY_DEVICE ? undefined : device),
+    onError: (err) => toast.error(t("tester.failed"), { description: errorMessage(err, t) }),
+  });
+
+  const test = (e: FormEvent) => {
     e.preventDefault();
-    setTesting(true);
-    try {
-      setResult(await rulesApi.test(name.trim(), type, device === ANY_DEVICE ? undefined : device));
-    } catch (err) {
-      toast.error(t("tester.failed"), { description: errorMessage(err, t) });
-    } finally {
-      setTesting(false);
-    }
+    run.mutate();
   };
 
+  const result = run.data;
   const verdict = result?.verdict;
   return (
     <Card size="sm">
@@ -87,8 +85,8 @@ export function RuleTester() {
               ))}
             </SelectContent>
           </Select>
-          <Button type="submit" variant="outline" disabled={testing}>
-            {testing ? <LoaderCircle animate /> : <FlaskConical />}
+          <Button type="submit" variant="outline" disabled={run.isPending}>
+            {run.isPending ? <LoaderCircle animate /> : <FlaskConical />}
             {t("tester.run")}
           </Button>
         </form>

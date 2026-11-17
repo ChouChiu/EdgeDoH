@@ -1,5 +1,6 @@
 import { MAX_LIST_NAME } from "#contract";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { type FilterList, type ListActions, listsApi, useListControls, useRouteLists } from "@/features/filters/api";
 import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
 import { Network } from "@/shared/components/animate-ui/icons/network";
@@ -20,6 +21,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n";
+import { errorMessage } from "@/shared/lib/http";
 import { splitUpstreams, validateUpstreams } from "@/shared/lib/upstreams";
 
 const NEW_KEY = "new-route";
@@ -28,7 +30,7 @@ const NEW_KEY = "new-route";
 export function RouteLists({ actions }: { actions: ListActions }) {
   const { t } = useI18n();
   const lists = useRouteLists();
-  if (lists.error) return <QueryError error={lists.error} />;
+  if (lists.error) return <QueryError error={lists.error} onRetry={() => void lists.refetch()} />;
   return (
     <>
       {!lists.data && <Skeleton className="h-24 w-full" />}
@@ -108,15 +110,36 @@ export function RouteDialog({ list, actions }: { list?: FilterList; actions: Lis
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
+  const [loadingText, setLoadingText] = useState(false);
   const [upstreams, setUpstreams] = useState("");
 
-  const onOpenChange = async (next: boolean) => {
+  useEffect(() => {
+    if (!open || !list || list.source !== "inline") return;
+    let cancelled = false;
+    setLoadingText(true);
+    listsApi
+      .text(list.id)
+      .then((value) => {
+        if (!cancelled) setText(value);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(t("common.saveFailed"), { description: errorMessage(err, t) });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingText(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, list, t]);
+
+  const onOpenChange = (next: boolean) => {
     if (busy) return;
     if (next) {
       setName(list?.name ?? "");
       setUrl(list?.url ?? "");
       setUpstreams(list?.upstreams?.join("\n") ?? "");
-      setText(list?.source === "inline" ? await listsApi.text(list.id) : "");
+      setText("");
     }
     setOpen(next);
   };
@@ -145,7 +168,7 @@ export function RouteDialog({ list, actions }: { list?: FilterList; actions: Lis
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => void onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         {list ? (
           <Button variant="ghost" size="icon-sm" disabled={busy !== undefined} aria-label={t("dns.editRoute")} title={t("dns.editRoute")}>
@@ -198,6 +221,7 @@ export function RouteDialog({ list, actions }: { list?: FilterList; actions: Lis
               label={t("dns.domainsLabel")}
               className="[&_textarea]:min-h-32"
               placeholder={"corp.example\nserver=/intranet.example/10.0.0.53"}
+              disabled={loadingText}
               value={text}
               onChange={setText}
             />
@@ -214,7 +238,7 @@ export function RouteDialog({ list, actions }: { list?: FilterList; actions: Lis
             onChange={setUpstreams}
           />
           <DialogFooter>
-            <Button type="submit" disabled={busy !== undefined || upstreamError !== undefined}>
+            <Button type="submit" disabled={busy !== undefined || loadingText || upstreamError !== undefined}>
               {busy && <LoaderCircle animate />}
               {busy ?? t("common.save")}
             </Button>

@@ -6,11 +6,8 @@ import { toast } from "sonner";
 import { useLists } from "@/features/filters/api";
 import { snapshotApi } from "@/features/snapshot/api";
 import { useRebuild } from "@/features/snapshot/api";
-import { LoaderCircle } from "@/shared/components/animate-ui/icons/loader-circle";
-import { RotateCcw } from "@/shared/components/animate-ui/icons/rotate-ccw";
-import { Save } from "@/shared/components/animate-ui/icons/save";
 import { Trash2 } from "@/shared/components/animate-ui/icons/trash-2";
-import { ListField, Row, Section } from "@/shared/components/form-section";
+import { ListField, Row, SaveBar, Section } from "@/shared/components/form-section";
 import { PageHeader, QueryError } from "@/shared/components/page";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { Button } from "@/shared/ui/button";
@@ -38,7 +35,7 @@ export function ProfilePage() {
   const profiles = useProfiles();
   const profile = profiles.data?.find((p) => p.id === id);
 
-  if (profiles.error) return <QueryError error={profiles.error} />;
+  if (profiles.error) return <QueryError error={profiles.error} onRetry={() => void profiles.refetch()} />;
   if (!profiles.data) return <Skeleton className="h-96 w-full" />;
   if (!profile) return <QueryError error={new Error(t("profiles.notFound"))} />;
   return <ProfileForm key={profile.id} profile={profile} />;
@@ -82,9 +79,13 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(profile));
   const isDefault = profile.id === DEFAULT_PROFILE_ID;
 
+  const invalid = upstreamError !== undefined || nameError;
+  const saveNow = () => {
+    if (dirty && !save.isPending && !invalid) save.mutate(draft);
+  };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!upstreamError && !nameError) save.mutate(draft);
+    saveNow();
   };
 
   const listOptions = [
@@ -93,8 +94,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
   ];
   const chosen = new Set(draft.lists ?? []);
   const otherProfiles = (profiles.data ?? []).filter((p) => p.id !== profile.id);
-  // A target deleted since it was chosen is ignored by the Worker, so it reads as no switch
-  const switchTarget = otherProfiles.some((p) => p.id === draft.scheduledProfile) ? draft.scheduledProfile : null;
+  const switchTarget = draft.scheduledProfile;
 
   return (
     <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-4">
@@ -228,17 +228,13 @@ function ProfileForm({ profile }: { profile: Profile }) {
         </Row>
       </Section>
 
-      <div className="sticky bottom-keyboard-float z-10 flex items-center justify-end gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur">
-        {dirty && <span className="mr-auto text-xs text-muted-foreground">{t("common.unsaved")}</span>}
-        <Button type="button" variant="ghost" disabled={!dirty || save.isPending} onClick={() => setDraft(toDraft(profile))}>
-          <RotateCcw />
-          {t("common.reset")}
-        </Button>
-        <Button type="submit" disabled={!dirty || save.isPending || upstreamError !== undefined || nameError}>
-          {save.isPending ? <LoaderCircle animate /> : <Save />}
-          {t("common.save")}
-        </Button>
-      </div>
+      <SaveBar
+        dirty={dirty}
+        saving={save.isPending}
+        invalid={invalid}
+        onReset={() => setDraft(toDraft(profile))}
+        onSave={saveNow}
+      />
     </form>
   );
 }

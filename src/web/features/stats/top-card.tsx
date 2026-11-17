@@ -5,7 +5,7 @@ import { QueryError } from "@/shared/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useListName } from "@/features/filters/api";
-import { useServices } from "@/features/profiles/api";
+import { useServiceMap } from "@/features/profiles/api";
 import { ServiceIcon } from "@/shared/components/service-icon";
 import { useI18n } from "@/shared/i18n";
 import { statsApi, type TopItem, type TopKind } from "./api";
@@ -62,8 +62,8 @@ export function TopCard(props: TopProps) {
 export function TopList({ kind, range, enabled }: TopProps) {
   const { t, fmt } = useI18n();
   const listName = useListName();
-  const services = useServices();
-  const service = (id: string) => services.data?.find((s) => s.id === id);
+  const services = useServiceMap();
+  const service = (id: string) => services.get(id);
   const top = useQuery({ queryKey: ["stats", "top", kind, range], queryFn: () => statsApi.top(kind, { range }, 10), enabled });
   const max = Math.max(1, ...(top.data?.items.map((i) => i.count) ?? []));
   const labelOf = (item: TopItem) =>
@@ -71,7 +71,7 @@ export function TopList({ kind, range, enabled }: TopProps) {
 
   return (
     <>
-      {top.error && <QueryError error={top.error} />}
+      {top.error && <QueryError error={top.error} onRetry={() => void top.refetch()} />}
       {!top.data && !top.error && Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-7 w-full" />)}
       {top.data?.items.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t("common.noData")}</p>}
       {top.data?.items.map((item) => {

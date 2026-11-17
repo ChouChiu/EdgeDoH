@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { TableCell, TableRow } from "@/shared/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useListName } from "@/features/filters/api";
-import { useServices } from "@/features/profiles/api";
+import { useServiceMap } from "@/features/profiles/api";
 import { ServiceIcon } from "@/shared/components/service-icon";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/lib/clipboard";
@@ -31,8 +31,8 @@ interface LogRowProps {
 export function LogRow({ entry, selected, onSelect, onRule }: LogRowProps) {
   const { t, fmt } = useI18n();
   const listName = useListName();
-  const services = useServices();
-  const service = entry.service ? services.data?.find((s) => s.id === entry.service) : undefined;
+  const services = useServiceMap();
+  const service = entry.service ? services.get(entry.service) : undefined;
   const origin = [entry.client, entry.network].filter(Boolean).join(" · ");
   const details = [entry.type, entry.rcode !== "NOERROR" && entry.rcode, entry.source !== "upstream" && t(`logs.source.${entry.source}`)].filter(Boolean);
   return (
